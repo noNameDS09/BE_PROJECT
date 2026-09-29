@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Offline copy of https://claude.ai/artifact/7FoMkC7LqdD8Mp8FVPw6Sx . Edit the published page, then re-export; do not hand-edit here. -->
+<style>body{margin:0}</style>
+<title>Loupe Project Compass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column (~60rem) with a sticky section index; regulation references set in mono like a filing. */
+:root {
+  --paper: #f5f6f3;
+  --sheet: #ffffff;
+  --ink: #17201e;
+  --muted: #56615d;
+  --rule: #d9ddd7;
+  --accent: #23497a;       /* circular-navy */
+  --accent-soft: #e4ebf4;
+  --saffron: #b76a12;      /* decisions */
+  --saffron-soft: #f8ecdc;
+  --bad: #b3261e;
+  --bad-soft: #f9e3e1;
+  --warn: #9a6400;
+  --warn-soft: #fbf0d6;
+  --good: #1d6b45;
+  --good-soft: #e0f0e6;
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --s1: .25rem; --s2: .5rem; --s3: .75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2.25rem; --s7: 3.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121716; --sheet: #1a2120; --ink: #e6ebe8; --muted: #9aa6a1; --rule: #2e3835;
+    --accent: #8fb3e6; --accent-soft: #1d2a3b; --saffron: #e5a456; --saffron-soft: #33271a;
+    --bad: #f08c84; --bad-soft: #3a1f1d; --warn: #e3b456; --warn-soft: #362c16; --good: #7fcaa0; --good-soft: #17301f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121716; --sheet: #1a2120; --ink: #e6ebe8; --muted: #9aa6a1; --rule: #2e3835;
+  --accent: #8fb3e6; --accent-soft: #1d2a3b; --saffron: #e5a456; --saffron-soft: #33271a;
+  --bad: #f08c84; --bad-soft: #3a1f1d; --warn: #e3b456; --warn-soft: #362c16; --good: #7fcaa0; --good-soft: #17301f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 1rem; line-height: 1.6; }
+.wrap { max-width: 60rem; margin: 0 auto; padding-inline: max(16px, 4vw); padding-block: var(--s6) var(--s7); }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+code, .mono { font-family: var(--f-mono); font-size: .86em; }
+.eyebrow { font-family: var(--f-mono); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+
+/* header */
+header.top { display: grid; gap: var(--s4); padding-bottom: var(--s5); border-bottom: 1px solid var(--rule); }
+.lead { font-size: 1.12rem; max-width: 62ch; }
+.meta { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); font-size: .9rem; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* index */
+nav.index { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); margin-inline: calc(-1 * max(16px, 4vw)); padding: var(--s2) max(16px, 4vw); overflow-x: auto; }
+nav.index ol { list-style: none; display: flex; gap: var(--s4); margin: 0; padding: 0; white-space: nowrap; font-size: .85rem; }
+nav.index a { color: var(--muted); text-decoration: none; }
+nav.index a:hover { color: var(--accent); }
+nav.index span { font-family: var(--f-mono); color: var(--accent); margin-right: .3em; }
+
+section { display: grid; gap: var(--s4); padding-top: var(--s7); scroll-margin-top: 3rem; }
+.sec-head { display: grid; gap: var(--s2); }
+
+/* status */
+.status { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--s4); }
+.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4) var(--s5); display: grid; gap: var(--s3); align-content: start; min-width: 0; }
+.checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); font-size: .94rem; }
+.checklist li { display: grid; grid-template-columns: 1.4rem 1fr; gap: var(--s2); align-items: baseline; }
+.dot { width: .7rem; height: .7rem; border-radius: 50%; display: inline-block; transform: translateY(1px); }
+.dot.good { background: var(--good); }
+.dot.bad { background: transparent; border: 2px solid var(--bad); }
+.dot.warn { background: var(--warn); }
+.verdict { font-family: var(--f-display); font-size: 1.25rem; font-weight: 600; }
+
+/* pipeline */
+.pipeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); overflow: hidden; }
+.stage { padding: var(--s4); display: grid; gap: var(--s2); align-content: start; border-right: 1px solid var(--rule); position: relative; min-width: 0; }
+.stage:last-child { border-right: 0; }
+.stage .num { font-family: var(--f-mono); font-size: .75rem; color: var(--accent); letter-spacing: .06em; }
+.stage h3 { font-size: 1.25rem; }
+.stage dl { margin: 0; display: grid; gap: var(--s2); font-size: .86rem; }
+.stage dt { font-family: var(--f-mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.stage dd { margin: 0; }
+.stage:not(:last-child)::after { content: "→"; position: absolute; right: -.55rem; top: 1rem; background: var(--sheet); color: var(--accent); font-weight: 600; padding: 0 .1rem; z-index: 1; }
+@media (max-width: 760px) {
+  .pipeline { grid-template-columns: 1fr; }
+  .stage { border-right: 0; border-bottom: 1px solid var(--rule); }
+  .stage:last-child { border-bottom: 0; }
+  .stage:not(:last-child)::after { content: "↓"; right: auto; left: 1rem; top: auto; bottom: -.8rem; }
+}
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: var(--s3) var(--s4); border-radius: 0 4px 4px 0; font-size: .94rem; }
+.callout p { max-width: none; }
+
+/* issues */
+.issues { display: grid; gap: var(--s3); }
+.issue { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: var(--s4); background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); }
+.sev { font-family: var(--f-mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 500; padding: .15rem .45rem; border-radius: 3px; height: fit-content; text-align: center; }
+.sev.high { color: var(--bad); background: var(--bad-soft); }
+.sev.med { color: var(--warn); background: var(--warn-soft); }
+.sev.low { color: var(--muted); background: var(--paper); border: 1px solid var(--rule); }
+.issue-body { display: grid; gap: var(--s2); min-width: 0; }
+.issue-body p { font-size: .94rem; }
+.fix { font-size: .9rem; color: var(--muted); }
+.fix b { color: var(--ink); font-weight: 600; }
+@media (max-width: 520px) { .issue { grid-template-columns: 1fr; gap: var(--s2); } .sev { width: fit-content; } }
+
+/* tables */
+.table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: .6rem .8rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--f-mono); font-size: .72rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--paper); white-space: nowrap; }
+td.fid { font-family: var(--f-mono); color: var(--accent); white-space: nowrap; }
+.tag { font-family: var(--f-mono); font-size: .72rem; padding: .1rem .4rem; border-radius: 3px; white-space: nowrap; display: inline-block; }
+.tag.core { color: var(--good); background: var(--good-soft); }
+.tag.free { color: var(--accent); background: var(--accent-soft); }
+.tag.stretch { color: var(--warn); background: var(--warn-soft); }
+.tag.defer { color: var(--muted); border: 1px solid var(--rule); }
+.tag.wrong { color: var(--bad); background: var(--bad-soft); }
+.tag.missing { color: var(--warn); background: var(--warn-soft); }
+
+/* decisions */
+.decisions { display: grid; gap: var(--s3); }
+details.decision { background: var(--sheet); border: 1px solid var(--rule); border-left: 3px solid var(--saffron); border-radius: 0 6px 6px 0; }
+details.decision summary { cursor: pointer; padding: var(--s3) var(--s4); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s3); align-items: baseline; list-style: none; }
+details.decision summary::-webkit-details-marker { display: none; }
+details.decision summary .q { font-weight: 600; }
+details.decision summary .rec { font-family: var(--f-mono); font-size: .78rem; color: var(--saffron); background: var(--saffron-soft); padding: .1rem .45rem; border-radius: 3px; white-space: nowrap; }
+details.decision .why { padding: 0 var(--s4) var(--s4); font-size: .93rem; display: grid; gap: var(--s2); }
+@media (max-width: 520px) { details.decision summary { grid-template-columns: 1fr; } .rec { width: fit-content; } }
+
+/* roadmap */
+.roadmap { display: grid; gap: 0; border-left: 2px solid var(--rule); margin-left: .4rem; }
+.phase { display: grid; gap: var(--s2); padding: 0 0 var(--s5) var(--s5); position: relative; }
+.phase::before { content: ""; position: absolute; left: -.5rem; top: .35rem; width: .85rem; height: .85rem; border-radius: 50%; background: var(--paper); border: 2px solid var(--accent); }
+.phase.now::before { background: var(--accent); }
+.phase .when { font-family: var(--f-mono); font-size: .78rem; color: var(--accent); letter-spacing: .04em; }
+.phase ul { margin: 0; padding-left: 1.1rem; font-size: .93rem; display: grid; gap: .2rem; }
+.phase .gate { font-size: .88rem; color: var(--muted); }
+.phase .gate b { color: var(--ink); font-weight: 600; }
+
+/* workstreams */
+.streams { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--s3); }
+.stream { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); display: grid; gap: var(--s2); align-content: start; min-width: 0; }
+.stream .letter { font-family: var(--f-display); font-weight: 700; font-size: 1.6rem; color: var(--accent); line-height: 1; }
+.stream ul { margin: 0; padding-left: 1.1rem; font-size: .88rem; display: grid; gap: .2rem; }
+pre.tree { font-family: var(--f-mono); font-size: .8rem; line-height: 1.55; margin: 0; padding: var(--s4); background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; color: var(--ink); }
+pre.tree .c { color: var(--muted); }
+
+footer { margin-top: var(--s7); padding-top: var(--s4); border-top: 1px solid var(--rule); font-size: .85rem; color: var(--muted); display: grid; gap: var(--s2); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">SPPU BE Project · AI &amp; Data Science · Status as of 29 Sep 2026</div>
+  <h1>Loupe</h1>
+  <p class="lead">Loupe is a chat copilot that answers questions about Indian listed companies from their SEBI-mandated disclosures. Every answer cites the filing it came from, and every number comes from deterministic code, never from the language model.</p>
+  <div class="meta">
+    <span>Formal title: <b>Agent-Orchestrated Financial Risk Extraction and Conversational Intelligence</b></span>
+    <span>Team: <b>Shreyash Daware · Ayush Jha · Ojas Panse · Atharva Patil</b></span>
+    <span>Guide: <b>Mrs. Kalpna Saharan</b></span>
+  </div>
+</header>
+
+<nav class="index" aria-label="Sections">
+  <ol>
+    <li><a href="#status"><span>1</span>Where we stand</a></li>
+    <li><a href="#build"><span>2</span>What we build</a></li>
+    <li><a href="#fix"><span>3</span>Fix first</a></li>
+    <li><a href="#papers"><span>4</span>Paper map</a></li>
+    <li><a href="#mvp"><span>5</span>MVP scope</a></li>
+    <li><a href="#decide"><span>6</span>Decisions</a></li>
+    <li><a href="#roadmap"><span>7</span>Roadmap</a></li>
+    <li><a href="#eval"><span>8</span>Evaluation</a></li>
+    <li><a href="#start"><span>9</span>Start here</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="status">
+  <div class="sec-head">
+    <div class="eyebrow">1 · Where we stand</div>
+    <h2>The research and spec are done. Nothing has been built yet.</h2>
+  </div>
+  <div class="status">
+    <div class="panel">
+      <div class="verdict">Written</div>
+      <ul class="checklist">
+        <li><span class="dot good"></span><span>Product spec v0.2, India-native, 14 features (<code>PROJECT-BRIEF.md</code>)</span></li>
+        <li><span class="dot good"></span><span>Original proposal v0.1, SEC-focused (<code>BE-Project-2.pdf</code>)</span></li>
+        <li><span class="dot good"></span><span>Review deck, 9 slides (<code>BE-Project-presentation-2.pdf</code>)</span></li>
+        <li><span class="dot good"></span><span>Competitive landscape, 9 platforms (<code>COMPETITIVE-GUIDE.*</code>)</span></li>
+        <li><span class="dot good"></span><span>Three-engine architecture diagrams (<code>ARCHITECTURE-*.html</code>)</span></li>
+        <li><span class="dot good"></span><span>15 survey papers in <code>ResearchPapers/</code></span></li>
+        <li><span class="dot warn"></span><span>Report sections 01 and 02 drafted. Section 02 has citation errors (see 3).</span></li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="verdict">Not started</div>
+      <ul class="checklist">
+        <li><span class="dot bad"></span><span>Git repo, README, environment file</span></li>
+        <li><span class="dot bad"></span><span>Any ingestion, extraction, compute or chat code</span></li>
+        <li><span class="dot bad"></span><span>Downloaded filings or XBRL data</span></li>
+        <li><span class="dot warn"></span><span>Taxonomy file. A draft v0 was added today (see 9).</span></li>
+        <li><span class="dot bad"></span><span>Gold-standard annotated set for evaluation</span></li>
+        <li><span class="dot bad"></span><span>Timeline, milestones, work split</span></li>
+        <li><span class="dot bad"></span><span>The base paper itself (FARE PDF is not in the folder)</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="build">
+  <div class="sec-head">
+    <div class="eyebrow">2 · What we build</div>
+    <h2>Four stages. Each stage borrows a proven method and applies it to Indian filings.</h2>
+    <p class="muted">An analyst asks a question in chat. The agent runs the stages it needs and answers with citations. Stages 1 to 3 also run in batch to keep the event store fresh.</p>
+  </div>
+  <div class="pipeline">
+    <div class="stage">
+      <div class="num">STAGE 1</div>
+      <h3>Retrieve</h3>
+      <dl>
+        <div><dt>Does</dt><dd>Pulls announcements, results and shareholding filings per company; extracts PDF text; keeps source URL, date and page.</dd></div>
+        <div><dt>Sources</dt><dd>NSE / BSE corporate announcements, NEAPS XBRL, rating-agency releases</dd></div>
+        <div><dt>Out</dt><dd>Document store with provenance</dd></div>
+      </dl>
+    </div>
+    <div class="stage">
+      <div class="num">STAGE 2</div>
+      <h3>Extract</h3>
+      <dl>
+        <div><dt>Does</dt><dd>Tags each filing with event types from the LODR taxonomy. Every tag must quote the filing verbatim. A second pass scores each quote 1 to 5.</dd></div>
+        <div><dt>Method</dt><dd>Dolphin et al., Papers 1 &amp; 2</dd></div>
+        <div><dt>Out</dt><dd>Events table: company, type, quote, page, score</dd></div>
+      </dl>
+    </div>
+    <div class="stage">
+      <div class="num">STAGE 3</div>
+      <h3>Compute</h3>
+      <dl>
+        <div><dt>Does</dt><dd>Python functions compute pledge %, RPT ratios, results ratios and the distress score from XBRL and the events table.</dd></div>
+        <div><dt>Method</dt><dd>Tool-using copilot pattern, Paper 7</dd></div>
+        <div><dt>Out</dt><dd>Numbers with the inputs they came from</dd></div>
+      </dl>
+    </div>
+    <div class="stage">
+      <div class="num">STAGE 4</div>
+      <h3>Talk</h3>
+      <dl>
+        <div><dt>Does</dt><dd>A LangGraph agent plans, calls the retrieval, event and compute tools, and writes an answer where each claim links to a quote.</dd></div>
+        <div><dt>Method</dt><dd>FARE (base paper), plus personas</dd></div>
+        <div><dt>Out</dt><dd>Cited answer, chart, or short memo</dd></div>
+      </dl>
+    </div>
+  </div>
+  <div class="callout">
+    <p><b>How this maps to the architecture diagrams.</b> The Search Engine is Stage 1. The Risk Engine is Stages 2 and 3. The Query Engine is Stage 4. The diagrams list about 16 agents; for the build, treat most of them as plain functions (tools) and keep only one planning agent plus a persona prompt layer. That is simpler to debug and still meets the "agent-orchestrated" claim.</p>
+  </div>
+  <div class="callout">
+    <p><b>Why the base paper fits.</b> FARE is a LangGraph multi-agent system with RAG over earnings-call transcripts. Its own stated limitations are "no formal risk framework" and "reliance on LLM-as-a-judge without human validation". Our taxonomy, deterministic compute and hand-annotated gold set answer exactly those gaps. Use that as the novelty argument.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="fix">
+  <div class="sec-head">
+    <div class="eyebrow">3 · Fix before the next review</div>
+    <h2>Seven problems in the current documents</h2>
+    <p class="muted">Found by reading every PDF and cross-checking the docs. The first three could hurt in front of an examiner.</p>
+  </div>
+  <div class="issues">
+    <div class="issue">
+      <span class="sev high">High</span>
+      <div class="issue-body">
+        <h3>Eight of the fifteen paper numbers are wrong in three documents</h3>
+        <p><code>COMPLETE-ANALYSIS.md</code> §3, <code>SECTION-02</code> §2.16 and both architecture pages mislabel the PDFs. Example: they call Paper 4 "Lombardo bankruptcy prediction", but Paper 4 is Ye &amp; Chen's XAI framework, and no Lombardo paper is in the folder. The original proposal's numbering is correct.</p>
+        <p class="fix"><b>Fix:</b> use <code>docs/PAPER-MAP.md</code> as the single source for citations. Full correction list in section 4.</p>
+      </div>
+    </div>
+    <div class="issue">
+      <span class="sev high">High</span>
+      <div class="issue-body">
+        <h3>The base paper is not in the project, and Section 02 describes it by inference</h3>
+        <p>FARE's PDF is missing, and SECTION-02 labels its data, architecture and orchestration as "inferred from brief and title". The review deck (slide 5) already lists real FARE details: LangGraph, FAISS, PyMuPDF, SentenceTransformers, six agents, Qwen2.5-7B-Instruct and Gemini 2.5 Flash-Lite.</p>
+        <p class="fix"><b>Fix:</b> download FARE (DOI 10.1109/ACCESS.2026.3689742) and rewrite §2.9–2.14 from the paper itself.</p>
+      </div>
+    </div>
+    <div class="issue">
+      <span class="sev high">High</span>
+      <div class="issue-body">
+        <h3>The approved scope may still be SEC 10-K</h3>
+        <p>The proposal PDF and the August review deck both say "Ingestion: standard public filings SEC 10-K". The India pivot exists only in <code>PROJECT-BRIEF.md</code> v0.2. If the guide approved the SEC version, the change needs explicit sign-off.</p>
+        <p class="fix"><b>Fix:</b> get written confirmation from the guide this week. Then update the title-page scope line and slide 4.</p>
+      </div>
+    </div>
+    <div class="issue">
+      <span class="sev med">Medium</span>
+      <div class="issue-body">
+        <h3>"LLM-as-judge raises precision from 12% to 96%" misstates Paper 2</h3>
+        <p>Paper 2 reports precision by quality-score bin: 12% for tags scored 1, 96% for tags scored 5. Keeping only score 5 retains 34% of tags. The actual finding is that scoring in a separate second pass gives a calibrated score, while inline self-scoring does not. The architecture pages repeat this as "96% precision gate".</p>
+        <p class="fix"><b>Fix:</b> reword in the proposal, deck and diagrams. Replicating this calibration curve on Indian filings is a good result to report.</p>
+      </div>
+    </div>
+    <div class="issue">
+      <span class="sev med">Medium</span>
+      <div class="issue-body">
+        <h3>The scope is too wide for four people and one academic year</h3>
+        <p>The brief has 14 features, 8 personas, about 16 agents, 6+ data sources and the full NSE 200 universe. DRHP teardown alone (500 to 900 pages per document) is a project by itself.</p>
+        <p class="fix"><b>Fix:</b> commit to the MVP in section 5. Keep the full matrix in the report as future scope.</p>
+      </div>
+    </div>
+    <div class="issue">
+      <span class="sev med">Medium</span>
+      <div class="issue-body">
+        <h3>Data access has not been checked</h3>
+        <p>NSE's website blocks automated clients aggressively, and the MCA portal uses CAPTCHAs and paid downloads. Neither problem shows up in the plan.</p>
+        <p class="fix"><b>Fix:</b> in week 1, prove you can fetch one quarter of announcements and one XBRL file for 5 companies, within each site's terms and at a low request rate. Drop MCA from the MVP.</p>
+      </div>
+    </div>
+    <div class="issue">
+      <span class="sev low">Low</span>
+      <div class="issue-body">
+        <h3>Strong claims need sources</h3>
+        <p>"World-first", "10 of 14 globally unique" and "verified Aug 2026" will draw questions. The architecture pages also show the SEC "119-category taxonomy", which belongs to Paper 2, not to this project.</p>
+        <p class="fix"><b>Fix:</b> soften to "to our knowledge, no published system…" and cite what was searched. Show our own taxonomy count (47 event types in draft v0).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="papers">
+  <div class="sec-head">
+    <div class="eyebrow">4 · Paper map</div>
+    <h2>What each file in <code>ResearchPapers/</code> really is</h2>
+    <p class="muted">Checked against page 1 of each PDF. The "Docs say" column shows the wrong labels in COMPLETE-ANALYSIS and SECTION-02.</p>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>File</th><th>Actual paper</th><th>Role</th><th>Docs say</th></tr></thead>
+      <tbody>
+        <tr><td class="fid">Paper 1</td><td>Dolphin et al. · Taxonomy-Aligned Risk Extraction from 10-K Filings (arXiv 2601.15247)</td><td>Extract, F14 loop</td><td class="muted">correct</td></tr>
+        <tr><td class="fid">Paper 2</td><td>Dolphin et al. · Grounded Event Extraction from SEC 8-K Filings (arXiv 2607.08346)</td><td>Extract, grounding</td><td class="muted">correct</td></tr>
+        <tr><td class="fid">Paper 3</td><td>Golec &amp; AlabdulJalil · Interpretable LLMs for Credit Risk: Systematic Review</td><td>Survey</td><td class="muted">correct</td></tr>
+        <tr><td class="fid">Paper 4</td><td>Ye &amp; Chen · Five-Dimensional Framework for Evaluating XAI in Credit Risk</td><td>Survey, XAI</td><td><span class="tag wrong">Lombardo bankruptcy</span></td></tr>
+        <tr><td class="fid">Paper 5</td><td>Shreya &amp; Pathak · XAI Credit Risk Assessment using ML</td><td>Survey, XAI</td><td><span class="tag wrong">FinDPO</span></td></tr>
+        <tr><td class="fid">Paper 6</td><td>Bhattacharyya et al. (Wells Fargo) · Model Risk Management for GenAI</td><td>Governance</td><td><span class="tag wrong">Ticker Trap</span></td></tr>
+        <tr><td class="fid">Paper 7</td><td>Mao et al. · Governing Generative AI Across Financial Institutions</td><td>Agent patterns</td><td class="muted">correct</td></tr>
+        <tr><td class="fid">Paper 8</td><td>Yu, Liu, He · Same Company, Same Signal (Ticker Identity Trap)</td><td>Eval caution</td><td><span class="tag wrong">Ao/Zhao sentiment</span></td></tr>
+        <tr><td class="fid">Paper 9</td><td>Kubica et al. · Can AI Read Between the Lines? Benchmarking LLMs on Financial Nuance</td><td>Evaluation</td><td><span class="tag wrong">GraphRAG</span></td></tr>
+        <tr><td class="fid">Paper 10</td><td>Iacovides, Zhou, Mandic · FinDPO</td><td>Sentiment (F6)</td><td><span class="tag wrong">MRM</span></td></tr>
+        <tr><td class="fid">Paper 11</td><td>Shukla et al. (Oracle) · GraphRAG for Financial Narrative Summarization</td><td>Retrieval</td><td><span class="tag wrong">vague "proceedings"</span></td></tr>
+        <tr><td class="fid">Paper 12</td><td>Ao &amp; Zhao (S&amp;P Global) · Familiar Signal, New Context</td><td>Sentiment (F6)</td><td class="muted">correct</td></tr>
+        <tr><td class="fid">Paper 13</td><td>Saha, Rani, Shukla (IIT Kanpur) · GenAI in Financial Institutions: Global Survey</td><td>Survey</td><td><span class="tag wrong">Lombardo format</span></td></tr>
+        <tr><td class="fid">Paper 14</td><td>Liu, Lin, Rojas (UCLA) · Enhancing Trading Performance via LLM Sentiment</td><td>Out of scope</td><td class="muted">correct</td></tr>
+        <tr><td class="fid">Paper 15</td><td>Zafar · FinAI-BERT, sentence-level detection of AI disclosures</td><td>Classification</td><td class="muted">correct</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><b>Missing from the folder:</b> <span class="tag missing">FARE</span> <span class="tag missing">RAMAS</span> <span class="tag missing">Lombardo 2024 ×2</span> <span class="tag missing">Sleipnir</span> <span class="tag missing">Ferrag 2026</span>, and two papers cited on deck slides 5–6. Full citations are in <code>docs/PAPER-MAP.md</code>.</p>
+</section>
+
+<!-- 5 -->
+<section id="mvp">
+  <div class="sec-head">
+    <div class="eyebrow">5 · MVP scope (recommended)</div>
+    <h2>Five core capabilities, two that come for free, the rest deferred</h2>
+    <p class="muted">Chosen so that one pipeline (announcements → events → compute → chat) powers every demo. Universe: build on NIFTY 50, expand to NSE 200 once the pipeline is stable. Window: FY24 to FY26 filings.</p>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Brief #</th><th>Capability</th><th>Status</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td class="fid">F2</td><td>LODR Reg 30 event extraction with verbatim quotes and quality score</td><td><span class="tag core">Core</span></td><td>The research contribution. A direct transfer of Papers 1 &amp; 2 to Indian filings.</td></tr>
+        <tr><td class="fid">F3</td><td>Deterministic compute: pledge %, RPT ratios, results ratios</td><td><span class="tag core">Core</span></td><td>Solves the "math hallucination" problem the proposal opens with.</td></tr>
+        <tr><td class="fid">F4 + F5</td><td>Cited chat with 2 personas (research, credit)</td><td><span class="tag core">Core</span></td><td>The product surface and the FARE comparison point.</td></tr>
+        <tr><td class="fid">F11</td><td>Distress early-warning score</td><td><span class="tag core">Core</span></td><td>Combines F2 and F3 outputs. Testable against real downgrades and defaults.</td></tr>
+        <tr><td class="fid">F9</td><td>Rumour-verification tracker, Reg 30(11)</td><td><span class="tag core">Core</span></td><td>The most distinctive claim. Uses the same announcement feed plus a price window.</td></tr>
+        <tr><td class="fid">F8</td><td>Screening over extracted facts</td><td><span class="tag free">Falls out</span></td><td>"Pledge up AND auditor changed" is a SQL query over the events table.</td></tr>
+        <tr><td class="fid">F10</td><td>Material-event timeline</td><td><span class="tag free">Falls out</span></td><td>Events for one company, sorted by date, with quotes.</td></tr>
+        <tr><td class="fid">F6</td><td>Earnings-cycle notes</td><td><span class="tag stretch">Stretch</span></td><td>Transcripts are mandated filings under Sch III Para A(15), so the data is already in the feed.</td></tr>
+        <tr><td class="fid">F14</td><td>Autonomous taxonomy refinement</td><td><span class="tag stretch">Stretch</span></td><td>Run Paper 1's loop once as an experiment and report it.</td></tr>
+        <tr><td class="fid">F12</td><td>Charts and exports</td><td><span class="tag stretch">Stretch</span></td><td>Simple charts from compute outputs only.</td></tr>
+        <tr><td class="fid">F1 (full), F7, F13</td><td>MCA and news ingestion, DRHP teardown, portfolio aggregation</td><td><span class="tag defer">Deferred</span></td><td>Each needs a separate pipeline. Keep them as future scope in the report.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="decide">
+  <div class="sec-head">
+    <div class="eyebrow">6 · Decisions the team needs to make</div>
+    <h2>Six open questions, each with a recommendation</h2>
+    <p class="muted">These come from the brief's open questions, plus the ones the build forces. Expand one to see the reasoning.</p>
+  </div>
+  <div class="decisions">
+    <details class="decision">
+      <summary><span class="q">Is the India pivot approved by the guide?</span><span class="rec">Confirm this week</span></summary>
+      <div class="why"><p>Every later choice depends on it. If the guide prefers SEC data, the same pipeline works on 8-K filings, and Papers 1 &amp; 2 become direct baselines. The India version is more novel but riskier on data access.</p></div>
+    </details>
+    <details class="decision">
+      <summary><span class="q">Which orchestration framework?</span><span class="rec">LangGraph</span></summary>
+      <div class="why"><p>FARE uses LangGraph. Using the same framework lets you run a FARE-style baseline and compare fairly. It also gives explicit state graphs that are easy to draw in the report.</p></div>
+    </details>
+    <details class="decision">
+      <summary><span class="q">Which LLMs?</span><span class="rec">Open 7B model + API judge</span></summary>
+      <div class="why"><p>Run bulk extraction with an open instruction-tuned model such as Qwen2.5-7B-Instruct (FARE's best reasoner) on a local GPU or cheap host. Use a stronger API model only for the second-pass scoring and evaluation, which is the pattern Paper 2 uses. Set a monthly budget early.</p></div>
+    </details>
+    <details class="decision">
+      <summary><span class="q">How to store the "evidence graph"?</span><span class="rec">Postgres + pgvector</span></summary>
+      <div class="why"><p>Documents, chunks, events and claims are four relational tables linked by foreign keys, which is a graph in practice. pgvector handles retrieval in the same database. Add a graph database only if a query really needs one.</p></div>
+    </details>
+    <details class="decision">
+      <summary><span class="q">What chat front end?</span><span class="rec">Chainlit or Streamlit</span></summary>
+      <div class="why"><p>Both show tool steps and citations with little code. A custom React front end costs weeks and adds nothing to the evaluation.</p></div>
+    </details>
+    <details class="decision">
+      <summary><span class="q">Build order?</span><span class="rec">Extraction first, thin chat early</span></summary>
+      <div class="why"><p>Build extraction and compute first, because the research result lives there. Stand up a thin chat that calls one real tool by the end of phase 1, so the demo path is never blocked and integration problems show up early.</p></div>
+    </details>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="roadmap">
+  <div class="sec-head">
+    <div class="eyebrow">7 · Roadmap</div>
+    <h2>October 2026 to April 2027</h2>
+    <p class="muted">Dates assume the usual SPPU calendar: a Semester VII review around late November and final submission in April. Adjust to your department's actual dates.</p>
+  </div>
+  <div class="roadmap">
+    <div class="phase now">
+      <div class="when">PHASE 0 · 1–15 OCT</div>
+      <h3>Foundations</h3>
+      <ul>
+        <li>Guide sign-off on scope. Download FARE and the other missing papers.</li>
+        <li>Fix the paper numbering in SECTION-02, COMPLETE-ANALYSIS and the architecture pages.</li>
+        <li>Git repo, README, Python environment. Check the 9 <code>verify</code> items in the taxonomy against the LODR text.</li>
+        <li>Data spike: fetch announcements and XBRL for 5 companies.</li>
+      </ul>
+      <div class="gate"><b>Done when:</b> one company's last 4 quarters of filings are on disk with source URLs.</div>
+    </div>
+    <div class="phase">
+      <div class="when">PHASE 1 · 15 OCT – 30 NOV</div>
+      <h3>Ingest and extract</h3>
+      <ul>
+        <li>Ingestion for NIFTY 50 announcements, FY24–FY26.</li>
+        <li>Extraction v1: taxonomy in the prompt, schema check, fuzzy quote validation.</li>
+        <li>Annotate the gold set, about 300 announcements, 2 annotators each.</li>
+        <li>Thin chat: ask for one company's events and get quoted answers.</li>
+      </ul>
+      <div class="gate"><b>Sem VII review demo:</b> live extraction on a recent auditor resignation or rating downgrade, with quotes.</div>
+    </div>
+    <div class="phase">
+      <div class="when">PHASE 2 · DEC – JAN</div>
+      <h3>Score and compute</h3>
+      <ul>
+        <li>Second-pass quality scoring; measure precision by score bin on the gold set.</li>
+        <li>XBRL parsers for results and shareholding; pledge %, RPT and ratio tools with unit tests.</li>
+        <li>Distress score v1 and rumour-verification pairing.</li>
+      </ul>
+      <div class="gate"><b>Done when:</b> compute tools match hand-calculated values on 50 company-quarters.</div>
+    </div>
+    <div class="phase">
+      <div class="when">PHASE 3 · FEB – MID MAR</div>
+      <h3>Agent and chat</h3>
+      <ul>
+        <li>LangGraph planner with retrieval, events, compute and screening tools.</li>
+        <li>Claim-level citations; research and credit personas.</li>
+        <li>Timeline and screening views; stretch: earnings notes, charts.</li>
+      </ul>
+      <div class="gate"><b>Done when:</b> 20 scripted analyst questions return cited answers end to end.</div>
+    </div>
+    <div class="phase">
+      <div class="when">PHASE 4 · MID MAR – APR</div>
+      <h3>Evaluate and write</h3>
+      <ul>
+        <li>Run the evaluation in section 8 against the baselines.</li>
+        <li>Analyst sessions if contacts are available.</li>
+        <li>Paper draft, final report, demo video.</li>
+      </ul>
+      <div class="gate"><b>Done when:</b> report submitted with results tables and a reproducible run.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="eval">
+  <div class="sec-head">
+    <div class="eyebrow">8 · Evaluation</div>
+    <h2>What to measure, and what to compare against</h2>
+    <p class="muted">The brief's four evaluation areas, turned into concrete metrics. Baselines: (a) plain RAG over the same documents, (b) a FARE-style agent without our compute tools or taxonomy.</p>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Stage</th><th>Metric</th><th>Ground truth</th></tr></thead>
+      <tbody>
+        <tr><td>Extract</td><td>Precision, recall and F1 per event type; share of quotes found verbatim; precision by quality-score bin</td><td>Gold set of about 300 announcements; inter-annotator agreement (Cohen's κ)</td></tr>
+        <tr><td>Compute</td><td>Exact-match rate of pledge %, RPT ratio and results ratios</td><td>Hand calculation from XBRL, 50 company-quarters</td></tr>
+        <tr><td>Talk</td><td>Citation precision (claim supported by cited quote); numeric hallucination rate; answer correctness</td><td>100 scripted questions, human-graded, compared with both baselines</td></tr>
+        <tr><td>Distress</td><td>Does the score rise before downgrades and defaults? AUC over a 90-day lead window</td><td>Rating actions and defaults found in the filings themselves</td></tr>
+        <tr><td>Users</td><td>Task time, perceived trust, errors found</td><td>3–5 analyst sessions, if contacts exist</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Paper 8's warning applies: test on companies and quarters the prompts were not tuned on, so the system is not just recognising familiar tickers.</p>
+</section>
+
+<!-- 9 -->
+<section id="start">
+  <div class="sec-head">
+    <div class="eyebrow">9 · Start here</div>
+    <h2>Four workstreams, one per person</h2>
+    <p class="muted">Each stream has a clear interface to the next, so all four can start in parallel. Assign names as a team.</p>
+  </div>
+  <div class="streams">
+    <div class="stream">
+      <div class="letter">A</div>
+      <h3>Data &amp; ingestion</h3>
+      <ul>
+        <li>NSE/BSE announcement fetcher, polite and cached</li>
+        <li>PDF text with page numbers (PyMuPDF)</li>
+        <li>XBRL download and parse</li>
+      </ul>
+      <p class="muted" style="font-size:.85rem">Hands off: <code>documents</code> table</p>
+    </div>
+    <div class="stream">
+      <div class="letter">B</div>
+      <h3>Taxonomy &amp; extraction</h3>
+      <ul>
+        <li>Verify and extend the v0 taxonomy</li>
+        <li>Extractor, quote validator, scorer</li>
+        <li>Owns the gold-set annotation guide</li>
+      </ul>
+      <p class="muted" style="font-size:.85rem">Hands off: <code>events</code> table</p>
+    </div>
+    <div class="stream">
+      <div class="letter">C</div>
+      <h3>Compute</h3>
+      <ul>
+        <li>Pledge %, RPT, ratio functions with tests</li>
+        <li>Distress score and rumour price window</li>
+        <li>Lakh/crore and IndAS unit handling</li>
+      </ul>
+      <p class="muted" style="font-size:.85rem">Hands off: typed tool functions</p>
+    </div>
+    <div class="stream">
+      <div class="letter">D</div>
+      <h3>Agent, chat &amp; eval</h3>
+      <ul>
+        <li>LangGraph planner and tool wiring</li>
+        <li>Citation rendering, personas</li>
+        <li>Evaluation harness and baselines</li>
+      </ul>
+      <p class="muted" style="font-size:.85rem">Hands off: demo and results</p>
+    </div>
+  </div>
+  <h3>Proposed repository layout</h3>
+<pre class="tree">BE-Project/
+├── docs/                    <span class="c"># report sections, PAPER-MAP.md, decisions log</span>
+├── data/
+│   ├── taxonomy/            <span class="c"># india_disclosure_taxonomy.v0.yaml  ← added today</span>
+│   ├── raw/                 <span class="c"># downloaded filings (git-ignored)</span>
+│   └── gold/                <span class="c"># annotated evaluation set</span>
+├── src/loupe/
+│   ├── retrieve/            <span class="c"># stream A</span>
+│   ├── extract/             <span class="c"># stream B</span>
+│   ├── compute/             <span class="c"># stream C</span>
+│   └── agent/               <span class="c"># stream D</span>
+├── eval/                    <span class="c"># metrics, baselines, results</span>
+├── app/                     <span class="c"># Chainlit or Streamlit front end</span>
+└── ResearchPapers/</pre>
+  <div class="callout">
+    <p><b>Added to the project folder today.</b> <code>docs/PAPER-MAP.md</code> is the corrected paper table and the list of missing papers. <code>data/taxonomy/india_disclosure_taxonomy.v0.yaml</code> is a draft taxonomy: 47 event types in 7 active dimensions, each tied to a LODR Schedule III paragraph, with 9 items flagged to verify against the current regulation text. Existing documents were not modified.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Compiled from every file in the project folder, including page 1 of all 15 research PDFs.</p>
+  <p>Regulation references are from the SEBI LODR Regulations, 2015, as amended. Confirm paragraph numbers against the current consolidated text before citing them.</p>
+</footer>
+
+</div>
+</html>

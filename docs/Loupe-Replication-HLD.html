@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Offline copy of https://claude.ai/artifact/PPFGYR64f1XT7wCatVToPK . Edit the published page, then re-export; do not hand-edit here. -->
+<style>body{margin:0}</style>
+<title>Loupe Replication HLD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same reading column and tokens as the Loupe Compass page; design-doc structure with spec tables, component cards and mermaid diagrams. */
+:root {
+  --paper: #f5f6f3; --sheet: #ffffff; --ink: #17201e; --muted: #56615d; --rule: #d9ddd7;
+  --accent: #23497a; --accent-soft: #e4ebf4;
+  --saffron: #b76a12; --saffron-soft: #f8ecdc;
+  --bad: #b3261e; --bad-soft: #f9e3e1; --warn: #9a6400; --warn-soft: #fbf0d6; --good: #1d6b45; --good-soft: #e0f0e6;
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --s1: .25rem; --s2: .5rem; --s3: .75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2.25rem; --s7: 3.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121716; --sheet: #1a2120; --ink: #e6ebe8; --muted: #9aa6a1; --rule: #2e3835;
+    --accent: #8fb3e6; --accent-soft: #1d2a3b; --saffron: #e5a456; --saffron-soft: #33271a;
+    --bad: #f08c84; --bad-soft: #3a1f1d; --warn: #e3b456; --warn-soft: #362c16; --good: #7fcaa0; --good-soft: #17301f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121716; --sheet: #1a2120; --ink: #e6ebe8; --muted: #9aa6a1; --rule: #2e3835;
+  --accent: #8fb3e6; --accent-soft: #1d2a3b; --saffron: #e5a456; --saffron-soft: #33271a;
+  --bad: #f08c84; --bad-soft: #3a1f1d; --warn: #e3b456; --warn-soft: #362c16; --good: #7fcaa0; --good-soft: #17301f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 1rem; line-height: 1.6; }
+.wrap { max-width: 62rem; margin: 0 auto; padding-inline: max(16px, 4vw); padding-block: var(--s6) var(--s7); }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.08rem; font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+code, .mono { font-family: var(--f-mono); font-size: .86em; }
+.eyebrow { font-family: var(--f-mono); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+ul.plain { margin: 0; padding-left: 1.15rem; display: grid; gap: .25rem; }
+
+header.top { display: grid; gap: var(--s4); padding-bottom: var(--s5); border-bottom: 1px solid var(--rule); }
+.lead { font-size: 1.1rem; max-width: 64ch; }
+.docmeta { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.chip { font-family: var(--f-mono); font-size: .74rem; padding: .15rem .5rem; border-radius: 3px; border: 1px solid var(--rule); background: var(--sheet); color: var(--muted); white-space: nowrap; }
+.chip b { color: var(--ink); font-weight: 500; }
+
+nav.index { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); margin-inline: calc(-1 * max(16px, 4vw)); padding: var(--s2) max(16px, 4vw); overflow-x: auto; }
+nav.index ol { list-style: none; display: flex; gap: var(--s4); margin: 0; padding: 0; white-space: nowrap; font-size: .85rem; }
+nav.index a { color: var(--muted); text-decoration: none; }
+nav.index a:hover { color: var(--accent); }
+nav.index span { font-family: var(--f-mono); color: var(--accent); margin-right: .3em; }
+
+section { display: grid; gap: var(--s4); padding-top: var(--s7); scroll-margin-top: 3rem; }
+.sec-head { display: grid; gap: var(--s2); }
+
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: var(--s3) var(--s4); border-radius: 0 4px 4px 0; font-size: .94rem; display: grid; gap: var(--s2); }
+.callout p { max-width: none; }
+.callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: var(--s3); }
+.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); display: grid; gap: var(--s2); align-content: start; min-width: 0; }
+.panel .k { font-family: var(--f-mono); font-size: .75rem; color: var(--accent); letter-spacing: .05em; }
+.panel p, .panel li { font-size: .92rem; }
+
+.table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+th, td { text-align: left; padding: .55rem .75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--f-mono); font-size: .7rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--paper); white-space: nowrap; }
+td.id { font-family: var(--f-mono); color: var(--accent); white-space: nowrap; }
+.tag { font-family: var(--f-mono); font-size: .7rem; padding: .08rem .4rem; border-radius: 3px; white-space: nowrap; display: inline-block; }
+.tag.ok { color: var(--good); background: var(--good-soft); }
+.tag.tbc { color: var(--warn); background: var(--warn-soft); }
+.tag.ours { color: var(--accent); background: var(--accent-soft); }
+.tag.off { color: var(--muted); border: 1px solid var(--rule); }
+
+.diagram { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; background: transparent; text-align: center; }
+.caption { font-size: .85rem; color: var(--muted); }
+
+.comp { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: var(--s3) var(--s4); }
+.comp .cid { font-family: var(--f-display); font-weight: 700; font-size: 1.4rem; color: var(--accent); line-height: 1.1; }
+.comp .body { display: grid; gap: var(--s2); min-width: 0; }
+.comp dl { margin: 0; display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: .3rem var(--s3); font-size: .9rem; }
+.comp dt { font-family: var(--f-mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding-top: .2rem; }
+.comp dd { margin: 0; }
+@media (max-width: 560px) { .comp { grid-template-columns: 1fr; } .comp dl { grid-template-columns: 1fr; } .comp dt { padding-top: .4rem; } }
+.stack { display: grid; gap: var(--s3); }
+
+pre.code { font-family: var(--f-mono); font-size: .78rem; line-height: 1.55; margin: 0; padding: var(--s4); background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; color: var(--ink); }
+pre.code .c { color: var(--muted); }
+
+.rq { display: grid; gap: var(--s3); }
+.rq-item { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: var(--s3); align-items: baseline; }
+.rq-item .n { font-family: var(--f-mono); color: var(--accent); font-size: .85rem; }
+
+.timeline { display: grid; border-left: 2px solid var(--rule); margin-left: .4rem; }
+.wk { display: grid; gap: var(--s1); padding: 0 0 var(--s4) var(--s5); position: relative; }
+.wk::before { content: ""; position: absolute; left: -.5rem; top: .4rem; width: .85rem; height: .85rem; border-radius: 50%; background: var(--paper); border: 2px solid var(--accent); }
+.wk.gate::before { background: var(--accent); }
+.wk .when { font-family: var(--f-mono); font-size: .76rem; color: var(--accent); }
+.wk p { font-size: .93rem; }
+
+footer { margin-top: var(--s7); padding-top: var(--s4); border-top: 1px solid var(--rule); font-size: .85rem; color: var(--muted); display: grid; gap: var(--s2); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Loupe · High-level design · Phase R (replication)</div>
+  <h1>Replicating FARE on SEC EDGAR filings</h1>
+  <p class="lead">Before building anything for Indian filings, we rebuild the base paper's agent architecture, run it on US company filings fetched by CIK, and measure every component. The same harness, model gateway and agent graph then carry over to Indian data.</p>
+  <div class="docmeta">
+    <span class="chip">Version <b>0.1 draft</b></span>
+    <span class="chip">Date <b>29 Sep 2026</b></span>
+    <span class="chip">Base paper <b>FARE, IEEE Access 2026</b></span>
+    <span class="chip">Status <b>for team review</b></span>
+  </div>
+</header>
+
+<nav class="index" aria-label="Sections">
+  <ol>
+    <li><a href="#goals"><span>1</span>Goals</a></li>
+    <li><a href="#spec"><span>2</span>FARE spec</a></li>
+    <li><a href="#method"><span>3</span>Paper to code</a></li>
+    <li><a href="#tracks"><span>4</span>Tracks</a></li>
+    <li><a href="#arch"><span>5</span>Architecture</a></li>
+    <li><a href="#components"><span>6</span>Components</a></li>
+    <li><a href="#eval"><span>7</span>Evaluation</a></li>
+    <li><a href="#contracts"><span>8</span>Data contracts</a></li>
+    <li><a href="#stack"><span>9</span>Stack</a></li>
+    <li><a href="#india"><span>10</span>Path to India</a></li>
+    <li><a href="#plan"><span>11</span>Plan</a></li>
+    <li><a href="#risks"><span>12</span>Risks</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="goals">
+  <div class="sec-head">
+    <div class="eyebrow">1 · Goals and scope</div>
+    <h2>Four research questions for this phase</h2>
+    <p class="muted">Replication is a research result in its own right. Each question has a measurable answer, and together they form the first results chapter of the report.</p>
+  </div>
+  <div class="rq">
+    <div class="rq-item"><span class="n">RQ1</span><p><b>Reproduction.</b> When FARE is rebuilt from the paper alone, do its main claims still hold? For example: the same model ranking, and the agent workflow beating simpler baselines.</p></div>
+    <div class="rq-item"><span class="n">RQ2</span><p><b>Transfer.</b> Does FARE's architecture hold up when moved from earnings-call transcripts to SEC filings (10-K, 10-Q, 8-K)? Does it beat a plain RAG baseline there?</p></div>
+    <div class="rq-item"><span class="n">RQ3</span><p><b>Judge reliability.</b> FARE relies on LLM-as-a-judge without human validation. How well does the judge agree with human graders on our data?</p></div>
+    <div class="rq-item"><span class="n">RQ4</span><p><b>Error attribution.</b> When an answer is wrong, is it a retrieval failure, a reasoning failure or an arithmetic failure? What does each model cost per correct answer?</p></div>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">IN SCOPE</div>
+      <ul class="plain">
+        <li>FARE's agent graph, rebuilt from the paper</li>
+        <li>SEC EDGAR ingestion by CIK: 10-K, 10-Q, 8-K, XBRL facts</li>
+        <li>Model-agnostic runs across several LLMs</li>
+        <li>Evaluation harness with metrics for every component</li>
+        <li>Ablations against simpler baselines</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="k">NOT IN THIS PHASE</div>
+      <ul class="plain">
+        <li>Indian filings, LODR taxonomy, NSE ingestion (Phase I)</li>
+        <li>Chat UI, personas, charts, exports</li>
+        <li>Fine-tuning any model</li>
+        <li>Production concerns: auth, multi-user, deployment</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="spec">
+  <div class="sec-head">
+    <div class="eyebrow">2 · FARE replication spec</div>
+    <h2>What we know about FARE, and what the paper must confirm</h2>
+    <p class="muted">A replication is only as good as this table. Fill every orange row from the paper before writing agent code, and record the page number next to each value.</p>
+  </div>
+  <div class="callout warn">
+    <p><b>The paper is our only source.</b> FARE's code, prompts and dataset are not available to us, so every row below must come from the paper text. Save the PDF as <code>ResearchPapers/FARE.pdf</code> (DOI 10.1109/ACCESS.2026.3689742, IEEE Xplore document 11503237). The confirmed rows so far come from your review deck, slide 5.</p>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Parameter</th><th>Value</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Task</td><td>Question answering and analysis over earnings-call transcripts, with an evaluation method</td><td><span class="tag ok">Deck + title</span></td></tr>
+        <tr><td>Orchestration</td><td>LangGraph</td><td><span class="tag ok">Deck</span></td></tr>
+        <tr><td>Agents</td><td>6 specialised agents</td><td><span class="tag ok">Deck</span></td></tr>
+        <tr><td>Agent roles, prompts, edges</td><td>Unknown. Section 6 uses a labelled working hypothesis.</td><td><span class="tag tbc">Confirm</span></td></tr>
+        <tr><td>Document parsing</td><td>PyMuPDF (transcripts as PDF)</td><td><span class="tag ok">Deck</span></td></tr>
+        <tr><td>Embeddings</td><td>SentenceTransformers. Model name unknown.</td><td><span class="tag tbc">Confirm model</span></td></tr>
+        <tr><td>Vector store</td><td>FAISS. Index type unknown.</td><td><span class="tag tbc">Confirm type</span></td></tr>
+        <tr><td>Chunk size, overlap, top-k</td><td>Unknown</td><td><span class="tag tbc">Confirm</span></td></tr>
+        <tr><td>Models compared</td><td>Includes Qwen2.5-7B-Instruct (best reasoning) and Gemini 2.5 Flash-Lite (most efficient)</td><td><span class="tag tbc">Confirm full list</span></td></tr>
+        <tr><td>Dataset</td><td>Source, companies, quarters, size unknown. Is it public?</td><td><span class="tag tbc">Confirm</span></td></tr>
+        <tr><td>Evaluation</td><td>LLM-as-a-judge. Rubric, judge model and metrics unknown.</td><td><span class="tag tbc">Confirm</span></td></tr>
+        <tr><td>Reported numbers</td><td>Needed as reproduction targets for RQ1</td><td><span class="tag tbc">Copy table</span></td></tr>
+        <tr><td>Stated limitations</td><td>Limited context windows; judge not validated by humans; no formal risk framework</td><td><span class="tag ok">Deck</span></td></tr>
+        <tr><td>Stated future work</td><td>Human-in-the-loop validation, MCP integration, formal risk quantification</td><td><span class="tag ok">Deck</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Rows the paper leaves unanswered go into the decisions log (section 3). Emailing the corresponding author about the biggest gaps costs nothing, and any reply is good material for the report.</p>
+</section>
+
+<!-- 3 -->
+<section id="method">
+  <div class="sec-head">
+    <div class="eyebrow">3 · From paper to code</div>
+    <h2>Rebuilding FARE when the paper is all we have</h2>
+    <p class="muted">Without FARE's code, prompts or data, we cannot rerun the authors' experiment. We rebuild the method from its description and test whether its claims hold on new data. This is called a conceptual replication, and it is a recognised type of study. Six steps, each producing a file the report can cite.</p>
+  </div>
+  <div class="timeline">
+    <div class="wk"><div class="when">STEP 1 · READ AND EXTRACT</div><p>Everyone reads the paper. One person fills the extraction sheet: every design element (agents, prompts, retrieval settings, models, dataset, metrics) with its page or section and a status of <b>Specified</b>, <b>Partly specified</b> or <b>Not specified</b>.</p><p class="muted"><code>docs/fare/01-extraction-sheet.md</code></p></div>
+    <div class="wk"><div class="when">STEP 2 · REGISTER THE CLAIMS</div><p>List every result the paper reports, with its number and table or figure. For example, "Qwen2.5-7B-Instruct gives the strongest reasoning". Each claim becomes a hypothesis we test.</p><p class="muted"><code>docs/fare/02-claims.md</code></p></div>
+    <div class="wk"><div class="when">STEP 3 · FILL THE GAPS, ON THE RECORD</div><p>For every item that is not fully specified, write a short decision: the options, the choice, the reason, and whether it could change results. If it could, it becomes an ablation. Default rule: pick the simplest option that fits the paper's text, using the defaults of the libraries FARE names.</p><p class="muted"><code>docs/fare/03-decisions.md</code></p></div>
+    <div class="wk"><div class="when">STEP 4 · REBUILD THE PROMPTS</div><p>Copy any prompts printed in the paper word for word. Otherwise write them from the agent role descriptions, version them, and label them as reconstructions.</p><p class="muted"><code>configs/fare/prompts/*.yaml</code></p></div>
+    <div class="wk"><div class="when">STEP 5 · BUILD, THEN CHECK CONFORMANCE</div><p>Implement the graph from the extraction sheet. A teammate who did not write the code then checks every Specified item against the running system and signs it off.</p><p class="muted"><code>docs/fare/05-conformance.md</code></p></div>
+    <div class="wk gate"><div class="when">STEP 6 · TEST THE CLAIMS, REPORT DEVIATIONS</div><p>Run the claims on substitute transcript data (track R-A) and SEC filings (track R-B). Report each claim as holds, holds partly, or does not hold, with confidence intervals, plus a table of every deviation from the paper.</p><p class="muted">Replication chapter of the report</p></div>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">WHAT SUCCESS MEANS HERE</div>
+      <ul class="plain">
+        <li>Every Specified item is implemented and signed off.</li>
+        <li>Every gap has a written, justified decision.</li>
+        <li>Every claim is tested with confidence intervals.</li>
+        <li>Matching FARE's exact numbers is not the goal. Different data and prompts make that impossible. Matching its conclusions is the goal.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="k">IF A CLAIM DOES NOT HOLD</div>
+      <ul class="plain">
+        <li>That is a finding, not a failure. Report it.</li>
+        <li>Check the decisions log first: rerun the ablation for any gap that could explain the difference.</li>
+        <li>A claim that fails on SEC filings but holds on transcripts is itself a result about transfer (RQ2).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="tracks">
+  <div class="sec-head">
+    <div class="eyebrow">4 · Two replication tracks</div>
+    <h2>Reproduce first, then transfer</h2>
+    <p class="muted">EDGAR does not host earnings-call transcripts systematically, so "FARE on SEC filings" means two things. Keep them separate so each result is interpretable.</p>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">TRACK R-A · CLAIM CHECK</div>
+      <h3>FARE's task, substitute data</h3>
+      <p>Run the rebuilt system on a public earnings-call transcript dataset with FARE's two named models. Candidates: ECTSum and SubjECTive-QA (check licences). Test whether FARE's conclusions hold, not whether we hit its exact numbers.</p>
+      <p class="muted">Answers RQ1. Keeps the comparison on FARE's own document type, so any difference comes from our rebuild rather than from the switch to filings.</p>
+    </div>
+    <div class="panel">
+      <div class="k">TRACK R-B · TRANSFER</div>
+      <h3>FARE's architecture, SEC filings by CIK</h3>
+      <p>Same graph and models, pointed at 10-K, 10-Q and 8-K filings. Earnings press releases (8-K Item 2.02, Exhibit 99.1) are the closest filing to a transcript.</p>
+      <p class="muted">Answers RQ2 to RQ4. This is also the dry run for Indian filings, which are also regulator-mandated documents.</p>
+    </div>
+  </div>
+  <div class="callout">
+    <p><b>Company universe for R-B:</b> use the companies covered by the public evaluation sets in section 7 (FinanceBench's open sample, FinDER), so their human-written evidence labels apply directly. Pin fiscal years FY2022 to FY2025.</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="arch">
+  <div class="sec-head">
+    <div class="eyebrow">5 · System architecture</div>
+    <h2>Six layers, with the evaluation harness watching all of them</h2>
+    <p class="muted">Every layer sits behind an interface, so a data source, parser, index or model can be swapped by config, and the harness can score each layer on its own.</p>
+  </div>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph SRC["Sources"]
+    ED["SEC EDGAR filings by CIK"]
+    XB["XBRL company facts"]
+    FT["Public transcripts (track R-A)"]
+  end
+  subgraph ING["Ingest and index"]
+    AD["Source adapters"] --> PR["Parser: HTML and PDF"] --> CK["Chunker"] --> IX[("FAISS index + metadata")]
+  end
+  subgraph AG["Agent layer"]
+    GR["FARE replica graph (LangGraph)"]
+  end
+  TL["Tools: retrieve, section, XBRL, calculator"]
+  MG["Model gateway: any provider, cache, cost log"]
+  ANS["Answer + citations"]
+  EV["Eval harness: datasets, metrics, judge"]
+  TR[("Trace and experiment store")]
+  ED --> AD
+  FT --> AD
+  IX --> TL
+  XB --> TL
+  GR &lt;--&gt; TL
+  GR &lt;--&gt; MG
+  GR --> ANS
+  EV -. scores .-> IX
+  EV -. runs .-> GR
+  GR -. traces .-> TR
+  EV --> TR
+</pre>
+  </div>
+  <p class="caption">Solid arrows carry data at query time. Dotted arrows are the evaluation and tracing paths. XBRL and the calculator tool are disabled in strict replica mode (see C6).</p>
+
+  <h3>One question, end to end</h3>
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant H as Harness or user
+  participant G as Agent graph
+  participant T as Tools
+  participant M as Model gateway
+  participant S as Trace store
+  H->>G: question, company CIK, fiscal period
+  G->>M: plan the steps
+  G->>T: retrieve chunks (filtered by CIK, form, period)
+  T-->>G: chunks with doc id, section, char offsets
+  G->>M: analyse, then synthesise with citations
+  G->>M: evaluator checks the draft
+  G-->>H: answer, citations, confidence
+  G->>S: full trace: steps, tokens, latency, cost
+</pre>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="components">
+  <div class="sec-head">
+    <div class="eyebrow">6 · Components</div>
+    <h2>Nine components, each with its own metric</h2>
+    <p class="muted">"Measured by" is the key column: if a component cannot be scored on its own, we cannot tell whether a change improved it.</p>
+  </div>
+  <div class="stack">
+    <div class="comp"><div class="cid">C1</div><div class="body">
+      <h3>Source adapters</h3>
+      <dl>
+        <dt>Does</dt><dd>Lists and downloads filings for a CIK, form type and date range. Stores raw files once, keyed by accession number and content hash.</dd>
+        <dt>Design</dt><dd>One <code>FilingSource</code> interface. <code>EdgarSource</code> now, <code>NseSource</code> in Phase I. Respects SEC fair access: a declared User-Agent and at most 10 requests per second.</dd>
+        <dt>Measured by</dt><dd>Coverage: filings fetched vs filings listed in the EDGAR index for the universe.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C2</div><div class="body">
+      <h3>Parser</h3>
+      <dl>
+        <dt>Does</dt><dd>Turns HTML filings and PDF transcripts into clean text with structure: 10-K items (1A Risk Factors, 7 MD&amp;A…), page or character offsets, and tables kept separately.</dd>
+        <dt>Design</dt><dd>HTML parser for EDGAR, PyMuPDF for PDFs (FARE's choice, and needed for NSE later). Output is a <code>Document</code> (section 8).</dd>
+        <dt>Measured by</dt><dd>Section-boundary accuracy on 30 hand-checked filings; share of evidence strings from the eval sets found verbatim in parsed text.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C3</div><div class="body">
+      <h3>Chunker and index</h3>
+      <dl>
+        <dt>Does</dt><dd>Splits documents into chunks, embeds them and builds a FAISS index. Stores metadata (CIK, form, fiscal period, section) for filtering.</dd>
+        <dt>Design</dt><dd>FARE's settings as the default config. Section-aware chunking, BM25 hybrid search and a reranker are separate ablation switches. Metadata filters matter in finance: most wrong answers cite the wrong year.</dd>
+        <dt>Measured by</dt><dd>Recall@k, MRR and nDCG@10 against the gold evidence in the eval sets; index build time and memory.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C4</div><div class="body">
+      <h3>Model gateway</h3>
+      <dl>
+        <dt>Does</dt><dd>The only way any component calls an LLM. Chooses the provider and model from config and returns text or schema-validated JSON.</dd>
+        <dt>Design</dt><dd>Wraps a multi-provider client (LiteLLM). Caches every response on disk, keyed by model, prompt hash and parameters, so reruns are free and reproducible. Logs tokens, latency and cost per call. Temperature 0 by default.</dd>
+        <dt>Measured by</dt><dd>Not scored itself. It supplies the cost and latency columns for every other result.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C5</div><div class="body">
+      <h3>Agent graph</h3>
+      <dl>
+        <dt>Does</dt><dd>Implements FARE's six-agent workflow in LangGraph, with a shared state object and a step limit.</dd>
+        <dt>Design</dt><dd>The graph is defined in config (nodes, edges, prompts), so the real FARE roles drop in once the paper is read. <b>Working hypothesis until then:</b> Planner → Retriever → Financial analyst and Narrative analyst → Synthesizer → Evaluator, which can send the answer back for revision.</dd>
+        <dt>Measured by</dt><dd>Trajectory metrics: correct tool calls, steps per answer, revision loops, failures and timeouts.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C6</div><div class="body">
+      <h3>Tools</h3>
+      <dl>
+        <dt>Does</dt><dd>Functions the agents may call: retrieve chunks, fetch a filing section, look up an XBRL fact, run a calculation.</dd>
+        <dt>Design</dt><dd><b>Replica mode</b> enables only the tools FARE has. <b>Extension mode</b> adds XBRL lookup and a deterministic calculator; this is our first contribution and the preview of Loupe's compute stage. Each tool has typed inputs and outputs and unit tests.</dd>
+        <dt>Measured by</dt><dd>Unit tests; numeric accuracy against XBRL facts (eval set E4).</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C7</div><div class="body">
+      <h3>Evaluation harness</h3>
+      <dl>
+        <dt>Does</dt><dd>Loads a versioned dataset, runs a named system config over it, scores each layer and writes a results report.</dd>
+        <dt>Design</dt><dd>Our own runner, so every metric is transparent in the report. Library metrics (for example Ragas faithfulness) only as a cross-check. Detail in section 7.</dd>
+        <dt>Measured by</dt><dd>Judge-vs-human agreement (RQ3) is the harness's own quality check.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C8</div><div class="body">
+      <h3>Trace and experiment store</h3>
+      <dl>
+        <dt>Does</dt><dd>Keeps every run: config snapshot, git commit, dataset version, per-question outputs, full agent trace, cost.</dd>
+        <dt>Design</dt><dd>JSONL traces plus a DuckDB results table, all local. Optional LangSmith tracing, which plugs into LangGraph directly.</dd>
+        <dt>Measured by</dt><dd>Any past result can be regenerated from its run id.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C9</div><div class="body">
+      <h3>Interfaces</h3>
+      <dl>
+        <dt>Does</dt><dd>A command line for everything: ingest, index, ask, eval, compare runs.</dd>
+        <dt>Design</dt><dd>For example <code>loupe eval run --config fare_replica.yaml --dataset E1-dev</code>. A notebook or small Streamlit page to browse traces comes later. No chat UI in this phase.</dd>
+        <dt>Measured by</dt><dd>Not scored.</dd>
+      </dl>
+    </div></div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="eval">
+  <div class="sec-head">
+    <div class="eyebrow">7 · Evaluation design</div>
+    <h2>How we will know we are improving</h2>
+    <p class="muted">Every change runs against a frozen dev set and is compared with the best previous run. The test set is touched only at milestones.</p>
+  </div>
+
+  <h3>Evaluation datasets</h3>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Id</th><th>Dataset</th><th>What it tests</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td class="id">E1</td><td>FinanceBench, open sample</td><td>QA over 10-K / 10-Q / 8-K with human evidence passages and pages. Retrieval and answer quality.</td><td>Public (Islam et al., 2023). Check licence.</td></tr>
+        <tr><td class="id">E2</td><td>FinDER</td><td>Analyst-style queries over 10-K with evidence. Retrieval under vague queries.</td><td>Public (2025). Check access.</td></tr>
+        <tr><td class="id">E3</td><td>Loupe-SEC gold</td><td>About 200 questions written by the team with evidence spans. Question types mirror Phase I: risk, events, numbers, comparisons.</td><td>Ours. Two authors per item.</td></tr>
+        <tr><td class="id">E4</td><td>XBRL numeric set</td><td>Questions generated from XBRL company facts ("FY2024 revenue", "debt-to-equity"). Exact ground truth, hundreds of items for free.</td><td>Ours, generated from SEC data</td></tr>
+        <tr><td class="id">E5</td><td>Public transcript set</td><td>Stand-in for FARE's unavailable data. Track R-A claim check.</td><td>ECTSum or SubjECTive-QA. Check licence.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Split each set once into dev (tuning) and test (reporting), stratified by company and question type, and freeze the split with a version tag.</p>
+
+  <h3>Metrics per layer</h3>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Layer</th><th>Metrics</th><th>Data</th></tr></thead>
+      <tbody>
+        <tr><td>Parsing</td><td>Section-boundary accuracy; evidence-string recovery rate</td><td>30 filings, E1 evidence</td></tr>
+        <tr><td>Retrieval</td><td>Recall@5, Recall@10, MRR, nDCG@10; wrong-period rate</td><td>E1, E2, E3</td></tr>
+        <tr><td>Answer</td><td>Correctness (numeric tolerance ±1% for numbers, judge rubric for text); refusal accuracy on unanswerable items</td><td>E1, E3, E4</td></tr>
+        <tr><td>Grounding</td><td>Faithfulness (claims supported by retrieved text); citation precision and recall</td><td>E1, E3</td></tr>
+        <tr><td>Agent</td><td>Tool-call accuracy, steps, revision loops, failure rate</td><td>All</td></tr>
+        <tr><td>Efficiency</td><td>Tokens, latency p50/p95, cost per question, cost per correct answer</td><td>All</td></tr>
+        <tr><td>Judge</td><td>Agreement with human grades: Cohen's κ, accuracy</td><td>100-item human-graded subset</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Baseline and ablation ladder</h3>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Id</th><th>System</th><th>Question it answers</th></tr></thead>
+      <tbody>
+        <tr><td class="id">B0</td><td>LLM only, no retrieval</td><td>How much does the model already know?</td></tr>
+        <tr><td class="id">B1</td><td>Plain RAG: retrieve once, answer once</td><td>The standard baseline every reviewer expects</td></tr>
+        <tr><td class="id">B2</td><td>FARE replica (strict)</td><td>RQ1 and RQ2</td></tr>
+        <tr><td class="id">B3</td><td>B2 + XBRL lookup and calculator</td><td>Does deterministic compute remove numeric errors?</td></tr>
+        <tr><td class="id">B4</td><td>B3 + citation check and calibrated judge</td><td>Does grounding raise faithfulness?</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Run each rung with 3 to 4 models. Start with FARE's two (Qwen2.5-7B-Instruct via a hosted API, Gemini 2.5 Flash-Lite) and add one or two others. That makes a model × system grid, and the cost column shows which trade-offs are worth it.</p>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">JUDGE PROTOCOL</div>
+      <ul class="plain">
+        <li>The judge comes from a different model family than the model being judged.</li>
+        <li>A fixed written rubric, versioned with the dataset.</li>
+        <li>Two team members grade a 100-item subset by hand. Report κ between them and between humans and the judge.</li>
+        <li>This directly addresses FARE's stated limitation.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="k">STATISTICAL RIGOUR</div>
+      <ul class="plain">
+        <li>Temperature 0. Where a model is non-deterministic, 3 runs.</li>
+        <li>95% bootstrap confidence intervals on every headline number.</li>
+        <li>Paired tests when comparing two systems on the same questions.</li>
+        <li>Ticker-trap control (Paper 8): rerun a subset with company names masked.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  C["Change: prompt, chunking, model or graph"] --> D["Run dev suite"]
+  D --> M["Metrics per layer"]
+  M --> Q{"Better than last best?"}
+  Q -- yes --> K["Keep and log run id"]
+  Q -- no --> X["Read traces, revert or fix"]
+  K --> T["Test set at milestones only"]
+</pre>
+  </div>
+  <p class="caption">The improvement loop. A change is kept only if the dev metrics for the layer it touched improve without regressing the others.</p>
+</section>
+
+<!-- 7 -->
+<section id="contracts">
+  <div class="sec-head">
+    <div class="eyebrow">8 · Data contracts</div>
+    <h2>The objects passed between layers</h2>
+    <p class="muted">Agree on these before splitting work. With fixed contracts, four people can build four layers in parallel.</p>
+  </div>
+<pre class="code"><span class="c"># Document — output of C2</span>
+doc_id, source ("edgar" | "transcripts" | "nse"), cik, company, form ("10-K"…), accession,
+fiscal_year, fiscal_period, filed_at, url, sections: [{name, start_char, end_char}], text, tables[]
+
+<span class="c"># Chunk — output of C3; every citation points to one</span>
+chunk_id, doc_id, section, start_char, end_char, text, embedding_model, index_version
+
+<span class="c"># Query — one eval item or user question</span>
+query_id, question, cik?, fiscal_period?, dataset, split, gold: {answer, evidence: [{doc_id, span}]}
+
+<span class="c"># Answer — output of C5</span>
+answer_text, claims: [{text, chunk_ids[]}], numeric_values: [{value, unit, source}], confidence
+
+<span class="c"># Trace — written by C5, stored by C8</span>
+run_id, query_id, steps: [{agent, tool?, input, output, model, tokens, latency_ms, cost}]
+
+<span class="c"># EvalRecord — output of C7</span>
+run_id, query_id, config_hash, dataset_version, metrics: {recall@k, correct, faithful, …}, judge: {model, verdict, reason}</pre>
+</section>
+
+<!-- 8 -->
+<section id="stack">
+  <div class="sec-head">
+    <div class="eyebrow">9 · Technology choices</div>
+    <h2>Chosen to fit an 8 GB M1 laptop</h2>
+    <p class="muted">LLMs run on hosted APIs. Everything else runs locally on CPU or Apple's GPU.</p>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Concern</th><th>Choice</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Language, environment</td><td>Python 3.12 with uv</td><td>The machine has 3.14; FAISS and PyTorch wheels are safest on 3.12.</td></tr>
+        <tr><td>Orchestration</td><td>LangGraph</td><td>Same as FARE, required for a fair replication.</td></tr>
+        <tr><td>LLM access</td><td>LiteLLM behind our gateway</td><td>One interface for Gemini, Claude, OpenAI-compatible hosts serving Qwen, and others. Switching models is a config change.</td></tr>
+        <tr><td>Embeddings</td><td>SentenceTransformers</td><td>Same as FARE. Use FARE's model if it fits in memory, otherwise a small model as a documented deviation.</td></tr>
+        <tr><td>Vector index</td><td>FAISS (faiss-cpu)</td><td>Same as FARE. A flat index is fast enough for the replication corpus.</td></tr>
+        <tr><td>EDGAR access</td><td>SEC submissions and XBRL APIs, plus an HTML parser</td><td>Official, free, tested today: Apple's filings list and XBRL facts downloaded.</td></tr>
+        <tr><td>PDF parsing</td><td>PyMuPDF</td><td>Same as FARE; needed for NSE PDFs later.</td></tr>
+        <tr><td>Results and traces</td><td>DuckDB + JSONL, optional LangSmith</td><td>Nothing to run as a server; results are queryable with SQL.</td></tr>
+        <tr><td>Quality</td><td>pytest, ruff, pre-commit</td><td>Tool unit tests and parser tests run on every commit.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 9 -->
+<section id="india">
+  <div class="sec-head">
+    <div class="eyebrow">10 · Path to Indian filings</div>
+    <h2>What carries over to Phase I</h2>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Component</th><th>Phase I</th><th>Change</th></tr></thead>
+      <tbody>
+        <tr><td>C1 Source adapters</td><td><span class="tag ours">New adapter</span></td><td><code>NseSource</code>: NSE announcements API, tested and working. BSE blocks automated access.</td></tr>
+        <tr><td>C2 Parser</td><td><span class="tag ok">Reused</span></td><td>PyMuPDF path already built; add Indian letter-format cleanup.</td></tr>
+        <tr><td>C3 Chunker and index</td><td><span class="tag ok">Reused</span></td><td>Same code, new metadata (symbol, ISIN, NSE category).</td></tr>
+        <tr><td>C4 Model gateway</td><td><span class="tag ok">Reused</span></td><td>No change.</td></tr>
+        <tr><td>C5 Agent graph</td><td><span class="tag ours">Extended</span></td><td>Add extraction and compute nodes, then personas.</td></tr>
+        <tr><td>C6 Tools</td><td><span class="tag ours">Extended</span></td><td>Pledge %, RPT ratios and the distress score join XBRL lookup and the calculator.</td></tr>
+        <tr><td>C7 Harness</td><td><span class="tag ok">Reused</span></td><td>New datasets: Indian gold set, LODR event labels.</td></tr>
+        <tr><td>Taxonomy</td><td><span class="tag ours">New</span></td><td><code>india_disclosure_taxonomy.v0.yaml</code> (draft exists).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="plan">
+  <div class="sec-head">
+    <div class="eyebrow">11 · Replication plan</div>
+    <h2>About ten weeks, ending with results for the Semester VII review</h2>
+    <p class="muted">Week dates start Monday 5 October 2026. Filled dots are review gates.</p>
+  </div>
+  <div class="timeline">
+    <div class="wk"><div class="when">WEEK 1 · 5 OCT</div><p>Read FARE. Steps 1–3 of section 3: extraction sheet, claims register, first decisions. Agree the data contracts. Repo, environment, CI.</p></div>
+    <div class="wk"><div class="when">WEEKS 2–3 · 12–23 OCT</div><p>C1 EDGAR adapter and C2 parser for the universe. Download E1 and E2. Generate E4 from XBRL. Parser metrics.</p></div>
+    <div class="wk gate"><div class="when">WEEK 4 · 26 OCT</div><p><b>Gate:</b> C3 index built. Retrieval metrics on E1 and E2 with FARE's settings. First results table.</p></div>
+    <div class="wk"><div class="when">WEEKS 5–6 · 2–13 NOV</div><p>C4 gateway with cache and cost log. B0 and B1 baselines across models. Start writing E3 questions and human grades.</p></div>
+    <div class="wk"><div class="when">WEEKS 7–8 · 16–27 NOV</div><p>Steps 4–5: rebuilt prompts, C5 FARE replica graph (B2), conformance sign-off. Track R-A claim check on transcripts. Trajectory metrics.</p></div>
+    <div class="wk gate"><div class="when">WEEK 9 · 30 NOV</div><p><b>Gate, Sem VII review:</b> step 6 results: each FARE claim marked holds, partly or does not hold. B0–B2 across models on E1, E3, E4 and E5, with confidence intervals, costs and judge agreement.</p></div>
+    <div class="wk"><div class="when">WEEK 10 · 7 DEC</div><p>B3 and B4 extensions. Write the replication chapter. Start Phase I.</p></div>
+  </div>
+  <p class="muted">Adjust the review gates to your department's actual dates.</p>
+</section>
+
+<!-- 11 -->
+<section id="risks">
+  <div class="sec-head">
+    <div class="eyebrow">12 · Risks</div>
+    <h2>What could derail the replication</h2>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td>The paper leaves out details (prompts, agent roles, settings)</td><td>Decisions log with reasons; ablate any gap that could change results; email the authors.</td></tr>
+        <tr><td>FARE's code, prompts and data are unavailable</td><td>Conceptual replication (section 3): test claims, not exact numbers; substitute transcript data for R-A; every gap logged as a decision.</td></tr>
+        <tr><td>API cost across many models and runs</td><td>Response cache; develop on a 50-item dev slice; full runs only at gates; set a budget per model.</td></tr>
+        <tr><td>8 GB RAM limits embedding models and indexes</td><td>Small embedding model, flat FAISS index, batch encoding; document deviations from FARE.</td></tr>
+        <tr><td>LLM judge is biased or lenient</td><td>Cross-family judge, fixed rubric, human-graded subset with κ.</td></tr>
+        <tr><td>Tuning on the test set by accident</td><td>Frozen splits with version tags; the harness refuses test runs unless a flag is set.</td></tr>
+        <tr><td>SEC rate limiting</td><td>Declared User-Agent, request throttle, local cache of every raw filing.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <p>Companion to the Loupe Project Compass page. Verified on 29 Sep 2026: SEC submissions and XBRL APIs respond, and the NSE announcements API responds. FARE parameters marked "Confirm" are not yet verified against the paper, which is the only source for the rebuild.</p>
+</footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:matchMedia("(prefers-color-scheme: dark)").matches?"dark":"default"});</script>
+</html>
