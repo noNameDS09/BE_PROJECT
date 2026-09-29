@@ -75,7 +75,7 @@ section { display: grid; gap: var(--s4); padding-top: var(--s7); scroll-margin-t
 .panel p, .panel li { font-size: .92rem; }
 
 .table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); }
-table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; font-variant-numeric: tabular-nums; }
 th, td { text-align: left; padding: .55rem .75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
 tr:last-child td { border-bottom: 0; }
 th { font-family: var(--f-mono); font-size: .7rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--paper); white-space: nowrap; }
@@ -120,31 +120,32 @@ footer { margin-top: var(--s7); padding-top: var(--s4); border-top: 1px solid va
 <div class="wrap">
 
 <header class="top">
-  <div class="eyebrow">Loupe · High-level design · Phase R (replication)</div>
-  <h1>Replicating FARE on SEC EDGAR filings</h1>
-  <p class="lead">Before building anything for Indian filings, we rebuild the base paper's agent architecture, run it on US company filings fetched by CIK, and measure every component. The same harness, model gateway and agent graph then carry over to Indian data.</p>
+  <div class="eyebrow">Loupe · High-level design · Phase R</div>
+  <h1>FARE's architecture on SEC EDGAR filings</h1>
+  <p class="lead">We rebuild the base paper's multi-agent system from its text, run it on SEC filings for our 25 companies, measure every stage, and make each stage swappable so a React playground can compare variants side by side. The same pipeline later carries over to Indian filings.</p>
   <div class="docmeta">
-    <span class="chip">Version <b>0.1 draft</b></span>
+    <span class="chip">Version <b>0.2</b></span>
     <span class="chip">Date <b>29 Sep 2026</b></span>
     <span class="chip">Base paper <b>FARE, IEEE Access 2026</b></span>
-    <span class="chip">Status <b>for team review</b></span>
+    <span class="chip">Plan <b>docs/IMPLEMENTATION-PLAN.md</b></span>
   </div>
 </header>
 
 <nav class="index" aria-label="Sections">
   <ol>
     <li><a href="#goals"><span>1</span>Goals</a></li>
-    <li><a href="#spec"><span>2</span>FARE spec</a></li>
+    <li><a href="#fare"><span>2</span>FARE</a></li>
     <li><a href="#method"><span>3</span>Paper to code</a></li>
-    <li><a href="#tracks"><span>4</span>Tracks</a></li>
+    <li><a href="#agents"><span>4</span>Agents on filings</a></li>
     <li><a href="#arch"><span>5</span>Architecture</a></li>
     <li><a href="#components"><span>6</span>Components</a></li>
-    <li><a href="#eval"><span>7</span>Evaluation</a></li>
-    <li><a href="#contracts"><span>8</span>Data contracts</a></li>
-    <li><a href="#stack"><span>9</span>Stack</a></li>
-    <li><a href="#india"><span>10</span>Path to India</a></li>
-    <li><a href="#plan"><span>11</span>Plan</a></li>
-    <li><a href="#risks"><span>12</span>Risks</a></li>
+    <li><a href="#variants"><span>7</span>Variants</a></li>
+    <li><a href="#eval"><span>8</span>Evaluation</a></li>
+    <li><a href="#playground"><span>9</span>Playground</a></li>
+    <li><a href="#contracts"><span>10</span>Contracts</a></li>
+    <li><a href="#stack"><span>11</span>Stack</a></li>
+    <li><a href="#plan"><span>12</span>Plan</a></li>
+    <li><a href="#risks"><span>13</span>Risks</a></li>
   </ol>
 </nav>
 
@@ -153,69 +154,63 @@ footer { margin-top: var(--s7); padding-top: var(--s4); border-top: 1px solid va
   <div class="sec-head">
     <div class="eyebrow">1 · Goals and scope</div>
     <h2>Four research questions for this phase</h2>
-    <p class="muted">Replication is a research result in its own right. Each question has a measurable answer, and together they form the first results chapter of the report.</p>
+    <p class="muted">Each has a measurable answer, and together they form the first results chapter of the report.</p>
   </div>
   <div class="rq">
-    <div class="rq-item"><span class="n">RQ1</span><p><b>Reproduction.</b> When FARE is rebuilt from the paper alone, do its main claims still hold? For example: the same model ranking, and the agent workflow beating simpler baselines.</p></div>
-    <div class="rq-item"><span class="n">RQ2</span><p><b>Transfer.</b> Does FARE's architecture hold up when moved from earnings-call transcripts to SEC filings (10-K, 10-Q, 8-K)? Does it beat a plain RAG baseline there?</p></div>
-    <div class="rq-item"><span class="n">RQ3</span><p><b>Judge reliability.</b> FARE relies on LLM-as-a-judge without human validation. How well does the judge agree with human graders on our data?</p></div>
-    <div class="rq-item"><span class="n">RQ4</span><p><b>Error attribution.</b> When an answer is wrong, is it a retrieval failure, a reasoning failure or an arithmetic failure? What does each model cost per correct answer?</p></div>
+    <div class="rq-item"><span class="n">RQ1</span><p><b>Transfer.</b> When FARE is rebuilt from the paper and run on SEC filings instead of transcripts, do its conclusions still hold? For example: the same model ranking per agent, and the same speed ranking.</p></div>
+    <div class="rq-item"><span class="n">RQ2</span><p><b>Multi-agent value.</b> Does routing to specialised agents beat a single-agent RAG system on the same questions? FARE asserts this but never measures it.</p></div>
+    <div class="rq-item"><span class="n">RQ3</span><p><b>Judge reliability.</b> FARE's judges were never checked against people. How often does each judge version agree with human grades?</p></div>
+    <div class="rq-item"><span class="n">RQ4</span><p><b>Which stage matters.</b> Swapping one stage at a time (chunking, embeddings, retrieval, routing, prompts, model), which changes move the scores, and at what cost?</p></div>
   </div>
   <div class="grid2">
     <div class="panel">
       <div class="k">IN SCOPE</div>
       <ul class="plain">
-        <li>FARE's agent graph, rebuilt from the paper</li>
-        <li>SEC EDGAR ingestion by CIK: 10-K, 10-Q, 8-K, XBRL facts</li>
-        <li>Model-agnostic runs across several LLMs</li>
-        <li>Evaluation harness with metrics for every component</li>
-        <li>Ablations against simpler baselines</li>
+        <li>FARE's orchestrator and six agents, rebuilt from the paper</li>
+        <li>SEC EDGAR filings by CIK for our 25 companies</li>
+        <li>Several variants per stage, chosen by config</li>
+        <li>Versioned judges and per-stage metrics</li>
+        <li>FastAPI backend and React benchmarking playground</li>
       </ul>
     </div>
     <div class="panel">
       <div class="k">NOT IN THIS PHASE</div>
       <ul class="plain">
-        <li>Indian filings, LODR taxonomy, NSE ingestion (Phase I)</li>
-        <li>Chat UI, personas, charts, exports</li>
-        <li>Fine-tuning any model</li>
-        <li>Production concerns: auth, multi-user, deployment</li>
+        <li>Earnings-call transcripts and FARE's original dataset</li>
+        <li>Investment advice of any kind</li>
+        <li>Indian filings, LODR taxonomy, personas, chat product (Phase I)</li>
+        <li>Fine-tuning models</li>
       </ul>
     </div>
   </div>
 </section>
 
 <!-- 2 -->
-<section id="spec">
+<section id="fare">
   <div class="sec-head">
-    <div class="eyebrow">2 · FARE replication spec</div>
-    <h2>What we know about FARE, and what the paper must confirm</h2>
-    <p class="muted">A replication is only as good as this table. Fill every orange row from the paper before writing agent code, and record the page number next to each value.</p>
-  </div>
-  <div class="callout warn">
-    <p><b>The paper is our only source.</b> FARE's code, prompts and dataset are not available to us, so every row below must come from the paper text. Save the PDF as <code>ResearchPapers/FARE.pdf</code> (DOI 10.1109/ACCESS.2026.3689742, IEEE Xplore document 11503237). The confirmed rows so far come from your review deck, slide 5.</p>
+    <div class="eyebrow">2 · What FARE specifies</div>
+    <h2>The paper, reduced to the settings we rebuild</h2>
+    <p class="muted">Full sheet with page numbers: <code>docs/fare/01-extraction-sheet.md</code>. FARE publishes no code, prompts or queries, so those are reconstructed and recorded.</p>
   </div>
   <div class="table-scroll">
     <table>
-      <thead><tr><th>Parameter</th><th>Value</th><th>Status</th></tr></thead>
+      <thead><tr><th>Setting</th><th>FARE</th><th>Page</th><th>Status</th></tr></thead>
       <tbody>
-        <tr><td>Task</td><td>Question answering and analysis over earnings-call transcripts, with an evaluation method</td><td><span class="tag ok">Deck + title</span></td></tr>
-        <tr><td>Orchestration</td><td>LangGraph</td><td><span class="tag ok">Deck</span></td></tr>
-        <tr><td>Agents</td><td>6 specialised agents</td><td><span class="tag ok">Deck</span></td></tr>
-        <tr><td>Agent roles, prompts, edges</td><td>Unknown. Section 6 uses a labelled working hypothesis.</td><td><span class="tag tbc">Confirm</span></td></tr>
-        <tr><td>Document parsing</td><td>PyMuPDF (transcripts as PDF)</td><td><span class="tag ok">Deck</span></td></tr>
-        <tr><td>Embeddings</td><td>SentenceTransformers. Model name unknown.</td><td><span class="tag tbc">Confirm model</span></td></tr>
-        <tr><td>Vector store</td><td>FAISS. Index type unknown.</td><td><span class="tag tbc">Confirm type</span></td></tr>
-        <tr><td>Chunk size, overlap, top-k</td><td>Unknown</td><td><span class="tag tbc">Confirm</span></td></tr>
-        <tr><td>Models compared</td><td>Includes Qwen2.5-7B-Instruct (best reasoning) and Gemini 2.5 Flash-Lite (most efficient)</td><td><span class="tag tbc">Confirm full list</span></td></tr>
-        <tr><td>Dataset</td><td>Source, companies, quarters, size unknown. Is it public?</td><td><span class="tag tbc">Confirm</span></td></tr>
-        <tr><td>Evaluation</td><td>LLM-as-a-judge. Rubric, judge model and metrics unknown.</td><td><span class="tag tbc">Confirm</span></td></tr>
-        <tr><td>Reported numbers</td><td>Needed as reproduction targets for RQ1</td><td><span class="tag tbc">Copy table</span></td></tr>
-        <tr><td>Stated limitations</td><td>Limited context windows; judge not validated by humans; no formal risk framework</td><td><span class="tag ok">Deck</span></td></tr>
-        <tr><td>Stated future work</td><td>Human-in-the-loop validation, MCP integration, formal risk quantification</td><td><span class="tag ok">Deck</span></td></tr>
+        <tr><td>Routing</td><td>Orchestrator maps each query to one agent with an LLM prompt (single intent)</td><td>67366</td><td><span class="tag tbc">Prompt not given</span></td></tr>
+        <tr><td>Agents</td><td>Statement Extraction, Tone, Investment, Comparison, Tone Shift, Simulation</td><td>67367–70</td><td><span class="tag ok">Specified</span></td></tr>
+        <tr><td>Tone critic</td><td>Checks the Tone answer against Google Search and asks for a revision</td><td>67368</td><td><span class="tag tbc">Ambiguous</span></td></tr>
+        <tr><td>Chunking</td><td>Recursive character split, 800 characters, 100 overlap</td><td>67365</td><td><span class="tag ok">Specified</span></td></tr>
+        <tr><td>Embeddings, index</td><td>all-MiniLM-L6-v2 (384-d), FAISS IndexFlatL2</td><td>67366</td><td><span class="tag ok">Specified</span></td></tr>
+        <tr><td>Retrieval</td><td>Top-10, chunk metadata company / quarter / year, batch-wise reading</td><td>67366–67</td><td><span class="tag tbc">Batch size not given</span></td></tr>
+        <tr><td>Prompts</td><td>Role-based with Chain-of-Thought</td><td>67367</td><td><span class="tag tbc">Text not given</span></td></tr>
+        <tr><td>Models</td><td>Gemini 2.5 Flash, Flash-Lite, Qwen2.5-7B-Instruct, Llama-3.2-3B-Instruct</td><td>67367</td><td><span class="tag ok">Specified</span></td></tr>
+        <tr><td>Judges</td><td>One LLM judge per agent with Google Search references; TAEF, IRAS, CAS, TAS, EAS + CODS; RAGAS for Statement Extraction</td><td>67370–73</td><td><span class="tag tbc">Judge model not given</span></td></tr>
+        <tr><td>Queries</td><td>544 across six agents (Table 2)</td><td>67374</td><td><span class="tag tbc">Queries not given</span></td></tr>
+        <tr><td>Data</td><td>168 transcripts, 21 companies × 8 quarters</td><td>67365–66</td><td><span class="tag off">Not used</span></td></tr>
       </tbody>
     </table>
   </div>
-  <p class="muted">Rows the paper leaves unanswered go into the decisions log (section 3). Emailing the corresponding author about the biggest gaps costs nothing, and any reply is good material for the report.</p>
+  <p class="muted">FARE's headline results: Qwen2.5-7B-Instruct scores best on most agents; Gemini 2.5 Flash-Lite is fastest on every agent. All eight claims we test are in <code>docs/fare/02-claims.md</code>.</p>
 </section>
 
 <!-- 3 -->
@@ -223,415 +218,317 @@ footer { margin-top: var(--s7); padding-top: var(--s4); border-top: 1px solid va
   <div class="sec-head">
     <div class="eyebrow">3 · From paper to code</div>
     <h2>Rebuilding FARE when the paper is all we have</h2>
-    <p class="muted">Without FARE's code, prompts or data, we cannot rerun the authors' experiment. We rebuild the method from its description and test whether its claims hold on new data. This is called a conceptual replication, and it is a recognised type of study. Six steps, each producing a file the report can cite.</p>
+    <p class="muted">Without FARE's code, prompts or data, we rebuild the method from its description and test whether its conclusions hold on new data. Six steps, each producing a file the report can cite.</p>
   </div>
   <div class="timeline">
-    <div class="wk"><div class="when">STEP 1 · READ AND EXTRACT</div><p>Everyone reads the paper. One person fills the extraction sheet: every design element (agents, prompts, retrieval settings, models, dataset, metrics) with its page or section and a status of <b>Specified</b>, <b>Partly specified</b> or <b>Not specified</b>.</p><p class="muted"><code>docs/fare/01-extraction-sheet.md</code></p></div>
-    <div class="wk"><div class="when">STEP 2 · REGISTER THE CLAIMS</div><p>List every result the paper reports, with its number and table or figure. For example, "Qwen2.5-7B-Instruct gives the strongest reasoning". Each claim becomes a hypothesis we test.</p><p class="muted"><code>docs/fare/02-claims.md</code></p></div>
-    <div class="wk"><div class="when">STEP 3 · FILL THE GAPS, ON THE RECORD</div><p>For every item that is not fully specified, write a short decision: the options, the choice, the reason, and whether it could change results. If it could, it becomes an ablation. Default rule: pick the simplest option that fits the paper's text, using the defaults of the libraries FARE names.</p><p class="muted"><code>docs/fare/03-decisions.md</code></p></div>
-    <div class="wk"><div class="when">STEP 4 · REBUILD THE PROMPTS</div><p>Copy any prompts printed in the paper word for word. Otherwise write them from the agent role descriptions, version them, and label them as reconstructions.</p><p class="muted"><code>configs/fare/prompts/*.yaml</code></p></div>
-    <div class="wk"><div class="when">STEP 5 · BUILD, THEN CHECK CONFORMANCE</div><p>Implement the graph from the extraction sheet. A teammate who did not write the code then checks every Specified item against the running system and signs it off.</p><p class="muted"><code>docs/fare/05-conformance.md</code></p></div>
-    <div class="wk gate"><div class="when">STEP 6 · TEST THE CLAIMS, REPORT DEVIATIONS</div><p>Run the claims on substitute transcript data (track R-A) and SEC filings (track R-B). Report each claim as holds, holds partly, or does not hold, with confidence intervals, plus a table of every deviation from the paper.</p><p class="muted">Replication chapter of the report</p></div>
-  </div>
-  <div class="grid2">
-    <div class="panel">
-      <div class="k">WHAT SUCCESS MEANS HERE</div>
-      <ul class="plain">
-        <li>Every Specified item is implemented and signed off.</li>
-        <li>Every gap has a written, justified decision.</li>
-        <li>Every claim is tested with confidence intervals.</li>
-        <li>Matching FARE's exact numbers is not the goal. Different data and prompts make that impossible. Matching its conclusions is the goal.</li>
-      </ul>
-    </div>
-    <div class="panel">
-      <div class="k">IF A CLAIM DOES NOT HOLD</div>
-      <ul class="plain">
-        <li>That is a finding, not a failure. Report it.</li>
-        <li>Check the decisions log first: rerun the ablation for any gap that could explain the difference.</li>
-        <li>A claim that fails on SEC filings but holds on transcripts is itself a result about transfer (RQ2).</li>
-      </ul>
-    </div>
+    <div class="wk"><div class="when">STEP 1 · EXTRACT</div><p>Every design element with its page and a status of Specified, Partly specified or Not specified. <span class="tag ok">Drafted</span></p><p class="muted"><code>docs/fare/01-extraction-sheet.md</code></p></div>
+    <div class="wk"><div class="when">STEP 2 · REGISTER THE CLAIMS</div><p>Every reported result as a hypothesis, with the paper's numbers. <span class="tag ok">Drafted</span></p><p class="muted"><code>docs/fare/02-claims.md</code></p></div>
+    <div class="wk"><div class="when">STEP 3 · FILL THE GAPS, ON THE RECORD</div><p>For every item not fully specified: options, choice, reason, and whether it could change results. If it could, it becomes an ablation.</p><p class="muted"><code>docs/fare/03-decisions.md</code></p></div>
+    <div class="wk"><div class="when">STEP 4 · REBUILD THE PROMPTS</div><p>Written from the agent descriptions, versioned, labelled as reconstructions.</p><p class="muted"><code>configs/prompts/fare/*.yaml</code></p></div>
+    <div class="wk"><div class="when">STEP 5 · BUILD, THEN CHECK CONFORMANCE</div><p>A teammate who did not write the code checks every Specified item against the running system.</p><p class="muted"><code>docs/fare/05-conformance.md</code></p></div>
+    <div class="wk gate"><div class="when">STEP 6 · TEST THE CLAIMS</div><p>Each claim marked holds, partly or does not hold, with confidence intervals, plus a table of every deviation from the paper.</p><p class="muted">Replication chapter of the report</p></div>
   </div>
 </section>
 
 <!-- 4 -->
-<section id="tracks">
+<section id="agents">
   <div class="sec-head">
-    <div class="eyebrow">4 · Two replication tracks</div>
-    <h2>Reproduce first, then transfer</h2>
-    <p class="muted">EDGAR does not host earnings-call transcripts systematically, so "FARE on SEC filings" means two things. Keep them separate so each result is interpretable.</p>
+    <div class="eyebrow">4 · The six agents on SEC filings</div>
+    <h2>Same roles, new documents, no advice</h2>
+    <p class="muted">Two FARE agents recommend buying or selling. Ours keep their analysis and drop the recommendation. Their FARE metrics are adapted and the change is recorded in the decisions log.</p>
   </div>
-  <div class="grid2">
-    <div class="panel">
-      <div class="k">TRACK R-A · CLAIM CHECK</div>
-      <h3>FARE's task, substitute data</h3>
-      <p>Run the rebuilt system on a public earnings-call transcript dataset with FARE's two named models. Candidates: ECTSum and SubjECTive-QA (check licences). Test whether FARE's conclusions hold, not whether we hit its exact numbers.</p>
-      <p class="muted">Answers RQ1. Keeps the comparison on FARE's own document type, so any difference comes from our rebuild rather than from the switch to filings.</p>
-    </div>
-    <div class="panel">
-      <div class="k">TRACK R-B · TRANSFER</div>
-      <h3>FARE's architecture, SEC filings by CIK</h3>
-      <p>Same graph and models, pointed at 10-K, 10-Q and 8-K filings. Earnings press releases (8-K Item 2.02, Exhibit 99.1) are the closest filing to a transcript.</p>
-      <p class="muted">Answers RQ2 to RQ4. This is also the dry run for Indian filings, which are also regulator-mandated documents.</p>
-    </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Agent</th><th>Task on filings</th><th>Filings</th><th>Metric</th></tr></thead>
+      <tbody>
+        <tr><td>Statement Extraction</td><td>Factual answer quoting the filing and naming its section</td><td>10-K, 10-Q, 8-K</td><td>RAGAS CP, F, RR + citation precision</td></tr>
+        <tr><td>Tone</td><td>Tone of one period's MD&amp;A and earnings release, with the critic loop</td><td>10-K Item 7, 10-Q Item 2, 8-K EX-99.1</td><td>TAEF</td></tr>
+        <tr><td>Tone Shift</td><td>How tone moves across consecutive periods</td><td>Same as Tone</td><td>TAS</td></tr>
+        <tr><td>Comparison</td><td>Several companies on one topic in one period</td><td>10-K, 10-Q sections</td><td>CAS</td></tr>
+        <tr><td><b>Thesis Check</b><br><span class="muted">was Investment</span></td><td>Does filing evidence support, weaken or leave open the user's stated reason for holding? Quotes required. No hold or sell.</td><td>10-K, 10-Q, 8-K</td><td>IRAS, adapted</td></tr>
+        <tr><td><b>Scenario</b><br><span class="muted">was Simulation</span></td><td>Actual vs hypothetical holding. Returns computed by code from prices; narrative from filings. No guidance.</td><td>Filings + daily prices</td><td>EAS + CODS, adapted</td></tr>
+      </tbody>
+    </table>
   </div>
   <div class="callout">
-    <p><b>Company universe for R-B:</b> use the companies covered by the public evaluation sets in section 7 (FinanceBench's open sample, FinDER), so their human-written evidence labels apply directly. Pin fiscal years FY2022 to FY2025.</p>
-  </div>
-</section>
-
-<!-- 4 -->
-<section id="arch">
-  <div class="sec-head">
-    <div class="eyebrow">5 · System architecture</div>
-    <h2>Six layers, with the evaluation harness watching all of them</h2>
-    <p class="muted">Every layer sits behind an interface, so a data source, parser, index or model can be swapped by config, and the harness can score each layer on its own.</p>
-  </div>
-  <div class="diagram">
-<pre class="mermaid">
-flowchart LR
-  subgraph SRC["Sources"]
-    ED["SEC EDGAR filings by CIK"]
-    XB["XBRL company facts"]
-    FT["Public transcripts (track R-A)"]
-  end
-  subgraph ING["Ingest and index"]
-    AD["Source adapters"] --> PR["Parser: HTML and PDF"] --> CK["Chunker"] --> IX[("FAISS index + metadata")]
-  end
-  subgraph AG["Agent layer"]
-    GR["FARE replica graph (LangGraph)"]
-  end
-  TL["Tools: retrieve, section, XBRL, calculator"]
-  MG["Model gateway: any provider, cache, cost log"]
-  ANS["Answer + citations"]
-  EV["Eval harness: datasets, metrics, judge"]
-  TR[("Trace and experiment store")]
-  ED --> AD
-  FT --> AD
-  IX --> TL
-  XB --> TL
-  GR &lt;--&gt; TL
-  GR &lt;--&gt; MG
-  GR --> ANS
-  EV -. scores .-> IX
-  EV -. runs .-> GR
-  GR -. traces .-> TR
-  EV --> TR
-</pre>
-  </div>
-  <p class="caption">Solid arrows carry data at query time. Dotted arrows are the evaluation and tracing paths. XBRL and the calculator tool are disabled in strict replica mode (see C6).</p>
-
-  <h3>One question, end to end</h3>
-  <div class="diagram">
-<pre class="mermaid">
-sequenceDiagram
-  participant H as Harness or user
-  participant G as Agent graph
-  participant T as Tools
-  participant M as Model gateway
-  participant S as Trace store
-  H->>G: question, company CIK, fiscal period
-  G->>M: plan the steps
-  G->>T: retrieve chunks (filtered by CIK, form, period)
-  T-->>G: chunks with doc id, section, char offsets
-  G->>M: analyse, then synthesise with citations
-  G->>M: evaluator checks the draft
-  G-->>H: answer, citations, confidence
-  G->>S: full trace: steps, tokens, latency, cost
-</pre>
+    <p><b>Universe:</b> the team's 25 companies, fixed for the whole phase, listed with CIKs in <code>configs/universe.yaml</code>. Filings from FY2023 to FY2025.</p>
   </div>
 </section>
 
 <!-- 5 -->
+<section id="arch">
+  <div class="sec-head">
+    <div class="eyebrow">5 · System architecture</div>
+    <h2>A pipeline of swappable stages, behind an API</h2>
+    <p class="muted">Every stage is picked from a registry by the pipeline config. The playground and the evaluation harness both call the same API.</p>
+  </div>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph ING["Ingest and index"]
+    ED["EDGAR filings by CIK"] --> PR["Parse"] --> CK["Chunk"] --> EM["Embed"] --> IX[("Index + metadata")]
+  end
+  subgraph AG["Agent layer (LangGraph)"]
+    OR{"Orchestrator"}
+    OR --> A1["Statement Extraction"]
+    OR --> A2["Tone + critic"]
+    OR --> A3["Tone Shift"]
+    OR --> A4["Comparison"]
+    OR --> A5["Thesis Check"]
+    OR --> A6["Scenario"]
+  end
+  Q["Query"] --> OR
+  RT["Retrieve"]
+  IX --> RT
+  AG &lt;--&gt; RT
+  AG &lt;--&gt; MG["Model gateway"]
+  TL["Tools: XBRL, prices, calculator"] &lt;--&gt; AG
+  AG --> ANS["Answer + citations"]
+  ANS --> JD["Judges (versioned)"]
+  JD --> ST[("Results + traces")]
+  ST --> API["FastAPI"]
+  API --> UI["React playground"]
+</pre>
+  </div>
+  <p class="caption">One query enters the orchestrator, which activates one agent. Judges score the answer after the fact; they never influence the answer (except the Tone critic, see decisions log).</p>
+</section>
+
+<!-- 6 -->
 <section id="components">
   <div class="sec-head">
     <div class="eyebrow">6 · Components</div>
-    <h2>Nine components, each with its own metric</h2>
-    <p class="muted">"Measured by" is the key column: if a component cannot be scored on its own, we cannot tell whether a change improved it.</p>
+    <h2>Each component has its own metric</h2>
   </div>
   <div class="stack">
     <div class="comp"><div class="cid">C1</div><div class="body">
-      <h3>Source adapters</h3>
+      <h3>EDGAR source</h3>
       <dl>
-        <dt>Does</dt><dd>Lists and downloads filings for a CIK, form type and date range. Stores raw files once, keyed by accession number and content hash.</dd>
-        <dt>Design</dt><dd>One <code>FilingSource</code> interface. <code>EdgarSource</code> now, <code>NseSource</code> in Phase I. Respects SEC fair access: a declared User-Agent and at most 10 requests per second.</dd>
-        <dt>Measured by</dt><dd>Coverage: filings fetched vs filings listed in the EDGAR index for the universe.</dd>
+        <dt>Does</dt><dd>Lists and downloads 10-K, 10-Q and 8-K filings (with exhibits) for each CIK. Caches raw files by accession number.</dd>
+        <dt>Design</dt><dd>SEC submissions API; declared User-Agent; at most 10 requests per second. <code>NseSource</code> joins in Phase I.</dd>
+        <dt>Measured by</dt><dd>Coverage: filings fetched vs filings listed for the universe.</dd>
       </dl>
     </div></div>
     <div class="comp"><div class="cid">C2</div><div class="body">
-      <h3>Parser</h3>
+      <h3>Parse, chunk, embed, retrieve</h3>
       <dl>
-        <dt>Does</dt><dd>Turns HTML filings and PDF transcripts into clean text with structure: 10-K items (1A Risk Factors, 7 MD&amp;A…), page or character offsets, and tables kept separately.</dd>
-        <dt>Design</dt><dd>HTML parser for EDGAR, PyMuPDF for PDFs (FARE's choice, and needed for NSE later). Output is a <code>Document</code> (section 8).</dd>
-        <dt>Measured by</dt><dd>Section-boundary accuracy on 30 hand-checked filings; share of evidence strings from the eval sets found verbatim in parsed text.</dd>
+        <dt>Does</dt><dd>Turns filings into sections and chunks with metadata, embeds them and retrieves the top-k for a query, filtered by company and period.</dd>
+        <dt>Design</dt><dd>Four registries, v0 = FARE's settings. Variants in section 7.</dd>
+        <dt>Measured by</dt><dd>Section-boundary accuracy; Recall@k, MRR, nDCG@10; RAGAS context precision; wrong-period rate.</dd>
       </dl>
     </div></div>
     <div class="comp"><div class="cid">C3</div><div class="body">
-      <h3>Chunker and index</h3>
+      <h3>Model gateway</h3>
       <dl>
-        <dt>Does</dt><dd>Splits documents into chunks, embeds them and builds a FAISS index. Stores metadata (CIK, form, fiscal period, section) for filtering.</dd>
-        <dt>Design</dt><dd>FARE's settings as the default config. Section-aware chunking, BM25 hybrid search and a reranker are separate ablation switches. Metadata filters matter in finance: most wrong answers cite the wrong year.</dd>
-        <dt>Measured by</dt><dd>Recall@k, MRR and nDCG@10 against the gold evidence in the eval sets; index build time and memory.</dd>
+        <dt>Does</dt><dd>The only path to an LLM. Picks provider and model from config, returns text or schema-checked JSON.</dd>
+        <dt>Design</dt><dd>LiteLLM underneath; disk cache keyed by model, prompt hash and parameters; logs tokens, latency and cost; temperature 0.</dd>
+        <dt>Measured by</dt><dd>Supplies cost and latency to every result.</dd>
       </dl>
     </div></div>
     <div class="comp"><div class="cid">C4</div><div class="body">
-      <h3>Model gateway</h3>
+      <h3>Orchestrator and agents</h3>
       <dl>
-        <dt>Does</dt><dd>The only way any component calls an LLM. Chooses the provider and model from config and returns text or schema-validated JSON.</dd>
-        <dt>Design</dt><dd>Wraps a multi-provider client (LiteLLM). Caches every response on disk, keyed by model, prompt hash and parameters, so reruns are free and reproducible. Logs tokens, latency and cost per call. Temperature 0 by default.</dd>
-        <dt>Measured by</dt><dd>Not scored itself. It supplies the cost and latency columns for every other result.</dd>
+        <dt>Does</dt><dd>Routes each query to one of six agents; the agent retrieves, reads chunks in batches and answers with citations.</dd>
+        <dt>Design</dt><dd>LangGraph graph with a shared state. Routing and agent prompts are versioned configs. Tools (XBRL lookup, price returns, calculator) are typed functions; the Scenario agent uses price returns from v0.</dd>
+        <dt>Measured by</dt><dd>Routing accuracy on labelled queries; per-agent FARE metrics; steps, failures, cost.</dd>
       </dl>
     </div></div>
     <div class="comp"><div class="cid">C5</div><div class="body">
-      <h3>Agent graph</h3>
+      <h3>Judges and evaluation harness</h3>
       <dl>
-        <dt>Does</dt><dd>Implements FARE's six-agent workflow in LangGraph, with a shared state object and a step limit.</dd>
-        <dt>Design</dt><dd>The graph is defined in config (nodes, edges, prompts), so the real FARE roles drop in once the paper is read. <b>Working hypothesis until then:</b> Planner → Retriever → Financial analyst and Narrative analyst → Synthesizer → Evaluator, which can send the answer back for revision.</dd>
-        <dt>Measured by</dt><dd>Trajectory metrics: correct tool calls, steps per answer, revision loops, failures and timeouts.</dd>
+        <dt>Does</dt><dd>Runs a pipeline config over a query set, scores each answer with the chosen judge version, writes result rows.</dd>
+        <dt>Design</dt><dd>Judge versions are plugins like any stage. Dev/test splits frozen and tagged; the harness refuses test runs without a flag.</dd>
+        <dt>Measured by</dt><dd>Judge agreement with human grades (Cohen's κ).</dd>
       </dl>
     </div></div>
     <div class="comp"><div class="cid">C6</div><div class="body">
-      <h3>Tools</h3>
+      <h3>Results store and API</h3>
       <dl>
-        <dt>Does</dt><dd>Functions the agents may call: retrieve chunks, fetch a filing section, look up an XBRL fact, run a calculation.</dd>
-        <dt>Design</dt><dd><b>Replica mode</b> enables only the tools FARE has. <b>Extension mode</b> adds XBRL lookup and a deterministic calculator; this is our first contribution and the preview of Loupe's compute stage. Each tool has typed inputs and outputs and unit tests.</dd>
-        <dt>Measured by</dt><dd>Unit tests; numeric accuracy against XBRL facts (eval set E4).</dd>
-      </dl>
-    </div></div>
-    <div class="comp"><div class="cid">C7</div><div class="body">
-      <h3>Evaluation harness</h3>
-      <dl>
-        <dt>Does</dt><dd>Loads a versioned dataset, runs a named system config over it, scores each layer and writes a results report.</dd>
-        <dt>Design</dt><dd>Our own runner, so every metric is transparent in the report. Library metrics (for example Ragas faithfulness) only as a cross-check. Detail in section 7.</dd>
-        <dt>Measured by</dt><dd>Judge-vs-human agreement (RQ3) is the harness's own quality check.</dd>
-      </dl>
-    </div></div>
-    <div class="comp"><div class="cid">C8</div><div class="body">
-      <h3>Trace and experiment store</h3>
-      <dl>
-        <dt>Does</dt><dd>Keeps every run: config snapshot, git commit, dataset version, per-question outputs, full agent trace, cost.</dd>
-        <dt>Design</dt><dd>JSONL traces plus a DuckDB results table, all local. Optional LangSmith tracing, which plugs into LangGraph directly.</dd>
-        <dt>Measured by</dt><dd>Any past result can be regenerated from its run id.</dd>
-      </dl>
-    </div></div>
-    <div class="comp"><div class="cid">C9</div><div class="body">
-      <h3>Interfaces</h3>
-      <dl>
-        <dt>Does</dt><dd>A command line for everything: ingest, index, ask, eval, compare runs.</dd>
-        <dt>Design</dt><dd>For example <code>loupe eval run --config fare_replica.yaml --dataset E1-dev</code>. A notebook or small Streamlit page to browse traces comes later. No chat UI in this phase.</dd>
-        <dt>Measured by</dt><dd>Not scored.</dd>
+        <dt>Does</dt><dd>Keeps every run, trace and score; serves them to the playground; runs live pipelines on request.</dd>
+        <dt>Design</dt><dd>DuckDB tables + JSONL traces; FastAPI with <code>POST /runs</code>, <code>GET /runs/{id}</code>, <code>GET /variants</code>, <code>GET /benchmarks</code>.</dd>
+        <dt>Measured by</dt><dd>Any past result can be regenerated from its config hash.</dd>
       </dl>
     </div></div>
   </div>
 </section>
 
-<!-- 6 -->
+<!-- 7 -->
+<section id="variants">
+  <div class="sec-head">
+    <div class="eyebrow">7 · Variants per stage</div>
+    <h2>v0 is FARE; everything else is an experiment</h2>
+    <p class="muted">A pipeline config names one variant per stage. Benchmarks change one stage at a time from v0, plus a few chosen combinations. The playground can run any combination on a single query.</p>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Stage</th><th>v0 (FARE)</th><th>Variants</th></tr></thead>
+      <tbody>
+        <tr><td>Parse</td><td>HTML to clean text</td><td>Section-aware (Items), table-preserving</td></tr>
+        <tr><td>Chunk</td><td>Recursive, 800 / 100</td><td>Section-aware, semantic, 1500 / 200</td></tr>
+        <tr><td>Embed</td><td>all-MiniLM-L6-v2</td><td>bge-small, e5, one hosted embedding API</td></tr>
+        <tr><td>Retrieve</td><td>FAISS flat L2, top-10</td><td>BM25, hybrid (RRF), + reranker, top-k sweep</td></tr>
+        <tr><td>Route</td><td>LLM single intent</td><td>Keyword rules, embedding classifier</td></tr>
+        <tr><td>Agents</td><td>Reconstructed FARE prompts</td><td>Improved prompts; + XBRL and calculator tools</td></tr>
+        <tr><td>Generator</td><td>2–4 hosted models</td><td>Any model through the gateway</td></tr>
+        <tr><td>Judge</td><td><code>judge-v1-google</code></td><td><code>v2-frozen-refs</code>, <code>v3-objective</code>, human-calibrated</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 8 -->
 <section id="eval">
   <div class="sec-head">
-    <div class="eyebrow">7 · Evaluation design</div>
-    <h2>How we will know we are improving</h2>
-    <p class="muted">Every change runs against a frozen dev set and is compared with the best previous run. The test set is touched only at milestones.</p>
+    <div class="eyebrow">8 · Evaluation</div>
+    <h2>How we know a change is an improvement</h2>
   </div>
-
-  <h3>Evaluation datasets</h3>
+  <div class="callout warn">
+    <p><b>Versioned judges.</b> A new judge version changes the measuring tool, not the system. Compare system versions only under the same judge version. Compare judge versions by how often they agree with human grades, not by which gives higher scores.</p>
+  </div>
   <div class="table-scroll">
     <table>
-      <thead><tr><th>Id</th><th>Dataset</th><th>What it tests</th><th>Source</th></tr></thead>
+      <thead><tr><th>Set</th><th>Contents</th><th>Used for</th></tr></thead>
       <tbody>
-        <tr><td class="id">E1</td><td>FinanceBench, open sample</td><td>QA over 10-K / 10-Q / 8-K with human evidence passages and pages. Retrieval and answer quality.</td><td>Public (Islam et al., 2023). Check licence.</td></tr>
-        <tr><td class="id">E2</td><td>FinDER</td><td>Analyst-style queries over 10-K with evidence. Retrieval under vague queries.</td><td>Public (2025). Check access.</td></tr>
-        <tr><td class="id">E3</td><td>Loupe-SEC gold</td><td>About 200 questions written by the team with evidence spans. Question types mirror Phase I: risk, events, numbers, comparisons.</td><td>Ours. Two authors per item.</td></tr>
-        <tr><td class="id">E4</td><td>XBRL numeric set</td><td>Questions generated from XBRL company facts ("FY2024 revenue", "debt-to-equity"). Exact ground truth, hundreds of items for free.</td><td>Ours, generated from SEC data</td></tr>
-        <tr><td class="id">E5</td><td>Public transcript set</td><td>Stand-in for FARE's unavailable data. Track R-A claim check.</td><td>ECTSum or SubjECTive-QA. Check licence.</td></tr>
+        <tr><td class="id">Q-FARE</td><td>Queries per agent, following FARE's Table 2 sampling rules, regenerated for our 25 companies</td><td>Per-agent FARE metrics, claims C1–C8</td></tr>
+        <tr><td class="id">Q-FIN</td><td>FinanceBench open sample (check licence)</td><td>Statement Extraction, retrieval recall</td></tr>
+        <tr><td class="id">Q-XBRL</td><td>Questions generated from XBRL facts, exact answers</td><td>Numeric accuracy, tools ablation</td></tr>
+        <tr><td class="id">Q-ROUTE</td><td>Queries labelled with the intended agent</td><td>Routing accuracy</td></tr>
+        <tr><td class="id">H-100</td><td>100 answers graded by two team members</td><td>Judge agreement (κ)</td></tr>
       </tbody>
     </table>
   </div>
-  <p class="muted">Split each set once into dev (tuning) and test (reporting), stratified by company and question type, and freeze the split with a version tag.</p>
-
-  <h3>Metrics per layer</h3>
-  <div class="table-scroll">
-    <table>
-      <thead><tr><th>Layer</th><th>Metrics</th><th>Data</th></tr></thead>
-      <tbody>
-        <tr><td>Parsing</td><td>Section-boundary accuracy; evidence-string recovery rate</td><td>30 filings, E1 evidence</td></tr>
-        <tr><td>Retrieval</td><td>Recall@5, Recall@10, MRR, nDCG@10; wrong-period rate</td><td>E1, E2, E3</td></tr>
-        <tr><td>Answer</td><td>Correctness (numeric tolerance ±1% for numbers, judge rubric for text); refusal accuracy on unanswerable items</td><td>E1, E3, E4</td></tr>
-        <tr><td>Grounding</td><td>Faithfulness (claims supported by retrieved text); citation precision and recall</td><td>E1, E3</td></tr>
-        <tr><td>Agent</td><td>Tool-call accuracy, steps, revision loops, failure rate</td><td>All</td></tr>
-        <tr><td>Efficiency</td><td>Tokens, latency p50/p95, cost per question, cost per correct answer</td><td>All</td></tr>
-        <tr><td>Judge</td><td>Agreement with human grades: Cohen's κ, accuracy</td><td>100-item human-graded subset</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h3>Baseline and ablation ladder</h3>
   <div class="table-scroll">
     <table>
       <thead><tr><th>Id</th><th>System</th><th>Question it answers</th></tr></thead>
       <tbody>
         <tr><td class="id">B0</td><td>LLM only, no retrieval</td><td>How much does the model already know?</td></tr>
-        <tr><td class="id">B1</td><td>Plain RAG: retrieve once, answer once</td><td>The standard baseline every reviewer expects</td></tr>
-        <tr><td class="id">B2</td><td>FARE replica (strict)</td><td>RQ1 and RQ2</td></tr>
-        <tr><td class="id">B3</td><td>B2 + XBRL lookup and calculator</td><td>Does deterministic compute remove numeric errors?</td></tr>
-        <tr><td class="id">B4</td><td>B3 + citation check and calibrated judge</td><td>Does grounding raise faithfulness?</td></tr>
+        <tr><td class="id">B1</td><td>Single-agent RAG</td><td>FARE's unmeasured contrast case (claim C8)</td></tr>
+        <tr><td class="id">B2</td><td>FARE rebuild, all v0</td><td>RQ1</td></tr>
+        <tr><td class="id">B3</td><td>B2 + XBRL and calculator tools</td><td>Do tools remove numeric errors?</td></tr>
+        <tr><td class="id">B4</td><td>B3 + citation checks</td><td>Does grounding raise faithfulness?</td></tr>
       </tbody>
     </table>
   </div>
-  <p>Run each rung with 3 to 4 models. Start with FARE's two (Qwen2.5-7B-Instruct via a hosted API, Gemini 2.5 Flash-Lite) and add one or two others. That makes a model × system grid, and the cost column shows which trade-offs are worth it.</p>
-
-  <div class="grid2">
-    <div class="panel">
-      <div class="k">JUDGE PROTOCOL</div>
-      <ul class="plain">
-        <li>The judge comes from a different model family than the model being judged.</li>
-        <li>A fixed written rubric, versioned with the dataset.</li>
-        <li>Two team members grade a 100-item subset by hand. Report κ between them and between humans and the judge.</li>
-        <li>This directly addresses FARE's stated limitation.</li>
-      </ul>
-    </div>
-    <div class="panel">
-      <div class="k">STATISTICAL RIGOUR</div>
-      <ul class="plain">
-        <li>Temperature 0. Where a model is non-deterministic, 3 runs.</li>
-        <li>95% bootstrap confidence intervals on every headline number.</li>
-        <li>Paired tests when comparing two systems on the same questions.</li>
-        <li>Ticker-trap control (Paper 8): rerun a subset with company names masked.</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="diagram">
-<pre class="mermaid">
-flowchart LR
-  C["Change: prompt, chunking, model or graph"] --> D["Run dev suite"]
-  D --> M["Metrics per layer"]
-  M --> Q{"Better than last best?"}
-  Q -- yes --> K["Keep and log run id"]
-  Q -- no --> X["Read traces, revert or fix"]
-  K --> T["Test set at milestones only"]
-</pre>
-  </div>
-  <p class="caption">The improvement loop. A change is kept only if the dev metrics for the layer it touched improve without regressing the others.</p>
-</section>
-
-<!-- 7 -->
-<section id="contracts">
-  <div class="sec-head">
-    <div class="eyebrow">8 · Data contracts</div>
-    <h2>The objects passed between layers</h2>
-    <p class="muted">Agree on these before splitting work. With fixed contracts, four people can build four layers in parallel.</p>
-  </div>
-<pre class="code"><span class="c"># Document — output of C2</span>
-doc_id, source ("edgar" | "transcripts" | "nse"), cik, company, form ("10-K"…), accession,
-fiscal_year, fiscal_period, filed_at, url, sections: [{name, start_char, end_char}], text, tables[]
-
-<span class="c"># Chunk — output of C3; every citation points to one</span>
-chunk_id, doc_id, section, start_char, end_char, text, embedding_model, index_version
-
-<span class="c"># Query — one eval item or user question</span>
-query_id, question, cik?, fiscal_period?, dataset, split, gold: {answer, evidence: [{doc_id, span}]}
-
-<span class="c"># Answer — output of C5</span>
-answer_text, claims: [{text, chunk_ids[]}], numeric_values: [{value, unit, source}], confidence
-
-<span class="c"># Trace — written by C5, stored by C8</span>
-run_id, query_id, steps: [{agent, tool?, input, output, model, tokens, latency_ms, cost}]
-
-<span class="c"># EvalRecord — output of C7</span>
-run_id, query_id, config_hash, dataset_version, metrics: {recall@k, correct, faithful, …}, judge: {model, verdict, reason}</pre>
-</section>
-
-<!-- 8 -->
-<section id="stack">
-  <div class="sec-head">
-    <div class="eyebrow">9 · Technology choices</div>
-    <h2>Chosen to fit an 8 GB M1 laptop</h2>
-    <p class="muted">LLMs run on hosted APIs. Everything else runs locally on CPU or Apple's GPU.</p>
-  </div>
-  <div class="table-scroll">
-    <table>
-      <thead><tr><th>Concern</th><th>Choice</th><th>Why</th></tr></thead>
-      <tbody>
-        <tr><td>Language, environment</td><td>Python 3.12 with uv</td><td>The machine has 3.14; FAISS and PyTorch wheels are safest on 3.12.</td></tr>
-        <tr><td>Orchestration</td><td>LangGraph</td><td>Same as FARE, required for a fair replication.</td></tr>
-        <tr><td>LLM access</td><td>LiteLLM behind our gateway</td><td>One interface for Gemini, Claude, OpenAI-compatible hosts serving Qwen, and others. Switching models is a config change.</td></tr>
-        <tr><td>Embeddings</td><td>SentenceTransformers</td><td>Same as FARE. Use FARE's model if it fits in memory, otherwise a small model as a documented deviation.</td></tr>
-        <tr><td>Vector index</td><td>FAISS (faiss-cpu)</td><td>Same as FARE. A flat index is fast enough for the replication corpus.</td></tr>
-        <tr><td>EDGAR access</td><td>SEC submissions and XBRL APIs, plus an HTML parser</td><td>Official, free, tested today: Apple's filings list and XBRL facts downloaded.</td></tr>
-        <tr><td>PDF parsing</td><td>PyMuPDF</td><td>Same as FARE; needed for NSE PDFs later.</td></tr>
-        <tr><td>Results and traces</td><td>DuckDB + JSONL, optional LangSmith</td><td>Nothing to run as a server; results are queryable with SQL.</td></tr>
-        <tr><td>Quality</td><td>pytest, ruff, pre-commit</td><td>Tool unit tests and parser tests run on every commit.</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <p class="muted">Temperature 0; 95% bootstrap confidence intervals; paired tests between systems; cost and latency on every row. Latency is our own measurement on hosted APIs and is not compared with FARE's T4 numbers.</p>
 </section>
 
 <!-- 9 -->
-<section id="india">
+<section id="playground">
   <div class="sec-head">
-    <div class="eyebrow">10 · Path to Indian filings</div>
-    <h2>What carries over to Phase I</h2>
+    <div class="eyebrow">9 · Playground</div>
+    <h2>A React front end that shows every stage</h2>
+    <p class="muted">Built in React (Vite + TypeScript) from the first milestone, talking only to the FastAPI backend.</p>
   </div>
-  <div class="table-scroll">
-    <table>
-      <thead><tr><th>Component</th><th>Phase I</th><th>Change</th></tr></thead>
-      <tbody>
-        <tr><td>C1 Source adapters</td><td><span class="tag ours">New adapter</span></td><td><code>NseSource</code>: NSE announcements API, tested and working. BSE blocks automated access.</td></tr>
-        <tr><td>C2 Parser</td><td><span class="tag ok">Reused</span></td><td>PyMuPDF path already built; add Indian letter-format cleanup.</td></tr>
-        <tr><td>C3 Chunker and index</td><td><span class="tag ok">Reused</span></td><td>Same code, new metadata (symbol, ISIN, NSE category).</td></tr>
-        <tr><td>C4 Model gateway</td><td><span class="tag ok">Reused</span></td><td>No change.</td></tr>
-        <tr><td>C5 Agent graph</td><td><span class="tag ours">Extended</span></td><td>Add extraction and compute nodes, then personas.</td></tr>
-        <tr><td>C6 Tools</td><td><span class="tag ours">Extended</span></td><td>Pledge %, RPT ratios and the distress score join XBRL lookup and the calculator.</td></tr>
-        <tr><td>C7 Harness</td><td><span class="tag ok">Reused</span></td><td>New datasets: Indian gold set, LODR event labels.</td></tr>
-        <tr><td>Taxonomy</td><td><span class="tag ours">New</span></td><td><code>india_disclosure_taxonomy.v0.yaml</code> (draft exists).</td></tr>
-      </tbody>
-    </table>
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">BENCHMARK VIEW</div>
+      <ul class="plain">
+        <li>Saved results for every pipeline config</li>
+        <li>Filter by stage, variant, model, agent and judge version</li>
+        <li>Scores with confidence intervals, cost and latency</li>
+        <li>Compare two configs side by side</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="k">LIVE RUN VIEW</div>
+      <ul class="plain">
+        <li>Pick one variant per stage and a model</li>
+        <li>Ask a question about any of the 25 companies</li>
+        <li>See each stage: chunks retrieved, agent chosen, agent steps, answer with citations, judge verdict</li>
+        <li>Time and cost per stage</li>
+      </ul>
+    </div>
   </div>
 </section>
 
 <!-- 10 -->
-<section id="plan">
+<section id="contracts">
   <div class="sec-head">
-    <div class="eyebrow">11 · Replication plan</div>
-    <h2>About ten weeks, ending with results for the Semester VII review</h2>
-    <p class="muted">Week dates start Monday 5 October 2026. Filled dots are review gates.</p>
+    <div class="eyebrow">10 · Data contracts</div>
+    <h2>The objects passed between stages</h2>
   </div>
-  <div class="timeline">
-    <div class="wk"><div class="when">WEEK 1 · 5 OCT</div><p>Read FARE. Steps 1–3 of section 3: extraction sheet, claims register, first decisions. Agree the data contracts. Repo, environment, CI.</p></div>
-    <div class="wk"><div class="when">WEEKS 2–3 · 12–23 OCT</div><p>C1 EDGAR adapter and C2 parser for the universe. Download E1 and E2. Generate E4 from XBRL. Parser metrics.</p></div>
-    <div class="wk gate"><div class="when">WEEK 4 · 26 OCT</div><p><b>Gate:</b> C3 index built. Retrieval metrics on E1 and E2 with FARE's settings. First results table.</p></div>
-    <div class="wk"><div class="when">WEEKS 5–6 · 2–13 NOV</div><p>C4 gateway with cache and cost log. B0 and B1 baselines across models. Start writing E3 questions and human grades.</p></div>
-    <div class="wk"><div class="when">WEEKS 7–8 · 16–27 NOV</div><p>Steps 4–5: rebuilt prompts, C5 FARE replica graph (B2), conformance sign-off. Track R-A claim check on transcripts. Trajectory metrics.</p></div>
-    <div class="wk gate"><div class="when">WEEK 9 · 30 NOV</div><p><b>Gate, Sem VII review:</b> step 6 results: each FARE claim marked holds, partly or does not hold. B0–B2 across models on E1, E3, E4 and E5, with confidence intervals, costs and judge agreement.</p></div>
-    <div class="wk"><div class="when">WEEK 10 · 7 DEC</div><p>B3 and B4 extensions. Write the replication chapter. Start Phase I.</p></div>
-  </div>
-  <p class="muted">Adjust the review gates to your department's actual dates.</p>
+<pre class="code"><span class="c"># Document / Chunk</span>
+doc_id, cik, ticker, form, accession, fiscal_year, fiscal_period, filed_at, url, sections[], text
+chunk_id, doc_id, section, start_char, end_char, text, embed_variant, index_version
+
+<span class="c"># PipelineConfig — one variant per stage; its hash tags every result</span>
+parse, chunk, embed, retrieve, route, agents_prompt_version, tools[], model, judge
+
+<span class="c"># Query / RoutedQuery</span>
+query_id, text, agent_expected?, cik[]?, period?, portfolio?, dataset, split
+routed_agent, route_confidence
+
+<span class="c"># AgentOutput</span>
+agent, answer_text, claims: [{text, chunk_ids[]}], numbers: [{value, unit, source}], confidence
+
+<span class="c"># Trace / EvalRecord</span>
+run_id, config_hash, steps: [{stage, input, output, model?, tokens, latency_ms, cost}]
+run_id, query_id, judge_version, metrics: {…}, verdict_reason</pre>
 </section>
 
 <!-- 11 -->
+<section id="stack">
+  <div class="sec-head">
+    <div class="eyebrow">11 · Technology</div>
+    <h2>Hosted models, local everything else</h2>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Concern</th><th>Choice</th></tr></thead>
+      <tbody>
+        <tr><td>Language</td><td>Python 3.12 with uv</td></tr>
+        <tr><td>Agents</td><td>LangGraph (as FARE)</td></tr>
+        <tr><td>LLMs</td><td>Hosted APIs through LiteLLM; Gemini API for Google Search grounding in <code>judge-v1-google</code></td></tr>
+        <tr><td>Chunking, embeddings, index</td><td>LangChain text splitter, SentenceTransformers, FAISS (as FARE)</td></tr>
+        <tr><td>Evaluation</td><td>Own harness; RAGAS for FARE's RAG metrics</td></tr>
+        <tr><td>Storage</td><td>DuckDB + JSONL traces</td></tr>
+        <tr><td>API</td><td>FastAPI</td></tr>
+        <tr><td>Front end</td><td>React + Vite + TypeScript</td></tr>
+        <tr><td>Quality</td><td>pytest, ruff, pre-commit</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="plan">
+  <div class="sec-head">
+    <div class="eyebrow">12 · Plan</div>
+    <h2>Tracer first, then agents, then variants</h2>
+    <p class="muted">Weeks start Monday 5 October 2026. Filled dots are review gates. Detail in <code>docs/IMPLEMENTATION-PLAN.md</code>.</p>
+  </div>
+  <div class="timeline">
+    <div class="wk"><div class="when">M0 · WEEK OF 5 OCT</div><p>Repo fixes, 25-company universe, data contracts, stage registry, FARE decisions log.</p></div>
+    <div class="wk gate"><div class="when">M1 · 12–23 OCT</div><p><b>Tracer:</b> EDGAR → parse → chunk → embed → FAISS → router → Statement Extraction → RAGAS → result row, visible in the React page.</p></div>
+    <div class="wk gate"><div class="when">M2 · 26 OCT – 13 NOV</div><p>Other five agents, Tone critic, judge v1, Q-FARE sets, baselines B0 and B1. First claims table.</p></div>
+    <div class="wk gate"><div class="when">M3 · 16 NOV – 4 DEC</div><p>Stage variants, judge v2 with human agreement, playground benchmark and live views. <b>Semester VII review.</b></p></div>
+    <div class="wk"><div class="when">M4 · DECEMBER ON</div><p>Tools (B3), citation checks (B4), judge v3, replication chapter. Then Phase I.</p></div>
+  </div>
+</section>
+
+<!-- 13 -->
 <section id="risks">
   <div class="sec-head">
-    <div class="eyebrow">12 · Risks</div>
-    <h2>What could derail the replication</h2>
+    <div class="eyebrow">13 · Risks</div>
+    <h2>What could derail the phase</h2>
   </div>
   <div class="table-scroll">
     <table>
       <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
       <tbody>
-        <tr><td>The paper leaves out details (prompts, agent roles, settings)</td><td>Decisions log with reasons; ablate any gap that could change results; email the authors.</td></tr>
-        <tr><td>FARE's code, prompts and data are unavailable</td><td>Conceptual replication (section 3): test claims, not exact numbers; substitute transcript data for R-A; every gap logged as a decision.</td></tr>
-        <tr><td>API cost across many models and runs</td><td>Response cache; develop on a 50-item dev slice; full runs only at gates; set a budget per model.</td></tr>
-        <tr><td>8 GB RAM limits embedding models and indexes</td><td>Small embedding model, flat FAISS index, batch encoding; document deviations from FARE.</td></tr>
-        <tr><td>LLM judge is biased or lenient</td><td>Cross-family judge, fixed rubric, human-graded subset with κ.</td></tr>
-        <tr><td>Tuning on the test set by accident</td><td>Frozen splits with version tags; the harness refuses test runs unless a flag is set.</td></tr>
-        <tr><td>SEC rate limiting</td><td>Declared User-Agent, request throttle, local cache of every raw filing.</td></tr>
+        <tr><td>The paper leaves out prompts, judge model and batch size</td><td>Decisions log with reasons; ablate any gap that could change results; email the authors.</td></tr>
+        <tr><td>Filings differ from transcripts (no dialogue, longer, legal wording)</td><td>That difference is RQ1's subject; report per-agent where claims break.</td></tr>
+        <tr><td>Too many variant combinations to afford</td><td>One stage at a time; response cache; 50-query dev slices; full runs only at gates.</td></tr>
+        <tr><td>Google Search results drift, so judge v1 is not repeatable</td><td>Store every retrieved reference with the run; judge v2 freezes references.</td></tr>
+        <tr><td>Gemini 2.5 models retired by the provider</td><td>Check availability in M0; record the substitute as a deviation.</td></tr>
+        <tr><td>React playground eats agent-building time</td><td>One owner (stream D); the UI only reads the API; tracer UI first, polish at M3.</td></tr>
+        <tr><td>SEC rate limits</td><td>User-Agent, throttle, local cache of every filing.</td></tr>
       </tbody>
     </table>
   </div>
 </section>
 
 <footer>
-  <p>Companion to the Loupe Project Compass page. Verified on 29 Sep 2026: SEC submissions and XBRL APIs respond, and the NSE announcements API responds. FARE parameters marked "Confirm" are not yet verified against the paper, which is the only source for the rebuild.</p>
+  <p>Built from the FARE paper (CC BY 4.0) and the team's decisions of 29 Sep 2026. Companion to the Loupe Project Compass page.</p>
 </footer>
 
 </div>
