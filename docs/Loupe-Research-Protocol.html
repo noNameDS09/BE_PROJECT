@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Offline copy of https://claude.ai/artifact/Uj5RgQTqQoALuA2ZsyAHFf . Edit the published page, then re-export; do not hand-edit here. -->
+<style>body{margin:0}</style>
+<title>Loupe Research Protocol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same reading column and tokens as the other Loupe pages; protocol structure with decision-rule tables and panels. */
+:root {
+  --paper: #f5f6f3; --sheet: #ffffff; --ink: #17201e; --muted: #56615d; --rule: #d9ddd7;
+  --accent: #23497a; --accent-soft: #e4ebf4;
+  --saffron: #b76a12; --saffron-soft: #f8ecdc;
+  --bad: #b3261e; --bad-soft: #f9e3e1; --warn: #9a6400; --warn-soft: #fbf0d6; --good: #1d6b45; --good-soft: #e0f0e6;
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --s1: .25rem; --s2: .5rem; --s3: .75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2.25rem; --s7: 3.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121716; --sheet: #1a2120; --ink: #e6ebe8; --muted: #9aa6a1; --rule: #2e3835;
+    --accent: #8fb3e6; --accent-soft: #1d2a3b; --saffron: #e5a456; --saffron-soft: #33271a;
+    --bad: #f08c84; --bad-soft: #3a1f1d; --warn: #e3b456; --warn-soft: #362c16; --good: #7fcaa0; --good-soft: #17301f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121716; --sheet: #1a2120; --ink: #e6ebe8; --muted: #9aa6a1; --rule: #2e3835;
+  --accent: #8fb3e6; --accent-soft: #1d2a3b; --saffron: #e5a456; --saffron-soft: #33271a;
+  --bad: #f08c84; --bad-soft: #3a1f1d; --warn: #e3b456; --warn-soft: #362c16; --good: #7fcaa0; --good-soft: #17301f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 1rem; line-height: 1.6; }
+.wrap { max-width: 62rem; margin: 0 auto; padding-inline: max(16px, 4vw); padding-block: var(--s6) var(--s7); }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.08rem; font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+code, .mono { font-family: var(--f-mono); font-size: .86em; }
+.eyebrow { font-family: var(--f-mono); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+ul.plain { margin: 0; padding-left: 1.15rem; display: grid; gap: .25rem; }
+
+header.top { display: grid; gap: var(--s4); padding-bottom: var(--s5); border-bottom: 1px solid var(--rule); }
+.lead { font-size: 1.1rem; max-width: 64ch; }
+.docmeta { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.chip { font-family: var(--f-mono); font-size: .74rem; padding: .15rem .5rem; border-radius: 3px; border: 1px solid var(--rule); background: var(--sheet); color: var(--muted); white-space: nowrap; }
+.chip b { color: var(--ink); font-weight: 500; }
+
+nav.index { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); margin-inline: calc(-1 * max(16px, 4vw)); padding: var(--s2) max(16px, 4vw); overflow-x: auto; }
+nav.index ol { list-style: none; display: flex; gap: var(--s4); margin: 0; padding: 0; white-space: nowrap; font-size: .85rem; }
+nav.index a { color: var(--muted); text-decoration: none; }
+nav.index a:hover { color: var(--accent); }
+nav.index span { font-family: var(--f-mono); color: var(--accent); margin-right: .3em; }
+
+section { display: grid; gap: var(--s4); padding-top: var(--s7); scroll-margin-top: 3rem; }
+.sec-head { display: grid; gap: var(--s2); }
+
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: var(--s3) var(--s4); border-radius: 0 4px 4px 0; font-size: .94rem; display: grid; gap: var(--s2); }
+.callout p { max-width: none; }
+.callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: var(--s3); }
+.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); display: grid; gap: var(--s2); align-content: start; min-width: 0; }
+.panel .k { font-family: var(--f-mono); font-size: .75rem; color: var(--accent); letter-spacing: .05em; }
+.panel p, .panel li { font-size: .92rem; }
+
+.table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: .55rem .75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--f-mono); font-size: .7rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--paper); white-space: nowrap; }
+td.id { font-family: var(--f-mono); color: var(--accent); white-space: nowrap; }
+.tag { font-family: var(--f-mono); font-size: .7rem; padding: .08rem .4rem; border-radius: 3px; white-space: nowrap; display: inline-block; }
+.tag.ok { color: var(--good); background: var(--good-soft); }
+.tag.tbc { color: var(--warn); background: var(--warn-soft); }
+.tag.ours { color: var(--accent); background: var(--accent-soft); }
+.tag.off { color: var(--muted); border: 1px solid var(--rule); }
+
+.diagram { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; background: transparent; text-align: center; }
+.caption { font-size: .85rem; color: var(--muted); }
+
+.comp { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: var(--s3) var(--s4); }
+.comp .cid { font-family: var(--f-display); font-weight: 700; font-size: 1.4rem; color: var(--accent); line-height: 1.1; }
+.comp .body { display: grid; gap: var(--s2); min-width: 0; }
+.comp dl { margin: 0; display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: .3rem var(--s3); font-size: .9rem; }
+.comp dt { font-family: var(--f-mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding-top: .2rem; }
+.comp dd { margin: 0; }
+@media (max-width: 560px) { .comp { grid-template-columns: 1fr; } .comp dl { grid-template-columns: 1fr; } .comp dt { padding-top: .4rem; } }
+.stack { display: grid; gap: var(--s3); }
+
+pre.code { font-family: var(--f-mono); font-size: .78rem; line-height: 1.55; margin: 0; padding: var(--s4); background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; color: var(--ink); }
+pre.code .c { color: var(--muted); }
+
+.rq { display: grid; gap: var(--s3); }
+.rq-item { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: var(--s3); align-items: baseline; }
+.rq-item .n { font-family: var(--f-mono); color: var(--accent); font-size: .85rem; }
+
+.timeline { display: grid; border-left: 2px solid var(--rule); margin-left: .4rem; }
+.wk { display: grid; gap: var(--s1); padding: 0 0 var(--s4) var(--s5); position: relative; }
+.wk::before { content: ""; position: absolute; left: -.5rem; top: .4rem; width: .85rem; height: .85rem; border-radius: 50%; background: var(--paper); border: 2px solid var(--accent); }
+.wk.gate::before { background: var(--accent); }
+.wk .when { font-family: var(--f-mono); font-size: .76rem; color: var(--accent); }
+.wk p { font-size: .93rem; }
+
+footer { margin-top: var(--s7); padding-top: var(--s4); border-top: 1px solid var(--rule); font-size: .85rem; color: var(--muted); display: grid; gap: var(--s2); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Loupe · Research protocol · Phase R</div>
+  <h1>What we will test, how, and what counts as an answer</h1>
+  <p class="lead">This protocol fixes the questions, data, systems, metrics and analysis for Phase R before any result exists. Writing it down first lets us report every result, including the ones that go against us, without being accused of choosing the analysis after seeing the numbers.</p>
+  <div class="docmeta">
+    <span class="chip">Version <b>0.1 draft</b></span>
+    <span class="chip">Date <b>3 Oct 2026</b></span>
+    <span class="chip">Freeze target <b>end of M0, 11 Oct</b></span>
+    <span class="chip">Builds on <b>HLD v0.2 · Plan v2</b></span>
+    <span class="chip">Base paper <b>FARE, IEEE Access 14, 2026</b></span>
+  </div>
+</header>
+
+<nav class="index" aria-label="Sections">
+  <ol>
+    <li><a href="#changes"><span>1</span>What changed</a></li>
+    <li><a href="#questions"><span>2</span>Questions</a></li>
+    <li><a href="#universe"><span>3</span>Universe</a></li>
+    <li><a href="#corpus"><span>4</span>Corpus and splits</a></li>
+    <li><a href="#queries"><span>5</span>Query sets</a></li>
+    <li><a href="#systems"><span>6</span>Systems</a></li>
+    <li><a href="#analysis"><span>7</span>Analysis</a></li>
+    <li><a href="#judges"><span>8</span>Judge validation</a></li>
+    <li><a href="#threats"><span>9</span>Threats</a></li>
+    <li><a href="#open"><span>10</span>Open decisions</a></li>
+    <li><a href="#next"><span>11</span>Next two weeks</a></li>
+  </ol>
+</nav>
+
+<section id="changes">
+  <div class="sec-head">
+    <div class="eyebrow">1 · Since HLD v0.2 (29 Sep)</div>
+    <h2>Five facts that changed the plan</h2>
+  </div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Fact</th><th>Evidence</th><th>Consequence</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag ok">Decided</span> The guide approved SEC replication first, then India.</td><td>Team, 3 Oct</td><td>Phase R is the approved scope. No re-pitch needed; Phase I stays after M3.</td></tr>
+      <tr><td><span class="tag ok">Decided</span> The universe is the eligible part of the company data on Atharva's branch: <b>19 companies</b>, not 25.</td><td>50 files profiled one by one (section 3)</td><td>All sample sizes below use 19. The 50 raw files are kept unchanged and checksummed in <code>data/raw/companyfacts/</code>.</td></tr>
+      <tr><td><span class="tag ok">Decided</span> Nothing from <code>atharva-patil-plan</code> is merged except its data.</td><td>Team, 3 Oct</td><td>That branch answers from XBRL numbers with keyword rules and no language model. It is not FARE and its 100% scores are self-graded, so it does not count as a baseline.</td></tr>
+      <tr><td><span class="tag tbc">Risk</span> Two of FARE's four backbones may disappear mid-project.</td><td>Google's Vertex model lifecycle page lists retirement on <b>20 Oct 2026</b> for <code>gemini-2.5-flash</code> and <code>gemini-2.5-flash-lite</code>. The Gemini Developer API deprecations page says "No shutdown date announced" (both checked 3 Oct).</td><td>Use the Developer API only. Run and cache every Gemini 2.5 generation before the rest of the matrix. Record the exact model string returned with every call. Name a successor model in advance (section 10).</td></tr>
+      <tr><td><span class="tag tbc">Requirement</span> SEC rejects requests that do not name a contact.</td><td>data.sec.gov returned HTTP 403 to a User-Agent without an email (3 Oct)</td><td>The EDGAR fetcher must send a team contact email in its User-Agent and stay under 10 requests per second.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="questions">
+  <div class="sec-head">
+    <div class="eyebrow">2 · Research questions</div>
+    <h2>Five questions, each with a hypothesis and a decision rule</h2>
+    <p>RQ1 to RQ4 come from the HLD. RQ5 is new and proposed here. A question is only useful if we say in advance what result would answer it, so every row has a rule.</p>
+  </div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Id</th><th>Question</th><th>Hypothesis</th><th>Decision rule</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td class="id">RQ1</td><td><b>Transfer.</b> Do FARE's conclusions hold when the architecture is rebuilt from the paper and run on SEC filings?</td><td>Claims C1 to C7 in <code>docs/fare/02-claims.md</code> keep their direction on filings.</td><td>Per claim: <b>holds</b> if the direction matches and the 95% CI excludes zero; <b>partly</b> if the direction matches and the CI includes zero; <b>does not hold</b> if the direction is reversed and the CI excludes zero. For rankings, "best model" holds if that model is ranked first in at least 80% of bootstrap resamples.</td><td><span class="tag ours">Secondary</span></td></tr>
+      <tr><td class="id">RQ2</td><td><b>Multi-agent value.</b> Do specialised agents beat one general agent given the same retrieval and the same model?</td><td>B2 (FARE rebuild) scores higher than B1 (single agent, equal budget) on the pooled normalised score.</td><td>Paired difference B2 − B1 on the test split, per model, company-cluster bootstrap. Four tests (one per model), Holm-corrected at α = 0.05. Per-agent differences are reported but not tested for significance.</td><td><span class="tag ok">Primary</span></td></tr>
+      <tr><td class="id">RQ3</td><td><b>Judge reliability.</b> How closely do the LLM judges agree with people?</td><td>judge-v1 reaches weighted κ ≥ 0.60 against the human consensus for at least four of the six agents.</td><td>Quadratic-weighted κ with bootstrap CI per agent on H-120. A judge that falls below 0.60 for an agent is not used alone to rank systems on that agent.</td><td><span class="tag ok">Primary</span></td></tr>
+      <tr><td class="id">RQ4</td><td><b>Which stage matters.</b> Which single stage change moves scores the most, and at what cost?</td><td>Retrieval-side changes (reranker, hybrid search, section-aware chunks) move context precision more than any prompt or model change.</td><td>One factor at a time from v0, on one model. Report Δ score with 95% CI and Δ cost. A change counts as an effect only if its CI excludes zero <em>and</em> it is larger than the minimum detectable effect (section 7).</td><td><span class="tag ours">Secondary</span></td></tr>
+      <tr><td class="id">RQ5</td><td><b>Memorisation.</b> Do scores reflect reading the filing, or what the model already knew?</td><td>Without retrieval (B0), models answer numeric questions about filings dated before their knowledge cutoff noticeably better than about filings after it.</td><td>B0 accuracy on Q-XBRL split by filing date relative to each model's published cutoff, with CI. If the gap exceeds the minimum detectable effect, every RQ1 and RQ2 result is also reported split by period.</td><td><span class="tag tbc">Proposed</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <p><b>Why RQ5 belongs here.</b> FY2023 filings were public before Gemini 2.5's training cutoff; FY2025 10-Ks were filed in 2026, after every model in the set. That gives us a natural before/after split at no extra cost. Paper 8 in our folder (Yu, Liu and He, the "Ticker Identity Trap") shows that models can score well on earnings text by recognising the company rather than reading the text. A small anonymisation probe (50 queries with the company name and ticker replaced) tests the same effect on filings. FARE does not address memorisation at all.</p>
+  </div>
+</section>
+
+<section id="universe">
+  <div class="sec-head">
+    <div class="eyebrow">3 · Company universe</div>
+    <h2>19 companies, chosen by a written rule</h2>
+    <p>The 50 files on Atharva's branch are CIKs 1750 to 5768 in strict ascending order, which means they are the first 50 entries of SEC's bulk <code>companyfacts.zip</code> rather than a hand-picked list. We keep them, but only companies that can support the experiments enter the universe.</p>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">INCLUSION RULE</div>
+      <p>A company is in the universe if its XBRL facts show, for fiscal years 2023 to 2025, at least <b>3 annual reports (10-K)</b> and at least <b>6 quarterly reports (10-Q)</b>, filed under its own CIK as a US domestic filer.</p>
+    </div>
+    <div class="panel">
+      <div class="k">FROM 50 FILES TO 19</div>
+      <ul class="plain">
+        <li>7 files are empty (0 bytes)</li>
+        <li>15 companies stopped filing before 2023 (for example Wyeth 2009, Allegheny Energy 2011, Akorn 2020)</li>
+        <li>3 stopped or thinned out during the window (Hess, Adams Resources, Gemaxel)</li>
+        <li>6 are not standard 10-K filers in this data (a 40-F filer, a separate account, a subsidiary, one unnamed CIK, and two with no 10-K facts)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Ticker</th><th>Company</th><th>CIK</th><th>Sector</th><th>FY ends</th><th>Revenue, latest FY ($M)</th><th>Size</th><th>10-K</th><th>10-Q</th><th>Split</th></tr></thead>
+    <tbody>
+      <tr><td class="id">ABT</td><td>Abbott Laboratories</td><td class="mono">1800</td><td>Medical devices, health</td><td>Dec</td><td>44,328</td><td>large</td><td>3</td><td>9</td><td><span class="tag tbc">dev</span></td></tr>
+      <tr><td class="id">AXP</td><td>American Express</td><td class="mono">4962</td><td>Card payments, lending</td><td>Dec</td><td>72,229</td><td>large</td><td>3</td><td>9</td><td><span class="tag tbc">dev</span></td></tr>
+      <tr><td class="id">AFL</td><td>Aflac</td><td class="mono">4977</td><td>Insurance</td><td>Dec</td><td>17,164</td><td>large</td><td>3</td><td>9</td><td><span class="tag tbc">dev</span></td></tr>
+      <tr><td class="id">HWM</td><td>Howmet Aerospace</td><td class="mono">4281</td><td>Aerospace components</td><td>Dec</td><td>8,252</td><td>mid</td><td>3</td><td>9</td><td><span class="tag tbc">dev</span></td></tr>
+      <tr><td class="id">SWKS</td><td>Skyworks Solutions</td><td class="mono">4127</td><td>Semiconductors</td><td>Sep/Oct</td><td>4,087</td><td>mid</td><td>3</td><td>9</td><td><span class="tag tbc">dev</span></td></tr>
+      <tr><td class="id">ALX</td><td>Alexander's</td><td class="mono">3499</td><td>Real estate (REIT)</td><td>Dec</td><td>213</td><td>small</td><td>3</td><td>9</td><td><span class="tag tbc">dev</span></td></tr>
+      <tr><td class="id">AMD</td><td>Advanced Micro Devices</td><td class="mono">2488</td><td>Semiconductors</td><td>Dec</td><td>34,639</td><td>large</td><td>3</td><td>9</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">AIG</td><td>American International Group</td><td class="mono">5272</td><td>Insurance</td><td>Dec</td><td>26,775</td><td>large</td><td>3</td><td>9</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">AEP</td><td>American Electric Power</td><td class="mono">4904</td><td>Electric utility</td><td>Dec</td><td>21,876</td><td>large</td><td>3</td><td>9</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">LNG</td><td>Cheniere Energy</td><td class="mono">3570</td><td>LNG export</td><td>Dec</td><td>19,976</td><td>large</td><td>3</td><td>9</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">UNM</td><td>Unum Group</td><td class="mono">5513</td><td>Insurance</td><td>Dec</td><td>13,076</td><td>large</td><td>3</td><td>9</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">APD</td><td>Air Products and Chemicals</td><td class="mono">2969</td><td>Industrial gases</td><td>Sep</td><td>12,037</td><td>large</td><td>3</td><td>9</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">UHAL</td><td>U-Haul Holding</td><td class="mono">4457</td><td>Equipment rental</td><td>Mar</td><td>6,038</td><td>mid</td><td>3</td><td>13</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">MATX</td><td>Matson</td><td class="mono">3453</td><td>Ocean shipping</td><td>Dec</td><td>3,344</td><td>mid</td><td>3</td><td>9</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">AIR</td><td>AAR Corp.</td><td class="mono">1750</td><td>Aviation services</td><td>May</td><td>3,308</td><td>mid</td><td>3</td><td>9</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">CECO</td><td>CECO Environmental</td><td class="mono">3197</td><td>Industrial air and water</td><td>Dec</td><td>774</td><td>mid</td><td>3</td><td>10</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">ACU</td><td>Acme United</td><td class="mono">2098</td><td>Consumer products</td><td>Dec</td><td>197</td><td>small</td><td>3</td><td>9</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">BKTI</td><td>BK Technologies</td><td class="mono">2186</td><td>Radio equipment</td><td>Dec</td><td>86</td><td>small</td><td>4</td><td>9</td><td><span class="tag ok">test</span></td></tr>
+      <tr><td class="id">ALCO</td><td>Alico</td><td class="mono">3545</td><td>Agriculture (citrus, land)</td><td>Sep</td><td>44</td><td>small</td><td>3</td><td>10</td><td><span class="tag ok">test</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="caption">Counts are distinct accession numbers in the XBRL facts for fiscal years 2023 to 2025; recheck them against the EDGAR filing index when fetching. Size bands: small under $300M revenue, mid under $10B, large above. Tickers and sectors were added by hand and must be checked against SEC's ticker file. AAR and BK Technologies changed revenue tags (to <code>RevenueFromContractWithCustomerIncludingAssessedTax</code>), so a naive lookup returns their 2018 and 2023 revenue. Q-XBRL must handle this kind of tag change.</p>
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">WHAT THIS SAMPLE DOES WELL</div>
+      <p>Revenue spans $44M to $72B, three orders of magnitude. FARE used 21 mega-caps only. We can ask whether the agents work as well on small companies with thin, boilerplate filings, which FARE could not.</p>
+    </div>
+    <div class="panel">
+      <div class="k">BIASES WE DECLARE</div>
+      <p>Low CIK numbers mean early EDGAR registrants, so these are long-established firms. Financials are heavy (AXP, AFL, AIG, UNM), and there is no software, retail or bank. Comparison queries have few same-sector pairs. We state this in the report and do not generalise beyond it.</p>
+    </div>
+  </div>
+</section>
+
+<section id="corpus">
+  <div class="sec-head">
+    <div class="eyebrow">4 · Corpus and splits</div>
+    <h2>About 470 filings, split by company</h2>
+  </div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Document</th><th>Count</th><th>Source of count</th><th>Used by</th></tr></thead>
+    <tbody>
+      <tr><td>10-K annual report (full text, Items 1A, 7, 7A, 8)</td><td>58</td><td>XBRL accession numbers</td><td>All agents</td></tr>
+      <tr><td>10-Q quarterly report (Part I Item 2, Part II Item 1A)</td><td>177</td><td>XBRL accession numbers</td><td>All agents; Tone Shift periods</td></tr>
+      <tr><td>8-K Item 2.02 with EX-99.1 earnings release</td><td>about 230</td><td>Estimate: 4 per company per year; count at fetch</td><td>Tone, Tone Shift, Statement Extraction</td></tr>
+      <tr><td>XBRL company facts (numbers)</td><td>19 files</td><td>Atharva's branch, checksummed</td><td>Q-XBRL answers, judge-v3 objective checks</td></tr>
+      <tr><td>Daily prices</td><td>19 tickers, 2023 to 2026</td><td>Source to choose (section 10)</td><td>Scenario agent only</td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">SPLIT BY COMPANY, NOT BY QUERY</div>
+      <p>Prompts, batch size and every other setting are tuned only on the 6 <b>dev</b> companies. The 13 <b>test</b> companies are touched once, for the final runs. A query-level split would let prompts tuned on Abbott's 2024 10-K leak into test questions about Abbott's 2023 10-K.</p>
+      <p class="muted">Dev drawn at random within size bands (1 small, 2 mid, 3 large), seed <code>20261005</code>. The team may re-draw once before the M0 freeze; after that the split is tagged in git and never changes.</p>
+    </div>
+    <div class="panel">
+      <div class="k">PERIOD SPLIT FOR RQ5</div>
+      <p>Each filing is labelled <b>before</b> or <b>after</b> each model's published knowledge cutoff (from the model cards; record the source). FY2025 10-Ks, filed in 2026, are after every model in the set.</p>
+      <p class="muted">The harness refuses to run on test without an explicit flag and logs every test run, so the number of test runs can be reported.</p>
+    </div>
+  </div>
+</section>
+
+<section id="queries">
+  <div class="sec-head">
+    <div class="eyebrow">5 · Query sets</div>
+    <h2>Four sets, each built for one job</h2>
+    <p>FARE publishes counts but not queries. We regenerate queries with FARE's per-company ratios where they scale, write the generation rules down, and have a second person check every query before the freeze.</p>
+  </div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Set</th><th>Size</th><th>How built</th><th>Answers</th><th>Measures</th></tr></thead>
+    <tbody>
+      <tr><td class="id">Q-FARE</td><td>423</td><td>Statement Extraction 95 (5 per company), Tone 95 (5), Tone Shift 57 (3), Comparison 100, Thesis Check 38 (2), Scenario 38 (2). Templates from FARE Table 2, paraphrased, human-checked.</td><td>None fixed; judged</td><td>RQ1, RQ2, RQ4</td></tr>
+      <tr><td class="id">Q-XBRL</td><td>300</td><td>About 16 per company. Questions generated from company facts: values, changes, ratios, with period and unit stated.</td><td>Exact, from XBRL, with a written tolerance rule</td><td>Numeric accuracy without any judge; RQ5</td></tr>
+      <tr><td class="id">R-300</td><td>300</td><td>Queries labelled with one of six intents, including 50 written to be ambiguous.</td><td>Intent label, two annotators</td><td>Routing accuracy and confusion matrix</td></tr>
+      <tr><td class="id">H-120</td><td>120</td><td>20 answers per agent, sampled across models and systems, drawn from test runs.</td><td>Two human grades per answer, same rubric as the judge</td><td>RQ3</td></tr>
+    </tbody>
+  </table></div>
+  <p class="caption">Comparison is halved from FARE's 200 because the universe has few same-sector pairs; most comparison queries use cross-sector topics such as interest-rate exposure or supply-chain risk. FinanceBench (Q-FIN in plan v2) is dropped from the core because it would need its own document ingestion; it stays optional for M4.</p>
+</section>
+
+<section id="systems">
+  <div class="sec-head">
+    <div class="eyebrow">6 · Systems compared</div>
+    <h2>Five systems, with B1 given a fair budget</h2>
+  </div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Id</th><th>System</th><th>What it isolates</th><th>Runs on</th></tr></thead>
+    <tbody>
+      <tr><td class="id">B0</td><td>Model alone, no retrieval</td><td>What the model already knows (RQ5)</td><td>Q-FARE, Q-XBRL · 4 models</td></tr>
+      <tr><td class="id">B1</td><td>One agent, same retrieval, same model, one general prompt</td><td>The value of specialised agents (RQ2)</td><td>Q-FARE · 4 models</td></tr>
+      <tr><td class="id">B2</td><td>FARE rebuild: router plus six agents, v0 settings</td><td>The replication itself (RQ1)</td><td>All sets · 4 models</td></tr>
+      <tr><td class="id">B3</td><td>B2 plus tools (XBRL lookup, price returns, calculator)</td><td>Deterministic numbers versus model arithmetic</td><td>Q-FARE, Q-XBRL · 1 or 2 models</td></tr>
+      <tr><td class="id">B4</td><td>B3 plus citation checks (quotes must match the filing)</td><td>Grounding</td><td>Q-FARE · 1 or 2 models</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn">
+    <p><b>Equal-budget rule for B1.</b> If the single agent gets fewer chunks, fewer reading passes or fewer output tokens than the six agents, B2 wins for the wrong reason. B1 therefore receives the same top-k, the same number of batch reads and the same output limit as the average B2 run for that query type. We report tokens used by each system next to its score.</p>
+  </div>
+</section>
+
+<section id="analysis">
+  <div class="sec-head">
+    <div class="eyebrow">7 · Analysis plan</div>
+    <h2>How numbers become claims</h2>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">UNIT AND UNCERTAINTY</div>
+      <p>The unit is one query. Queries about the same company are not independent, so confidence intervals come from a <b>company-cluster bootstrap</b>: resample companies with replacement, 10,000 times, take the 2.5th and 97.5th percentiles.</p>
+    </div>
+    <div class="panel">
+      <div class="k">SCORES</div>
+      <p>Each agent's metric is rescaled to 0–1 as FARE defines it (TAEF ÷ 1, CAS as given, CODS (1–5) mapped to 0–1). The pooled score is the mean over agents, weighting each agent equally, so Comparison's 100 queries do not dominate.</p>
+    </div>
+    <div class="panel">
+      <div class="k">MINIMUM DETECTABLE EFFECT</div>
+      <p>About 290 test queries, an assumed SD of 0.25 for paired differences, and a design effect of 2 for clustering give a minimum detectable effect of about <b>0.06</b> on the 0–1 scale (80% power, α = 0.05). Smaller differences will be reported as "not detectable with this sample", not as "no difference".</p>
+    </div>
+    <div class="panel">
+      <div class="k">DETERMINISM</div>
+      <p>Temperature 0, a fixed thinking budget for Gemini 2.5 Flash, all prompts and configs hashed into every result row. Hosted models are still not fully deterministic, so 20% of B2 test queries are re-run once and the run-to-run difference is reported as a noise floor.</p>
+    </div>
+    <div class="panel">
+      <div class="k">LATENCY AND COST</div>
+      <p>Benchmark runs may use batch mode, which halves price but makes timing meaningless. Latency claims (C2, C3) come from a separate 60-query standard-mode sample per model, run in the same hour.</p>
+    </div>
+    <div class="panel">
+      <div class="k">WHAT GETS REPORTED</div>
+      <p>Every pre-registered comparison, whatever the result. Any analysis added after the freeze is labelled exploratory. Deviations from this protocol go in <code>docs/fare/03-decisions.md</code> with a date.</p>
+    </div>
+  </div>
+</section>
+
+<section id="judges">
+  <div class="sec-head">
+    <div class="eyebrow">8 · Judge validation (RQ3)</div>
+    <h2>Checking the judges against people before trusting them</h2>
+    <p>FARE's own limitations section says its judge metrics were never validated by experts. This is the cheapest place for us to add something the paper lacks.</p>
+  </div>
+  <div class="stack">
+    <div class="comp"><div class="cid">1</div><div class="body"><h3>Write the rubric before grading</h3><p>One rubric per agent, copied from FARE's metric definitions (NI, OT, NA for TAEF; FA and RA for CAS; and so on), with two worked examples each. Graders and judge prompts use the same text.</p></div></div>
+    <div class="comp"><div class="cid">2</div><div class="body"><h3>Two people grade H-120 blind</h3><p>Graders see the query, the retrieved chunks and the answer, but not which model or system produced it, and not the judge's score. Inter-human weighted κ is the ceiling any judge can reasonably reach.</p></div></div>
+    <div class="comp"><div class="cid">3</div><div class="body"><h3>Compare each judge version with the human consensus</h3><p>judge-v1 (FARE-style with Google Search), judge-v2 (frozen references), and on numeric items judge-v3 (objective XBRL checks). Report κ per agent with CIs.</p></div></div>
+    <div class="comp"><div class="cid">4</div><div class="body"><h3>Test for self-preference</h3><p>judge-v1 runs on Gemini, which is also a generator. Compare the judge-minus-human gap on Gemini answers with the gap on Qwen and Llama answers. A systematic difference means Gemini's rankings in RQ1 need a second judge from another model family on the same items.</p></div></div>
+  </div>
+</section>
+
+<section id="threats">
+  <div class="sec-head">
+    <div class="eyebrow">9 · Threats to validity</div>
+    <h2>What could make the results wrong, and the answer to each</h2>
+  </div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Threat</th><th>Type</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr><td>Our reconstructed prompts are weaker or stronger than FARE's unpublished ones</td><td>Internal</td><td>Prompts are versioned and labelled as reconstructions; a conformance check by a teammate who did not write them (HLD step 5); claims are judged on direction, not absolute values.</td></tr>
+      <tr><td>B1 is a weak strawman</td><td>Internal</td><td>Equal-budget rule (section 6); B1 prompt gets the same number of tuning rounds on dev as each B2 agent.</td></tr>
+      <tr><td>LLM judges reward fluent but wrong answers</td><td>Construct</td><td>H-120 validation; Q-XBRL scored without any judge; judge versions never mixed in one comparison.</td></tr>
+      <tr><td>Google Search references change from day to day</td><td>Construct</td><td>Store every search result used by judge-v1; judge-v2 rescores the same answers against these frozen references.</td></tr>
+      <tr><td>Models have memorised the filings</td><td>Construct</td><td>RQ5 period split, B0 baseline, anonymisation probe.</td></tr>
+      <tr><td>Test set influences design choices</td><td>Internal</td><td>Company split, harness refuses test runs without a flag, test runs counted and reported.</td></tr>
+      <tr><td>Filings are not transcripts; 19 long-established US firms</td><td>External</td><td>Stated as scope. Claims are "FARE's conclusions on filings for this universe", nothing broader. Phase I tests transfer to Indian filings.</td></tr>
+      <tr><td>Gemini 2.5 retired before runs finish</td><td>Practical</td><td>Developer API only; Gemini 2.5 runs first; cached outputs; successor named in advance and run on the same queries.</td></tr>
+      <tr><td>Qwen2.5-7B is served by a single provider on OpenRouter</td><td>Practical</td><td>Cache every call; fallback is a second provider or a free Colab T4, which also matches FARE's own hardware.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="open">
+  <div class="sec-head">
+    <div class="eyebrow">10 · Open decisions</div>
+    <h2>Six choices the team should make before the freeze</h2>
+    <p>Each has a recommendation. The protocol can be frozen once these are answered in <code>03-decisions.md</code>.</p>
+  </div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>#</th><th>Decision</th><th>Recommendation</th><th>Owner</th></tr></thead>
+    <tbody>
+      <tr><td class="id">O1</td><td>Tone critic: inference-time loop or evaluation only? The paper says both on p. 67368.</td><td>Build it as an inference-time loop (that is what the architecture figure shows) and run "critic off" as one RQ4 ablation, so both readings are covered.</td><td>Stream B</td></tr>
+      <tr><td class="id">O2</td><td>Price data for Scenario</td><td>A free daily-price source with a stable licence, downloaded once and stored with a checksum. Returns are computed by code, never by the model.</td><td>Stream A</td></tr>
+      <tr><td class="id">O3</td><td>Successor model if Gemini 2.5 is retired</td><td>Gemini 3.1 Flash-Lite ($0.25 / $1.50 per 1M tokens), run on the same queries as soon as budget allows, so there is an overlap period with 2.5 results.</td><td>Stream D</td></tr>
+      <tr><td class="id">O4</td><td>Gemini 2.5 Flash thinking budget</td><td>Fix it to 0 for the main runs, for cost and comparability; run one ablation with the default budget.</td><td>Stream B</td></tr>
+      <tr><td class="id">O5</td><td>Adapted metrics for Thesis Check and Scenario</td><td>Drop IRAS's recommendation-correctness and risk-profile terms and renormalise the remaining weights; keep CODS unchanged for Scenario's narrative part.</td><td>Stream C</td></tr>
+      <tr><td class="id">O6</td><td>Adopt RQ5 (memorisation)?</td><td>Yes. It costs little because it reuses B0 and Q-XBRL, and it is a result FARE does not have.</td><td>All four</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="next">
+  <div class="sec-head">
+    <div class="eyebrow">11 · Next two weeks</div>
+    <h2>From protocol to first traced query</h2>
+  </div>
+  <div class="timeline">
+    <div class="wk"><div class="when">5–7 Oct</div><p>Team reads this protocol and answers O1 to O6. Budget request goes to the department (see the Loupe Compute Budget page).</p></div>
+    <div class="wk"><div class="when">5–9 Oct</div><p>M0: <code>configs/universe.yaml</code> committed (draft is ready), data contracts, registry interface, EDGAR fetcher with a contact User-Agent, and an 8-K count for the corpus table.</p></div>
+    <div class="wk gate"><div class="when">11 Oct · freeze</div><p>Protocol v1.0 tagged in git together with the dev/test split. From here on, changes are logged deviations.</p></div>
+    <div class="wk"><div class="when">12–23 Oct</div><p>M1 tracer on dev companies only. In parallel, write Q-XBRL and R-300 and start the Q-FARE templates.</p></div>
+    <div class="wk gate"><div class="when">by 31 Oct</div><p>All Gemini 2.5 generations for B0, B1 and B2 on Q-FARE are cached, ahead of any retirement.</p></div>
+  </div>
+</section>
+
+<footer>
+  <p>Sources: FARE (Chakraborty et al., IEEE Access 14:67362–67382, 2026); <code>docs/fare/01-extraction-sheet.md</code>, <code>02-claims.md</code>; company data from <code>origin/atharva-patil-plan</code> @ af417a3, profiled 3 Oct 2026; Google model lifecycle and Gemini API deprecation and pricing pages, OpenRouter model pages, all read 3 Oct 2026.</p>
+  <p>Companion pages: Loupe Replication HLD (design), Loupe Project Compass (overall project), Loupe Compute Budget (funding request).</p>
+</footer>
+
+</div>
+</body></html>

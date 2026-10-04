@@ -1,0 +1,163 @@
+# Loupe Phase R company universe. Decided 2026-10-03 (see docs/fare/03-decisions.md, D9).
+# Source: data/raw/companyfacts/ (copied from origin/atharva-patil-plan @ af417a3; first 50 CIKs of SEC companyfacts.zip).
+# Inclusion rule: US domestic filer with >=3 10-K and >=6 10-Q accession numbers for fiscal years 2023-2025 in its XBRL facts.
+# 50 files -> 7 empty, 15 stopped filing before 2023, 3 thinned out in the window, 6 non-standard filers -> 19 eligible.
+# ticker and sector were added by hand: VERIFY against https://www.sec.gov/files/company_tickers.json before M0 freeze.
+# split: dev/test by company, stratified by size band (1 small, 2 mid, 3 large in dev), random.Random(20261005).
+# revenue_musd: latest annual revenue in XBRL, USD millions (size band: small <300, mid <10000, large >=10000).
+version: 1
+window: {fiscal_years: [2023, 2025], forms: [10-K, 10-Q, 8-K]}
+split_seed: 20261005
+companies:
+  - cik: "0000001750"
+    ticker: AIR
+    name: "AAR CORP."
+    sector: "Aviation services"
+    fiscal_year_end: "05-31"
+    revenue_musd: 3308
+    size: mid
+    split: test
+  - cik: "0000001800"
+    ticker: ABT
+    name: "ABBOTT LABORATORIES"
+    sector: "Medical devices, health"
+    fiscal_year_end: "12-31"
+    revenue_musd: 44328
+    size: large
+    split: dev
+  - cik: "0000002098"
+    ticker: ACU
+    name: "ACME UNITED CORP"
+    sector: "Consumer products"
+    fiscal_year_end: "12-31"
+    revenue_musd: 197
+    size: small
+    split: test
+  - cik: "0000002186"
+    ticker: BKTI
+    name: "BK Technologies Corp"
+    sector: "Radio equipment"
+    fiscal_year_end: "12-31"
+    revenue_musd: 86
+    size: small
+    split: test
+  - cik: "0000002488"
+    ticker: AMD
+    name: "ADVANCED MICRO DEVICES INC"
+    sector: "Semiconductors"
+    fiscal_year_end: "12-31"
+    revenue_musd: 34639
+    size: large
+    split: test
+  - cik: "0000002969"
+    ticker: APD
+    name: "AIR PRODUCTS AND CHEMICALS, INC."
+    sector: "Industrial gases"
+    fiscal_year_end: "09-30"
+    revenue_musd: 12037
+    size: large
+    split: test
+  - cik: "0000003197"
+    ticker: CECO
+    name: "CECO ENVIRONMENTAL CORP."
+    sector: "Industrial air and water"
+    fiscal_year_end: "12-31"
+    revenue_musd: 774
+    size: mid
+    split: test
+  - cik: "0000003453"
+    ticker: MATX
+    name: "Matson, Inc."
+    sector: "Ocean shipping"
+    fiscal_year_end: "12-31"
+    revenue_musd: 3344
+    size: mid
+    split: test
+  - cik: "0000003499"
+    ticker: ALX
+    name: "ALEXANDERS INC"
+    sector: "Real estate (REIT)"
+    fiscal_year_end: "12-31"
+    revenue_musd: 213
+    size: small
+    split: dev
+  - cik: "0000003545"
+    ticker: ALCO
+    name: "ALICO, INC."
+    sector: "Agriculture"
+    fiscal_year_end: "09-30"
+    revenue_musd: 44
+    size: small
+    split: test
+  - cik: "0000003570"
+    ticker: LNG
+    name: "Cheniere Energy, Inc."
+    sector: "LNG export"
+    fiscal_year_end: "12-31"
+    revenue_musd: 19976
+    size: large
+    split: test
+  - cik: "0000004127"
+    ticker: SWKS
+    name: "SKYWORKS SOLUTIONS, INC."
+    sector: "Semiconductors"
+    fiscal_year_end: "52/53-week, ends Sep/Oct"
+    revenue_musd: 4087
+    size: mid
+    split: dev
+  - cik: "0000004281"
+    ticker: HWM
+    name: "HOWMET AEROSPACE INC."
+    sector: "Aerospace components"
+    fiscal_year_end: "12-31"
+    revenue_musd: 8252
+    size: mid
+    split: dev
+  - cik: "0000004457"
+    ticker: UHAL
+    name: "U-Haul Holding Company"
+    sector: "Equipment rental"
+    fiscal_year_end: "03-31"
+    revenue_musd: 6038
+    size: mid
+    split: test
+  - cik: "0000004904"
+    ticker: AEP
+    name: "American Electric Power Company, Inc."
+    sector: "Electric utility"
+    fiscal_year_end: "12-31"
+    revenue_musd: 21876
+    size: large
+    split: test
+  - cik: "0000004962"
+    ticker: AXP
+    name: "AMERICAN EXPRESS CO"
+    sector: "Card payments, lending"
+    fiscal_year_end: "12-31"
+    revenue_musd: 72229
+    size: large
+    split: dev
+  - cik: "0000004977"
+    ticker: AFL
+    name: "Aflac Incorporated"
+    sector: "Insurance"
+    fiscal_year_end: "12-31"
+    revenue_musd: 17164
+    size: large
+    split: dev
+  - cik: "0000005272"
+    ticker: AIG
+    name: "American International Group, Inc."
+    sector: "Insurance"
+    fiscal_year_end: "12-31"
+    revenue_musd: 26775
+    size: large
+    split: test
+  - cik: "0000005513"
+    ticker: UNM
+    name: "Unum Group"
+    sector: "Insurance"
+    fiscal_year_end: "12-31"
+    revenue_musd: 13076
+    size: large
+    split: test

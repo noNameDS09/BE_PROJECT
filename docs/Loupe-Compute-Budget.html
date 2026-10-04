@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Offline copy of https://claude.ai/artifact/9JSsj1TEYhnpiDjuYkJLuY . Edit the published page, then re-export; do not hand-edit here. -->
+<style>body{margin:0}</style>
+<title>Loupe Compute Budget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Loupe reading column and tokens; a funding memo with a live cost model (level cards, assumptions, itemised table, letter). */
+:root {
+  --paper: #f5f6f3; --sheet: #ffffff; --ink: #17201e; --muted: #56615d; --rule: #d9ddd7;
+  --accent: #23497a; --accent-soft: #e4ebf4;
+  --saffron: #b76a12; --saffron-soft: #f8ecdc;
+  --bad: #b3261e; --bad-soft: #f9e3e1; --warn: #9a6400; --warn-soft: #fbf0d6; --good: #1d6b45; --good-soft: #e0f0e6;
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --s1: .25rem; --s2: .5rem; --s3: .75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2.25rem; --s7: 3.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121716; --sheet: #1a2120; --ink: #e6ebe8; --muted: #9aa6a1; --rule: #2e3835;
+    --accent: #8fb3e6; --accent-soft: #1d2a3b; --saffron: #e5a456; --saffron-soft: #33271a;
+    --bad: #f08c84; --bad-soft: #3a1f1d; --warn: #e3b456; --warn-soft: #362c16; --good: #7fcaa0; --good-soft: #17301f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121716; --sheet: #1a2120; --ink: #e6ebe8; --muted: #9aa6a1; --rule: #2e3835;
+  --accent: #8fb3e6; --accent-soft: #1d2a3b; --saffron: #e5a456; --saffron-soft: #33271a;
+  --bad: #f08c84; --bad-soft: #3a1f1d; --warn: #e3b456; --warn-soft: #362c16; --good: #7fcaa0; --good-soft: #17301f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 1rem; line-height: 1.6; }
+.wrap { max-width: 62rem; margin: 0 auto; padding-inline: max(16px, 4vw); padding-block: var(--s6) var(--s7); }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.08rem; font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+code, .mono { font-family: var(--f-mono); font-size: .86em; }
+.eyebrow { font-family: var(--f-mono); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+ul.plain { margin: 0; padding-left: 1.15rem; display: grid; gap: .25rem; }
+
+header.top { display: grid; gap: var(--s4); padding-bottom: var(--s5); border-bottom: 1px solid var(--rule); }
+.lead { font-size: 1.1rem; max-width: 64ch; }
+.docmeta { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.chip { font-family: var(--f-mono); font-size: .74rem; padding: .15rem .5rem; border-radius: 3px; border: 1px solid var(--rule); background: var(--sheet); color: var(--muted); white-space: nowrap; }
+.chip b { color: var(--ink); font-weight: 500; }
+
+nav.index { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); margin-inline: calc(-1 * max(16px, 4vw)); padding: var(--s2) max(16px, 4vw); overflow-x: auto; }
+nav.index ol { list-style: none; display: flex; gap: var(--s4); margin: 0; padding: 0; white-space: nowrap; font-size: .85rem; }
+nav.index a { color: var(--muted); text-decoration: none; }
+nav.index a:hover { color: var(--accent); }
+nav.index span { font-family: var(--f-mono); color: var(--accent); margin-right: .3em; }
+
+section { display: grid; gap: var(--s4); padding-top: var(--s7); scroll-margin-top: 3rem; }
+.sec-head { display: grid; gap: var(--s2); }
+
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: var(--s3) var(--s4); border-radius: 0 4px 4px 0; font-size: .94rem; display: grid; gap: var(--s2); }
+.callout p { max-width: none; }
+.callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: var(--s3); }
+.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); display: grid; gap: var(--s2); align-content: start; min-width: 0; }
+.panel .k { font-family: var(--f-mono); font-size: .75rem; color: var(--accent); letter-spacing: .05em; }
+.panel p, .panel li { font-size: .92rem; }
+
+.table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: .55rem .75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--f-mono); font-size: .7rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--paper); white-space: nowrap; }
+td.id { font-family: var(--f-mono); color: var(--accent); white-space: nowrap; }
+.tag { font-family: var(--f-mono); font-size: .7rem; padding: .08rem .4rem; border-radius: 3px; white-space: nowrap; display: inline-block; }
+.tag.ok { color: var(--good); background: var(--good-soft); }
+.tag.tbc { color: var(--warn); background: var(--warn-soft); }
+.tag.ours { color: var(--accent); background: var(--accent-soft); }
+.tag.off { color: var(--muted); border: 1px solid var(--rule); }
+
+.diagram { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; background: transparent; text-align: center; }
+.caption { font-size: .85rem; color: var(--muted); }
+
+.comp { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: var(--s3) var(--s4); }
+.comp .cid { font-family: var(--f-display); font-weight: 700; font-size: 1.4rem; color: var(--accent); line-height: 1.1; }
+.comp .body { display: grid; gap: var(--s2); min-width: 0; }
+.comp dl { margin: 0; display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: .3rem var(--s3); font-size: .9rem; }
+.comp dt { font-family: var(--f-mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding-top: .2rem; }
+.comp dd { margin: 0; }
+@media (max-width: 560px) { .comp { grid-template-columns: 1fr; } .comp dl { grid-template-columns: 1fr; } .comp dt { padding-top: .4rem; } }
+.stack { display: grid; gap: var(--s3); }
+
+pre.code { font-family: var(--f-mono); font-size: .78rem; line-height: 1.55; margin: 0; padding: var(--s4); background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; color: var(--ink); }
+pre.code .c { color: var(--muted); }
+
+.rq { display: grid; gap: var(--s3); }
+.rq-item { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: var(--s3); align-items: baseline; }
+.rq-item .n { font-family: var(--f-mono); color: var(--accent); font-size: .85rem; }
+
+.timeline { display: grid; border-left: 2px solid var(--rule); margin-left: .4rem; }
+.wk { display: grid; gap: var(--s1); padding: 0 0 var(--s4) var(--s5); position: relative; }
+.wk::before { content: ""; position: absolute; left: -.5rem; top: .4rem; width: .85rem; height: .85rem; border-radius: 50%; background: var(--paper); border: 2px solid var(--accent); }
+.wk.gate::before { background: var(--accent); }
+.wk .when { font-family: var(--f-mono); font-size: .76rem; color: var(--accent); }
+.wk p { font-size: .93rem; }
+
+footer { margin-top: var(--s7); padding-top: var(--s4); border-top: 1px solid var(--rule); font-size: .85rem; color: var(--muted); display: grid; gap: var(--s2); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+td.num, .num { text-align: right; white-space: nowrap; }
+.acc { color: var(--accent); }
+.tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--s3); }
+.tier { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: var(--s2); align-content: start; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); color: var(--ink); font-family: var(--f-body); }
+.tier:hover { border-color: var(--accent); }
+.tier:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tier[aria-checked="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.tier .k { font-family: var(--f-mono); font-size: .75rem; letter-spacing: .08em; color: var(--accent); }
+.tier.rec .k::after { content: " · suggested"; color: var(--saffron); }
+.tier .amt { font-family: var(--f-display); font-weight: 700; font-size: 2.1rem; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tier .usd { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); }
+.tier .what { font-size: .9rem; line-height: 1.5; }
+.calc { display: grid; gap: var(--s4); }
+.assume { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--s3); background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); }
+.assume label { display: grid; gap: .3rem; font-size: .8rem; color: var(--muted); min-width: 0; }
+.assume input[type="number"], .assume input[type="text"] { font: 500 .95rem var(--f-mono); color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: .4rem .5rem; width: 100%; box-sizing: border-box; }
+.assume input:focus-visible, #exp input:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.assume label.check { display: flex; align-items: center; gap: .5rem; color: var(--ink); font-size: .88rem; align-self: end; }
+input[type="checkbox"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
+#exp tr.off td { color: var(--muted); }
+#exp tr.off td:not(:first-child) { opacity: .6; }
+#exp tfoot td { background: var(--paper); font-size: .86rem; }
+#exp tfoot tr.grand td { font-size: 1rem; border-top: 2px solid var(--ink); }
+#exp tfoot tr.grand b { font-family: var(--f-display); font-size: 1.3rem; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--s3); }
+details.method { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s3) var(--s4); }
+details.method summary { cursor: pointer; font-weight: 600; font-size: .92rem; }
+details.method[open] summary { margin-bottom: var(--s3); }
+.letter-fields { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+pre.letter { white-space: pre-wrap; font-size: .82rem; line-height: 1.6; max-width: 80ch; }
+.actions { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.btn { font: 600 .9rem var(--f-body); color: var(--sheet); background: var(--accent); border: 0; border-radius: 4px; padding: .55rem 1rem; cursor: pointer; }
+.btn:hover { filter: brightness(1.1); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Loupe · Funding request · Phase R experiments</div>
+  <h1>Language-model API budget for the Loupe replication study</h1>
+  <p class="lead">Loupe's first phase rebuilds a published multi-agent system (FARE, IEEE Access 2026) and tests its claims on SEC filings for 19 companies. The experiments call hosted language models a few hundred thousand times. This page states what we need, why, what it costs at today's published prices, and how we will keep spending under control.</p>
+  <div class="docmeta">
+    <span class="chip">Prepared <b>3 Oct 2026</b></span>
+    <span class="chip">Prices checked <b>3 Oct 2026</b></span>
+    <span class="chip">Period <b>Oct 2026 – Jan 2027</b></span>
+    <span class="chip">Team <b>Daware · Jha · Panse · Patil</b></span>
+    <span class="chip">Guide <b>Mrs. Kalpna Saharan</b></span>
+  </div>
+</header>
+
+<nav class="index" aria-label="Sections">
+  <ol>
+    <li><a href="#ask"><span>1</span>The request</a></li>
+    <li><a href="#why"><span>2</span>Why paid access</a></li>
+    <li><a href="#models"><span>3</span>Models and prices</a></li>
+    <li><a href="#calc"><span>4</span>Estimate</a></li>
+    <li><a href="#controls"><span>5</span>Spend controls</a></li>
+    <li><a href="#fallback"><span>6</span>Without funding</a></li>
+    <li><a href="#letter"><span>7</span>Request letter</a></li>
+  </ol>
+</nav>
+
+<section id="ask">
+  <div class="sec-head">
+    <div class="eyebrow">1 · The request</div>
+    <h2>Three levels, one recommendation</h2>
+    <p>Each level is the full estimate from section 4 for a fixed set of experiments, including development runs, a 20% contingency and payment fees. The amounts update if you change any assumption below.</p>
+  </div>
+  <div class="tiers" id="tiers" role="radiogroup" aria-label="Funding level">
+    <button type="button" class="tier" data-tier="min" role="radio" aria-checked="false">
+      <span class="k">MINIMUM</span>
+      <span class="amt" data-total="min">—</span>
+      <span class="usd" data-usd="min">—</span>
+      <span class="what">Answers the two primary questions (multi-agent value, judge reliability) and replicates FARE's claims with its four models. Four stage ablations.</span>
+    </button>
+    <button type="button" class="tier rec" data-tier="rec" role="radio" aria-checked="true">
+      <span class="k">RECOMMENDED</span>
+      <span class="amt" data-total="rec">—</span>
+      <span class="usd" data-usd="rec">—</span>
+      <span class="what">Adds the full stage-by-stage study, a noise floor, frozen-reference and second-family judges, tool and citation variants, and a successor Gemini model in case 2.5 is retired.</span>
+    </button>
+    <button type="button" class="tier" data-tier="ext" role="radio" aria-checked="false">
+      <span class="k">EXTENDED</span>
+      <span class="amt" data-total="ext">—</span>
+      <span class="usd" data-usd="ext">—</span>
+      <span class="what">Everything above plus a first pass of the same pipeline on Indian filings (Phase I pilot) and a wider ablation sweep.</span>
+    </button>
+  </div>
+  <div class="callout">
+    <p><b>We suggest releasing it in two parts.</b> About 60% now for October–November (tracer system, six agents, first claims table). The rest in December, after we show the guide the first results and the actual spend from our cost log.</p>
+  </div>
+</section>
+
+<section id="why">
+  <div class="sec-head">
+    <div class="eyebrow">2 · Why paid access</div>
+    <h2>Free tiers cannot run a controlled experiment</h2>
+  </div>
+  <div class="grid2">
+    <div class="panel"><div class="k">VOLUME</div><p>The core design runs about 1,700 queries per model across four models and four baselines, and every answer is scored by a judge model. That is several thousand calls a day during runs. Free-tier daily request limits are set per project and change without notice.</p></div>
+    <div class="panel"><div class="k">SAME MODELS AS THE PAPER</div><p>To test FARE's claims we must use FARE's four models. Two are Google models; the other two are open models that are only practical through a paid host unless we run them on a free Colab GPU, which is slow and gets interrupted.</p></div>
+    <div class="panel"><div class="k">DATA TERMS</div><p>Google's pricing page states that free-tier prompts are used to improve its products, and paid-tier prompts are not. Our data is public filings, so this is not a privacy problem, but a paid tier gives a cleaner research record.</p></div>
+    <div class="panel"><div class="k">JUDGE NEEDS SEARCH</div><p>FARE's judges check answers against Google Search results. On the paid tier, 1,500 grounded requests a day are free; the free tier allows 500. That alone decides how many days judging takes.</p></div>
+  </div>
+  <p class="muted">No hardware is requested. Embeddings (all-MiniLM-L6-v2), the vector index (FAISS) and the results store (DuckDB) run on our own laptops.</p>
+</section>
+
+<section id="models">
+  <div class="sec-head">
+    <div class="eyebrow">3 · Models and prices</div>
+    <h2>Six models, each with a reason</h2>
+    <p>US dollars per one million tokens, as listed on 3 Oct 2026. Batch prices apply to offline benchmark runs, where results arrive within hours instead of seconds.</p>
+  </div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Model</th><th>Role</th><th>Access</th><th>Input</th><th>Output</th><th>Batch in / out</th></tr></thead>
+    <tbody>
+      <tr><td><b>Gemini 2.5 Flash</b></td><td>FARE backbone; judge-v1 (Google Search grounding)</td><td>Gemini Developer API</td><td class="num">0.30</td><td class="num">2.50</td><td class="num">0.15 / 1.25</td></tr>
+      <tr><td><b>Gemini 2.5 Flash-Lite</b></td><td>FARE backbone; model for stage ablations</td><td>Gemini Developer API</td><td class="num">0.10</td><td class="num">0.40</td><td class="num">0.05 / 0.20</td></tr>
+      <tr><td><b>Qwen2.5-7B-Instruct</b></td><td>FARE backbone (paper's strongest reasoner)</td><td>OpenRouter, 1 provider</td><td class="num">0.10</td><td class="num">0.20</td><td class="num">—</td></tr>
+      <tr><td><b>Llama-3.2-3B-Instruct</b></td><td>FARE backbone (paper's weakest overall)</td><td>OpenRouter, 2 providers</td><td class="num">0.05</td><td class="num">0.33</td><td class="num">—</td></tr>
+      <tr><td><b>Gemini 3.1 Flash-Lite</b></td><td>Successor if Gemini 2.5 is retired; newer-model reference</td><td>Gemini Developer API</td><td class="num">0.25</td><td class="num">1.50</td><td class="num">0.125 / 0.75</td></tr>
+      <tr><td><b>Llama-3.3-70B-Instruct</b></td><td>Second judge from a different family (self-preference check)</td><td>OpenRouter, 10 providers</td><td class="num">0.10</td><td class="num">0.32</td><td class="num">—</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn">
+    <p><b>Model availability risk.</b> Google's Vertex lifecycle page lists Gemini 2.5 Flash and Flash-Lite for retirement on 20 Oct 2026; the Developer API page shows no shutdown date. We will use the Developer API, run all Gemini 2.5 work first, and keep every output cached, so a later retirement does not invalidate finished results.</p>
+  </div>
+  <p class="caption">Sources: ai.google.dev/gemini-api/docs/pricing and /deprecations; Google Cloud model versions and lifecycle page; openrouter.ai model pages for each open model; OpenRouter FAQ for the 5.5% fee on credit purchases. Prices change; recheck before paying.</p>
+</section>
+
+<section id="calc">
+  <div class="sec-head">
+    <div class="eyebrow">4 · Estimate</div>
+    <h2>How the amount is built</h2>
+    <p>Pick a level, then switch individual experiments on or off. Token counts per query are our estimates from FARE's design (top-10 chunks of 800 characters, read in batches); we will replace them with measured averages after the M1 tracer run.</p>
+  </div>
+
+  <div class="calc">
+    <div class="assume" aria-label="Assumptions">
+      <label for="a-fx">Rupees per US dollar<input id="a-fx" type="number" min="50" max="150" step="0.5" value="90"></label>
+      <label for="a-dev">Development runs (× final runs)<input id="a-dev" type="number" min="1" max="4" step="0.1" value="1.5"></label>
+      <label for="a-cont">Contingency (%)<input id="a-cont" type="number" min="0" max="100" step="5" value="20"></label>
+      <label for="a-forex">Card forex markup (%)<input id="a-forex" type="number" min="0" max="10" step="0.5" value="3.5"></label>
+      <label for="a-abl">Stage ablation variants<input id="a-abl" type="number" min="0" max="30" step="1" value="12"></label>
+      <label class="check" for="a-batch"><input id="a-batch" type="checkbox" checked> Use batch prices for offline Gemini runs</label>
+    </div>
+
+    <div class="table-scroll"><table id="exp">
+      <thead><tr><th>On</th><th>Experiment</th><th>Why</th><th>Calls</th><th>Generation</th><th>Judging</th><th>Subtotal</th></tr></thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr><td></td><td colspan="5">Final runs</td><td class="num" id="t-runs">—</td></tr>
+        <tr><td></td><td colspan="5" id="l-dev">Development runs</td><td class="num" id="t-dev">—</td></tr>
+        <tr><td></td><td colspan="5" id="l-cont">Contingency</td><td class="num" id="t-cont">—</td></tr>
+        <tr><td></td><td colspan="5">Fees: 5.5% on OpenRouter credits, card forex markup on everything</td><td class="num" id="t-fees">—</td></tr>
+        <tr class="grand"><td></td><td colspan="5">Total for this selection</td><td class="num"><span id="t-usd">—</span><br><b id="t-inr">—</b></td></tr>
+      </tfoot>
+    </table></div>
+
+    <div class="grid3">
+      <div class="panel"><div class="k">SPLIT BY ACCOUNT</div><p id="split">—</p></div>
+      <div class="panel"><div class="k">GOOGLE SEARCH GROUNDING</div><p id="ground">—</p></div>
+      <div class="panel"><div class="k">TOKENS</div><p id="tokens">—</p></div>
+    </div>
+  </div>
+
+  <details class="method">
+    <summary>Per-query token assumptions</summary>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Path</th><th>Input tokens</th><th>Output tokens</th><th>Basis</th></tr></thead>
+      <tbody>
+        <tr><td>Router</td><td class="num">600</td><td class="num">20</td><td>One classification prompt per query</td></tr>
+        <tr><td>Statement Extraction</td><td class="num">3,000</td><td class="num">400</td><td>Top-10 chunks (about 2,000 tokens) plus prompt</td></tr>
+        <tr><td>Tone, with critic</td><td class="num">13,500</td><td class="num">2,200</td><td>Three batch reads, one critic check, one revision</td></tr>
+        <tr><td>Tone Shift</td><td class="num">26,500</td><td class="num">4,400</td><td>Three periods read, then a synthesis</td></tr>
+        <tr><td>Comparison</td><td class="num">16,500</td><td class="num">3,000</td><td>About 2.5 companies, two batches each, synthesis</td></tr>
+        <tr><td>Thesis Check / Scenario</td><td class="num">10,500 / 8,000</td><td class="num">1,500</td><td>Batch reads plus a price-returns tool result</td></tr>
+        <tr><td>Q-FARE average (B2)</td><td class="num">13,439</td><td class="num">2,176</td><td>Weighted by the protocol's 423 queries</td></tr>
+        <tr><td>Single agent (B1) / model alone (B0)</td><td class="num">9,000 / 500</td><td class="num">1,500 / 700</td><td>Equal-budget rule for B1</td></tr>
+        <tr><td>Judge, per Q-FARE answer</td><td class="num">8,369</td><td class="num">1,004</td><td>One judge call (5,000 / 600) plus RAGAS on Statement Extraction answers</td></tr>
+      </tbody>
+    </table></div>
+  </details>
+</section>
+
+<section id="controls">
+  <div class="sec-head">
+    <div class="eyebrow">5 · Spend controls</div>
+    <h2>How the money is protected</h2>
+  </div>
+  <div class="stack">
+    <div class="comp"><div class="cid">1</div><div class="body"><h3>Prepaid credit and hard caps</h3><p>OpenRouter is prepaid, so it cannot overspend. The Google account gets a monthly spending cap equal to the released amount.</p></div></div>
+    <div class="comp"><div class="cid">2</div><div class="body"><h3>Nothing is paid for twice</h3><p>Every model call goes through one gateway that caches responses by model, prompt and settings. Re-running an analysis reads from the cache.</p></div></div>
+    <div class="comp"><div class="cid">3</div><div class="body"><h3>Every call is logged with its cost</h3><p>The gateway writes tokens, latency and cost for each call. The guide receives a one-page spend report at the end of each month and before the second release.</p></div></div>
+    <div class="comp"><div class="cid">4</div><div class="body"><h3>Keys stay private</h3><p>API keys live in a local <code>.env</code> file that git ignores. One key per provider, rotated if anyone leaves the project.</p></div></div>
+  </div>
+</section>
+
+<section id="fallback">
+  <div class="sec-head">
+    <div class="eyebrow">6 · Without funding</div>
+    <h2>What we can still do for ₹0, and what is lost</h2>
+  </div>
+  <div class="grid2">
+    <div class="panel"><div class="k">STILL POSSIBLE</div><ul class="plain">
+      <li>Gemini 2.5 Flash-Lite on the free tier, dev companies first</li>
+      <li>Qwen2.5-7B and Llama-3.2-3B on a free Colab T4 GPU, as FARE did</li>
+      <li>Q-XBRL and routing results, which need no judge</li>
+      <li>Human grading of H-120</li>
+    </ul></div>
+    <div class="panel"><div class="k">LOST OR WEAKENED</div><ul class="plain">
+      <li>Gemini 2.5 Flash at full scale, so claims C1 to C4 are only partly testable</li>
+      <li>The stage-by-stage study (RQ4) shrinks to two or three variants</li>
+      <li>Judging limited to 500 grounded requests a day, so runs take weeks</li>
+      <li>No insurance against the Gemini 2.5 retirement</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="letter">
+  <div class="sec-head">
+    <div class="eyebrow">7 · Request letter</div>
+    <h2>Ready to send, with the numbers above</h2>
+    <p>Fill in the two fields, choose a level in section 1, then copy the text.</p>
+  </div>
+  <div class="assume letter-fields">
+    <label for="l-college">College name<input id="l-college" type="text" placeholder="Name of the college"></label>
+    <label for="l-to">Addressed to<input id="l-to" type="text" value="The Head of Department, Artificial Intelligence and Data Science"></label>
+  </div>
+  <pre class="code letter" id="letter-text" tabindex="0"></pre>
+  <div class="actions"><button type="button" class="btn" id="copy">Copy letter</button><span class="muted" id="copied" role="status"></span></div>
+</section>
+
+<footer>
+  <p>Experiment design: Loupe Research Protocol v0.1 (3 Oct 2026). Architecture: Loupe Replication HLD v0.2. Base paper: Chakraborty et al., "FARE: Financial Agentic Reasoning and Evaluation for Earnings Call Transcripts", IEEE Access 14:67362–67382, 2026.</p>
+  <p>All figures are estimates at listed prices. The team will replace the token assumptions with measured averages after the first tracer run and update this page.</p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var M = {
+    g25f: { name: "Gemini 2.5 Flash", i: .30, o: 2.50, bi: .15, bo: 1.25, acct: "google" },
+    g25l: { name: "Gemini 2.5 Flash-Lite", i: .10, o: .40, bi: .05, bo: .20, acct: "google" },
+    q7:   { name: "Qwen2.5-7B", i: .10, o: .20, acct: "or" },
+    l3:   { name: "Llama-3.2-3B", i: .05, o: .33, acct: "or" },
+    g31l: { name: "Gemini 3.1 Flash-Lite", i: .25, o: 1.50, bi: .125, bo: .75, acct: "google" },
+    l70:  { name: "Llama-3.3-70B", i: .10, o: .32, acct: "or" }
+  };
+  var FARE4 = ["g25f", "g25l", "q7", "l3"];
+  var P = { b2: [13439, 2176], b1: [9000, 1500], b0: [500, 700], se: [3600, 420], route: [600, 20], tools: [16127, 2611], india: [13439, 2176] };
+  var JUDGE = [8369, 1004];
+  // Each experiment: gen = list of [model, profile, queries]; judge = list of [judgeModel, answers, grounded?]
+  function exps(abl) {
+    return [
+      { id: "E1", name: "FARE rebuild (B2), 4 models", why: "Replication claims C1–C7", tiers: "min rec ext",
+        gen: FARE4.map(function (m) { return [m, "b2", 423]; }), judge: [["g25f", 4 * 423, true]] },
+      { id: "E2", name: "Single agent (B1), 4 models", why: "RQ2, primary", tiers: "min rec ext",
+        gen: FARE4.map(function (m) { return [m, "b1", 423]; }), judge: [["g25f", 4 * 423, true]] },
+      { id: "E3", name: "Model alone (B0), 4 models", why: "RQ5 memorisation; floor", tiers: "min rec ext",
+        gen: FARE4.map(function (m) { return [m, "b0", 723]; }), judge: [["g25f", 4 * 423, true]] },
+      { id: "E4", name: "Q-XBRL numeric set, 4 models", why: "Judge-free accuracy", tiers: "min rec ext",
+        gen: FARE4.map(function (m) { return [m, "se", 300]; }), judge: [] },
+      { id: "E5", name: "Routing set R-300, 4 models", why: "Orchestrator accuracy", tiers: "min rec ext",
+        gen: FARE4.map(function (m) { return [m, "route", 300]; }), judge: [] },
+      { id: "E6", name: "Stage ablations on Flash-Lite (" + abl + " variants)", why: "RQ4", tiers: "min rec ext", abl: true,
+        gen: [["g25l", "b2", 423 * abl]], judge: [["g25f", 423 * abl, true]] },
+      { id: "E7", name: "Latency sample, standard mode", why: "Claims C2, C3", tiers: "min rec ext", standard: true,
+        gen: FARE4.map(function (m) { return [m, "b2", 60]; }), judge: [] },
+      { id: "E8", name: "Repeat 20% of E1", why: "Run-to-run noise floor", tiers: "rec ext",
+        gen: FARE4.map(function (m) { return [m, "b2", 85]; }), judge: [["g25f", 4 * 85, true]] },
+      { id: "E9", name: "judge-v2 rescoring of E1", why: "Frozen references", tiers: "rec ext",
+        gen: [], judge: [["g25f", 4 * 423, false]] },
+      { id: "E10", name: "Second-family judge", why: "RQ3 self-preference", tiers: "rec ext",
+        gen: [], judge: [["l70", 120 + 2 * 423, false]] },
+      { id: "E11", name: "Successor: Gemini 3.1 Flash-Lite on B0–B2", why: "Retirement insurance", tiers: "rec ext",
+        gen: [["g31l", "b2", 423], ["g31l", "b1", 423], ["g31l", "b0", 723]], judge: [["g25f", 3 * 423, true]] },
+      { id: "E12", name: "Tools (B3) and citation checks (B4), 2 models", why: "Deterministic numbers, grounding", tiers: "rec ext",
+        gen: [["g25l", "tools", 723], ["q7", "tools", 723], ["g25l", "tools", 723], ["q7", "tools", 723]], judge: [["g25f", 4 * 423, true]] },
+      { id: "E13", name: "Phase I pilot on Indian filings, 2 models", why: "Transfer to India", tiers: "ext",
+        gen: [["g25l", "india", 400], ["q7", "india", 400]], judge: [["g25f", 800, true]] }
+    ];
+  }
+  var TIER_ABL = { min: 4, rec: 12, ext: 16 };
+
+  function price(m, batch, inTok, outTok) {
+    var x = M[m], useB = batch && x.bi != null;
+    return (inTok * (useB ? x.bi : x.i) + outTok * (useB ? x.bo : x.o)) / 1e6;
+  }
+  function cost(e, batch) {
+    var g = 0, j = 0, calls = 0, tin = 0, tout = 0, acct = { google: 0, or: 0 }, grounded = 0;
+    e.gen.forEach(function (r) {
+      var p = P[r[1]], c = price(r[0], batch && !e.standard, p[0] * r[2], p[1] * r[2]);
+      g += c; calls += r[2]; tin += p[0] * r[2]; tout += p[1] * r[2]; acct[M[r[0]].acct] += c;
+    });
+    e.judge.forEach(function (r) {
+      var c = price(r[0], batch, JUDGE[0] * r[1], JUDGE[1] * r[1]);
+      j += c; calls += r[1]; tin += JUDGE[0] * r[1]; tout += JUDGE[1] * r[1]; acct[M[r[0]].acct] += c;
+      if (r[2]) grounded += r[1];
+    });
+    return { g: g, j: j, calls: calls, tin: tin, tout: tout, acct: acct, grounded: grounded };
+  }
+  function total(sel, a) {
+    var runs = 0, acct = { google: 0, or: 0 }, grounded = 0, tin = 0, tout = 0, rows = [];
+    exps(a.abl).forEach(function (e) {
+      var c = cost(e, a.batch), on = sel.indexOf(e.id) >= 0;
+      rows.push({ e: e, c: c, on: on });
+      if (!on) return;
+      runs += c.g + c.j; acct.google += c.acct.google; acct.or += c.acct.or;
+      grounded += c.grounded; tin += c.tin; tout += c.tout;
+    });
+    var dev = runs * (a.dev - 1), sub = runs + dev, cont = sub * a.cont / 100, base = sub + cont;
+    var orShare = runs > 0 ? acct.or / runs : 0;
+    var fees = base * orShare * 0.055 + base * a.forex / 100;
+    var usd = base + fees;
+    return { rows: rows, runs: runs, dev: dev, cont: cont, fees: fees, usd: usd, inr: Math.ceil(usd * a.fx / 500) * 500,
+      acct: acct, grounded: grounded * a.dev, tin: tin * a.dev, tout: tout * a.dev, orShare: orShare };
+  }
+  function tierSel(t) { return exps(1).filter(function (e) { return e.tiers.split(" ").indexOf(t) >= 0; }).map(function (e) { return e.id; }); }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { tier: "rec", sel: tierSel("rec") };
+  function read() {
+    var n = function (id, d) { var v = parseFloat($(id).value); return isFinite(v) ? v : d; };
+    return { fx: n("a-fx", 90), dev: Math.max(1, n("a-dev", 1.5)), cont: n("a-cont", 20), forex: n("a-forex", 3.5),
+      abl: Math.max(0, Math.round(n("a-abl", 12))), batch: $("a-batch").checked };
+  }
+  var usd = function (x) { return "$" + x.toFixed(x < 10 ? 2 : 0); };
+  var inr = function (x) { return "₹" + Math.round(x).toLocaleString("en-IN"); };
+
+  function render() {
+    var a = read();
+    ["min", "rec", "ext"].forEach(function (t) {
+      var b = Object.assign({}, a, { abl: t === state.tier ? a.abl : TIER_ABL[t] });
+      var r = total(tierSel(t), b);
+      document.querySelector('[data-total="' + t + '"]').textContent = inr(r.inr);
+      document.querySelector('[data-usd="' + t + '"]').textContent = "about " + usd(r.usd);
+    });
+    document.querySelectorAll(".tier").forEach(function (el) {
+      el.setAttribute("aria-checked", String(el.dataset.tier === state.tier));
+    });
+    var r = total(state.sel, a), tb = document.querySelector("#exp tbody");
+    tb.innerHTML = "";
+    r.rows.forEach(function (row) {
+      var tr = document.createElement("tr"); if (!row.on) tr.className = "off";
+      tr.innerHTML = '<td><input type="checkbox" id="x-' + row.e.id + '" aria-label="Include ' + row.e.id + '"' + (row.on ? " checked" : "") + '></td>' +
+        '<td><span class="mono acc">' + row.e.id + "</span> " + row.e.name + "</td><td class=\"muted\">" + row.e.why + "</td>" +
+        '<td class="num">' + Math.round(row.c.calls).toLocaleString("en-IN") + '</td><td class="num">' + usd(row.c.g) +
+        '</td><td class="num">' + usd(row.c.j) + '</td><td class="num">' + usd(row.c.g + row.c.j) + "</td>";
+      tb.appendChild(tr);
+      tr.querySelector("input").addEventListener("change", function (ev) {
+        var i = state.sel.indexOf(row.e.id);
+        if (ev.target.checked && i < 0) state.sel.push(row.e.id);
+        if (!ev.target.checked && i >= 0) state.sel.splice(i, 1);
+        state.tier = "custom"; render();
+      });
+    });
+    $("t-runs").textContent = usd(r.runs);
+    $("l-dev").textContent = "Development runs on dev companies (" + a.dev + "× final runs)";
+    $("t-dev").textContent = usd(r.dev);
+    $("l-cont").textContent = "Contingency (" + a.cont + "%)";
+    $("t-cont").textContent = usd(r.cont);
+    $("t-fees").textContent = usd(r.fees);
+    $("t-usd").textContent = usd(r.usd);
+    $("t-inr").textContent = inr(r.inr);
+    var g = r.runs > 0 ? r.inr * (1 - r.orShare) : 0, o = r.runs > 0 ? r.inr * r.orShare : 0;
+    $("split").textContent = "Google Gemini API: " + inr(Math.round(g / 100) * 100) + " (monthly cap). OpenRouter: " + inr(Math.round(o / 100) * 100) + " (prepaid credit).";
+    var days = Math.ceil(r.grounded / 1500);
+    $("ground").textContent = Math.round(r.grounded).toLocaleString("en-IN") + " grounded judge requests including development runs. At the paid tier's 1,500 free requests a day that is about " + days + " judging days, at no extra cost. On the free tier (500 a day) it would take about " + Math.ceil(r.grounded / 500) + " days.";
+    $("tokens").textContent = (r.tin / 1e6).toFixed(0) + "M input and " + (r.tout / 1e6).toFixed(0) + "M output tokens in total, including development runs.";
+    letter(r, a);
+  }
+
+  function letter(r, a) {
+    var college = $("l-college").value.trim() || "[college name]";
+    var lvl = { min: "minimum", rec: "recommended", ext: "extended", custom: "selected" }[state.tier];
+    var first = Math.ceil(r.inr * 0.6 / 500) * 500;
+    $("letter-text").textContent =
+      "To: " + ($("l-to").value.trim() || "The Head of Department") + "\n" + college + "\n" +
+      "Through: Mrs. Kalpna Saharan, Project Guide\n\n" +
+      "Subject: Request for " + inr(r.inr) + " for language-model API usage in the final-year project\n" +
+      "\"Agent-Orchestrated Financial Risk Extraction and Conversational Intelligence\"\n\n" +
+      "Respected Sir/Madam,\n\n" +
+      "Our project's first phase, approved by our guide, rebuilds a multi-agent system published in IEEE Access (2026) and tests its claims on SEC filings of 19 US companies. The experiments compare four language models across several system variants, and every answer is scored by a judge model. This needs paid access to hosted language-model APIs; no hardware is required.\n\n" +
+      "We request " + inr(r.inr) + " (" + lvl + " level, about " + usd(r.usd) + " at Rs " + a.fx + " per US dollar), covering:\n" +
+      "  - Google Gemini Developer API (Gemini 2.5 Flash, 2.5 Flash-Lite, 3.1 Flash-Lite)\n" +
+      "  - OpenRouter prepaid credit (Qwen2.5-7B, Llama-3.2-3B, Llama-3.3-70B)\n\n" +
+      "The estimate uses providers' published prices on 3 Oct 2026, includes development runs, a " + a.cont + "% contingency and payment fees, and is itemised experiment by experiment in our budget document.\n\n" +
+      "We propose two releases: " + inr(first) + " now for October-November, and the balance in December after we present first results and an actual-spend report.\n\n" +
+      "Controls: prepaid credit and a monthly spending cap, response caching so no call is paid twice, a per-call cost log, and a monthly spend report to our guide.\n\n" +
+      "Thanking you,\n" +
+      "Shreyash Daware, Ayush Jha, Ojas Panse, Atharva Patil\n" +
+      "B.E. Artificial Intelligence and Data Science";
+  }
+
+  document.querySelectorAll(".tier").forEach(function (el) {
+    el.addEventListener("click", function () {
+      state.tier = el.dataset.tier; state.sel = tierSel(state.tier);
+      $("a-abl").value = TIER_ABL[state.tier]; render();
+    });
+  });
+  ["a-fx", "a-dev", "a-cont", "a-forex", "a-abl", "a-batch", "l-college", "l-to"].forEach(function (id) {
+    $(id).addEventListener("input", render); $(id).addEventListener("change", render);
+  });
+  $("copy").addEventListener("click", function () {
+    var t = $("letter-text").textContent;
+    var done = function () { $("copied").textContent = "Copied"; setTimeout(function () { $("copied").textContent = ""; }, 2000); };
+    try {
+      navigator.clipboard.writeText(t).then(done, function () { selectLetter(); });
+    } catch (e) { selectLetter(); }
+  });
+  function selectLetter() {
+    var range = document.createRange(); range.selectNodeContents($("letter-text"));
+    var s = window.getSelection(); s.removeAllRanges(); s.addRange(range);
+    $("copied").textContent = "Selected. Press Ctrl+C or Cmd+C to copy.";
+  }
+  window.__loupeBudget = { total: total, tierSel: tierSel };
+  render();
+})();
+</script>
+</body></html>

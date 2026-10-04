@@ -1,6 +1,6 @@
 # Loupe Implementation Plan — Phase R: FARE architecture on SEC EDGAR
 
-Status: plan v2 (29 Sep 2026). Supersedes plan v1. No pipeline code written yet.
+Status: plan v2.1 (3 Oct 2026; v2 was 29 Sep). Supersedes plan v1. No pipeline code written yet.
 Scope of this phase: rebuild the FARE multi-agent architecture from the paper, run it on SEC EDGAR filings, evaluate every stage, and expose it through a benchmarking playground.
 India work (taxonomy, event extraction, pledge/RPT compute, NSE, personas) moves to Phase I — see the end of this file.
 
@@ -13,7 +13,7 @@ Companion docs: `docs/Loupe-Replication-HLD.html` (design), `docs/fare/01-extrac
 | # | Decision | Consequence |
 |---|---|---|
 | D1 | **Data = SEC EDGAR filings by CIK only.** FARE's 168 transcripts are not reconstructed. | Replication is an architecture transfer. We test whether FARE's *conclusions* hold on filings, not its numbers. |
-| D2 | **Universe = the team's 25 companies**, listed in `configs/universe.yaml` (CIK, ticker, name, sector). | List still to be committed (see §8). Fixed for the whole phase. |
+| D2 | **Universe = 19 companies** (updated 3 Oct, decision D9 in `docs/fare/03-decisions.md`), listed in `configs/universe.yaml` with CIK, ticker, sector, size band and dev/test split. | Fixed for the whole phase. Dev = 6 companies, test = 13. |
 | D3 | **Hosted LLM APIs only**, switched through one gateway. | Latency is reported as our own measurement, not comparable with FARE's T4 numbers. |
 | D4 | **Six agents, none advisory.** Investment → **Thesis Check**, Simulation → **Scenario** (see §3). | Their FARE metrics (IRAS, EAS) are adapted; documented in `docs/fare/03-decisions.md`. |
 | D5 | **Judges are versioned.** `judge-v1-google` follows FARE (Google Search grounding). Later versions add frozen references and objective checks. | System versions are only compared under the same judge version. Judge versions are compared by agreement with human grades. |
@@ -76,7 +76,7 @@ Rules:
 
 | Set | Contents | Used for |
 |---|---|---|
-| Q-FARE | Queries per agent following FARE's Table 2 sampling rules, regenerated for our 25 companies and filings | Per-agent FARE metrics, claims test |
+| Q-FARE | Queries per agent following FARE's Table 2 sampling rules, regenerated for our 19 companies and filings | Per-agent FARE metrics, claims test |
 | Q-FIN | FinanceBench open sample (check licence) | Statement Extraction, retrieval recall |
 | Q-XBRL | Questions generated from XBRL facts, exact answers | Numeric accuracy, tools ablation |
 | H-100 | 100 items graded by two team members | Judge-vs-human agreement (κ) |
@@ -90,14 +90,14 @@ Reporting: dev/test split frozen and tagged; temperature 0; 95% bootstrap CIs; c
 
 ### M0 — Foundation · week of 5 Oct
 - Repo hygiene: fix `pyproject.toml` (add `[build-system]`; remove `sec-api` (paid) and `xbrl`; move pytest/ruff to a dev group; move ruff `select` under `[tool.ruff.lint]`; add `langchain-text-splitters`, `ragas`, `fastapi`, `uvicorn`, `google-genai`, `httpx`); pin Python 3.12 (`.python-version`); `.gitignore` for `data/raw`, caches, `.env`.
-- `configs/universe.yaml` with the 25 companies and CIKs.
+- `configs/universe.yaml` with the 19 companies (draft written 3 Oct; verify tickers).
 - Data contracts (Pydantic): `Document`, `Chunk`, `Query`, `RoutedQuery`, `AgentOutput`, `Trace`, `EvalRecord`, `PipelineConfig`.
 - Registry interface: `register(stage, name)`, `build(pipeline_config)`.
 - FARE docs: finish `01-extraction-sheet.md`, `02-claims.md`, start `03-decisions.md`.
 - **Gate:** contracts and registry reviewed by all four; universe committed.
 
 ### M1 — Tracer · weeks 2–3 (12–23 Oct)
-One path, all v0: EDGAR fetch (25 companies, FY2023–FY2025) → parse → chunk 800/100 → MiniLM → FAISS → LLM router → **Statement Extraction only** → RAGAS → result row in DuckDB.
+One path, all v0: EDGAR fetch (6 dev companies first, then all 19, FY2023–FY2025) → parse → chunk 800/100 → MiniLM → FAISS → LLM router → **Statement Extraction only** → RAGAS → result row in DuckDB.
 - FastAPI: `POST /runs` (config + query → trace), `GET /runs/{id}`, `GET /variants`.
 - React: one page that sends a query and renders the trace stage by stage.
 - **Gate:** one query runs end to end from the UI; one benchmark row exists for Q-FIN dev.
@@ -125,7 +125,7 @@ One path, all v0: EDGAR fetch (25 companies, FY2023–FY2025) → parse → chun
 
 | Stream | Owns | First deliverable |
 |---|---|---|
-| A · Data & retrieval | sources, parse, chunk, embed, retrieve + their variants | M1 index for 25 companies |
+| A · Data & retrieval | sources, parse, chunk, embed, retrieve + their variants | M1 index for 19 companies |
 | B · Agents | orchestrator, six agents, prompts, tools, LangGraph graph | M1 router + Statement Extraction |
 | C · Evaluation | query sets, judges, RAGAS, baselines, stats, H-100 grading | M1 RAGAS row |
 | D · Platform | FastAPI, React playground, results store, tracing, gateway | M1 query-to-trace UI |
@@ -134,11 +134,14 @@ One path, all v0: EDGAR fetch (25 companies, FY2023–FY2025) → parse → chun
 
 ## 8. Open items
 
-1. Commit the **25-company list** with CIKs (`configs/universe.yaml`).
-2. **Price data** source for Scenario and adapted metrics.
-3. **Models**: which 2–4 hosted models; check Gemini 2.5 Flash / Flash-Lite are still served; monthly budget.
-4. **Adapted metric definitions** for Thesis Check and Scenario (in `03-decisions.md`).
-5. **Tone critic ambiguity**: the paper describes the critic as an inference-time feedback loop and also as evaluation-only (p. 67368). Choose and record.
+Updated 3 Oct 2026. The experiment design (questions, splits, query sets, statistics) is in the Loupe Research Protocol (https://claude.ai/artifact/Uj5RgQTqQoALuA2ZsyAHFf); the budget request is the Loupe Compute Budget page (https://claude.ai/artifact/9JSsj1TEYhnpiDjuYkJLuY).
+
+1. ~~Commit the 25-company list~~ Done: 19 companies, `configs/universe.yaml` (D9). Tickers still to verify.
+2. **Price data** source for Scenario (O2).
+3. **Models**: FARE's four (Gemini 2.5 Flash, Flash-Lite, Qwen2.5-7B, Llama-3.2-3B) plus a named successor (O3). Gemini 2.5 retirement risk recorded as D12. Budget requested from the department (Compute Budget page).
+4. **Adapted metric definitions** for Thesis Check and Scenario (O5 in `03-decisions.md`).
+5. **Tone critic ambiguity** (O1 in `03-decisions.md`).
+6. **Protocol freeze** on 11 Oct: answer O1–O8, tag protocol v1.0 and the dev/test split in git.
 
 ---
 
