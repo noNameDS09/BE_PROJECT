@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Offline copy of https://claude.ai/artifact/PPFGYR64f1XT7wCatVToPK . Edit the published page, then re-export; do not hand-edit here. -->
+<style>body{margin:0}</style>
+<title>Loupe Replication HLD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: same reading column and tokens as the Loupe Compass page; design-doc structure with spec tables, component cards and mermaid diagrams. */
+:root {
+  --paper: #f5f6f3; --sheet: #ffffff; --ink: #17201e; --muted: #56615d; --rule: #d9ddd7;
+  --accent: #23497a; --accent-soft: #e4ebf4;
+  --saffron: #b76a12; --saffron-soft: #f8ecdc;
+  --bad: #b3261e; --bad-soft: #f9e3e1; --warn: #9a6400; --warn-soft: #fbf0d6; --good: #1d6b45; --good-soft: #e0f0e6;
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --s1: .25rem; --s2: .5rem; --s3: .75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2.25rem; --s7: 3.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121716; --sheet: #1a2120; --ink: #e6ebe8; --muted: #9aa6a1; --rule: #2e3835;
+    --accent: #8fb3e6; --accent-soft: #1d2a3b; --saffron: #e5a456; --saffron-soft: #33271a;
+    --bad: #f08c84; --bad-soft: #3a1f1d; --warn: #e3b456; --warn-soft: #362c16; --good: #7fcaa0; --good-soft: #17301f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121716; --sheet: #1a2120; --ink: #e6ebe8; --muted: #9aa6a1; --rule: #2e3835;
+  --accent: #8fb3e6; --accent-soft: #1d2a3b; --saffron: #e5a456; --saffron-soft: #33271a;
+  --bad: #f08c84; --bad-soft: #3a1f1d; --warn: #e3b456; --warn-soft: #362c16; --good: #7fcaa0; --good-soft: #17301f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 1rem; line-height: 1.6; }
+.wrap { max-width: 62rem; margin: 0 auto; padding-inline: max(16px, 4vw); padding-block: var(--s6) var(--s7); }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.08rem; font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+code, .mono { font-family: var(--f-mono); font-size: .86em; }
+.eyebrow { font-family: var(--f-mono); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+ul.plain { margin: 0; padding-left: 1.15rem; display: grid; gap: .25rem; }
+
+header.top { display: grid; gap: var(--s4); padding-bottom: var(--s5); border-bottom: 1px solid var(--rule); }
+.lead { font-size: 1.1rem; max-width: 64ch; }
+.docmeta { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.chip { font-family: var(--f-mono); font-size: .74rem; padding: .15rem .5rem; border-radius: 3px; border: 1px solid var(--rule); background: var(--sheet); color: var(--muted); white-space: nowrap; }
+.chip b { color: var(--ink); font-weight: 500; }
+
+nav.index { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); margin-inline: calc(-1 * max(16px, 4vw)); padding: var(--s2) max(16px, 4vw); overflow-x: auto; }
+nav.index ol { list-style: none; display: flex; gap: var(--s4); margin: 0; padding: 0; white-space: nowrap; font-size: .85rem; }
+nav.index a { color: var(--muted); text-decoration: none; }
+nav.index a:hover { color: var(--accent); }
+nav.index span { font-family: var(--f-mono); color: var(--accent); margin-right: .3em; }
+
+section { display: grid; gap: var(--s4); padding-top: var(--s7); scroll-margin-top: 3rem; }
+.sec-head { display: grid; gap: var(--s2); }
+
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: var(--s3) var(--s4); border-radius: 0 4px 4px 0; font-size: .94rem; display: grid; gap: var(--s2); }
+.callout p { max-width: none; }
+.callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: var(--s3); }
+.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); display: grid; gap: var(--s2); align-content: start; min-width: 0; }
+.panel .k { font-family: var(--f-mono); font-size: .75rem; color: var(--accent); letter-spacing: .05em; }
+.panel p, .panel li { font-size: .92rem; }
+
+.table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); }
+table { border-collapse: collapse; width: 100%; font-size: .88rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: .55rem .75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--f-mono); font-size: .7rem; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--paper); white-space: nowrap; }
+td.id { font-family: var(--f-mono); color: var(--accent); white-space: nowrap; }
+.tag { font-family: var(--f-mono); font-size: .7rem; padding: .08rem .4rem; border-radius: 3px; white-space: nowrap; display: inline-block; }
+.tag.ok { color: var(--good); background: var(--good-soft); }
+.tag.tbc { color: var(--warn); background: var(--warn-soft); }
+.tag.ours { color: var(--accent); background: var(--accent-soft); }
+.tag.off { color: var(--muted); border: 1px solid var(--rule); }
+
+.diagram { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; background: transparent; text-align: center; }
+.caption { font-size: .85rem; color: var(--muted); }
+
+.comp { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: var(--s4); display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); gap: var(--s3) var(--s4); }
+.comp .cid { font-family: var(--f-display); font-weight: 700; font-size: 1.4rem; color: var(--accent); line-height: 1.1; }
+.comp .body { display: grid; gap: var(--s2); min-width: 0; }
+.comp dl { margin: 0; display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: .3rem var(--s3); font-size: .9rem; }
+.comp dt { font-family: var(--f-mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding-top: .2rem; }
+.comp dd { margin: 0; }
+@media (max-width: 560px) { .comp { grid-template-columns: 1fr; } .comp dl { grid-template-columns: 1fr; } .comp dt { padding-top: .4rem; } }
+.stack { display: grid; gap: var(--s3); }
+
+pre.code { font-family: var(--f-mono); font-size: .78rem; line-height: 1.55; margin: 0; padding: var(--s4); background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; color: var(--ink); }
+pre.code .c { color: var(--muted); }
+
+.rq { display: grid; gap: var(--s3); }
+.rq-item { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: var(--s3); align-items: baseline; }
+.rq-item .n { font-family: var(--f-mono); color: var(--accent); font-size: .85rem; }
+
+.timeline { display: grid; border-left: 2px solid var(--rule); margin-left: .4rem; }
+.wk { display: grid; gap: var(--s1); padding: 0 0 var(--s4) var(--s5); position: relative; }
+.wk::before { content: ""; position: absolute; left: -.5rem; top: .4rem; width: .85rem; height: .85rem; border-radius: 50%; background: var(--paper); border: 2px solid var(--accent); }
+.wk.gate::before { background: var(--accent); }
+.wk .when { font-family: var(--f-mono); font-size: .76rem; color: var(--accent); }
+.wk p { font-size: .93rem; }
+
+footer { margin-top: var(--s7); padding-top: var(--s4); border-top: 1px solid var(--rule); font-size: .85rem; color: var(--muted); display: grid; gap: var(--s2); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Loupe · High-level design · Phase R</div>
+  <h1>FARE's architecture on SEC EDGAR filings</h1>
+  <p class="lead">We rebuild the base paper's multi-agent system from its text, run it on SEC filings for our 25 companies, measure every stage, and make each stage swappable so a React playground can compare variants side by side. The same pipeline later carries over to Indian filings.</p>
+  <div class="docmeta">
+    <span class="chip">Version <b>0.2</b></span>
+    <span class="chip">Date <b>29 Sep 2026</b></span>
+    <span class="chip">Base paper <b>FARE, IEEE Access 2026</b></span>
+    <span class="chip">Plan <b>docs/IMPLEMENTATION-PLAN.md</b></span>
+  </div>
+</header>
+
+<nav class="index" aria-label="Sections">
+  <ol>
+    <li><a href="#goals"><span>1</span>Goals</a></li>
+    <li><a href="#fare"><span>2</span>FARE</a></li>
+    <li><a href="#method"><span>3</span>Paper to code</a></li>
+    <li><a href="#agents"><span>4</span>Agents on filings</a></li>
+    <li><a href="#arch"><span>5</span>Architecture</a></li>
+    <li><a href="#components"><span>6</span>Components</a></li>
+    <li><a href="#variants"><span>7</span>Variants</a></li>
+    <li><a href="#eval"><span>8</span>Evaluation</a></li>
+    <li><a href="#playground"><span>9</span>Playground</a></li>
+    <li><a href="#contracts"><span>10</span>Contracts</a></li>
+    <li><a href="#stack"><span>11</span>Stack</a></li>
+    <li><a href="#plan"><span>12</span>Plan</a></li>
+    <li><a href="#risks"><span>13</span>Risks</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="goals">
+  <div class="sec-head">
+    <div class="eyebrow">1 · Goals and scope</div>
+    <h2>Four research questions for this phase</h2>
+    <p class="muted">Each has a measurable answer, and together they form the first results chapter of the report.</p>
+  </div>
+  <div class="rq">
+    <div class="rq-item"><span class="n">RQ1</span><p><b>Transfer.</b> When FARE is rebuilt from the paper and run on SEC filings instead of transcripts, do its conclusions still hold? For example: the same model ranking per agent, and the same speed ranking.</p></div>
+    <div class="rq-item"><span class="n">RQ2</span><p><b>Multi-agent value.</b> Does routing to specialised agents beat a single-agent RAG system on the same questions? FARE asserts this but never measures it.</p></div>
+    <div class="rq-item"><span class="n">RQ3</span><p><b>Judge reliability.</b> FARE's judges were never checked against people. How often does each judge version agree with human grades?</p></div>
+    <div class="rq-item"><span class="n">RQ4</span><p><b>Which stage matters.</b> Swapping one stage at a time (chunking, embeddings, retrieval, routing, prompts, model), which changes move the scores, and at what cost?</p></div>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">IN SCOPE</div>
+      <ul class="plain">
+        <li>FARE's orchestrator and six agents, rebuilt from the paper</li>
+        <li>SEC EDGAR filings by CIK for our 25 companies</li>
+        <li>Several variants per stage, chosen by config</li>
+        <li>Versioned judges and per-stage metrics</li>
+        <li>FastAPI backend and React benchmarking playground</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="k">NOT IN THIS PHASE</div>
+      <ul class="plain">
+        <li>Earnings-call transcripts and FARE's original dataset</li>
+        <li>Investment advice of any kind</li>
+        <li>Indian filings, LODR taxonomy, personas, chat product (Phase I)</li>
+        <li>Fine-tuning models</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="fare">
+  <div class="sec-head">
+    <div class="eyebrow">2 · What FARE specifies</div>
+    <h2>The paper, reduced to the settings we rebuild</h2>
+    <p class="muted">Full sheet with page numbers: <code>docs/fare/01-extraction-sheet.md</code>. FARE publishes no code, prompts or queries, so those are reconstructed and recorded.</p>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Setting</th><th>FARE</th><th>Page</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Routing</td><td>Orchestrator maps each query to one agent with an LLM prompt (single intent)</td><td>67366</td><td><span class="tag tbc">Prompt not given</span></td></tr>
+        <tr><td>Agents</td><td>Statement Extraction, Tone, Investment, Comparison, Tone Shift, Simulation</td><td>67367–70</td><td><span class="tag ok">Specified</span></td></tr>
+        <tr><td>Tone critic</td><td>Checks the Tone answer against Google Search and asks for a revision</td><td>67368</td><td><span class="tag tbc">Ambiguous</span></td></tr>
+        <tr><td>Chunking</td><td>Recursive character split, 800 characters, 100 overlap</td><td>67365</td><td><span class="tag ok">Specified</span></td></tr>
+        <tr><td>Embeddings, index</td><td>all-MiniLM-L6-v2 (384-d), FAISS IndexFlatL2</td><td>67366</td><td><span class="tag ok">Specified</span></td></tr>
+        <tr><td>Retrieval</td><td>Top-10, chunk metadata company / quarter / year, batch-wise reading</td><td>67366–67</td><td><span class="tag tbc">Batch size not given</span></td></tr>
+        <tr><td>Prompts</td><td>Role-based with Chain-of-Thought</td><td>67367</td><td><span class="tag tbc">Text not given</span></td></tr>
+        <tr><td>Models</td><td>Gemini 2.5 Flash, Flash-Lite, Qwen2.5-7B-Instruct, Llama-3.2-3B-Instruct</td><td>67367</td><td><span class="tag ok">Specified</span></td></tr>
+        <tr><td>Judges</td><td>One LLM judge per agent with Google Search references; TAEF, IRAS, CAS, TAS, EAS + CODS; RAGAS for Statement Extraction</td><td>67370–73</td><td><span class="tag tbc">Judge model not given</span></td></tr>
+        <tr><td>Queries</td><td>544 across six agents (Table 2)</td><td>67374</td><td><span class="tag tbc">Queries not given</span></td></tr>
+        <tr><td>Data</td><td>168 transcripts, 21 companies × 8 quarters</td><td>67365–66</td><td><span class="tag off">Not used</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">FARE's headline results: Qwen2.5-7B-Instruct scores best on most agents; Gemini 2.5 Flash-Lite is fastest on every agent. All eight claims we test are in <code>docs/fare/02-claims.md</code>.</p>
+</section>
+
+<!-- 3 -->
+<section id="method">
+  <div class="sec-head">
+    <div class="eyebrow">3 · From paper to code</div>
+    <h2>Rebuilding FARE when the paper is all we have</h2>
+    <p class="muted">Without FARE's code, prompts or data, we rebuild the method from its description and test whether its conclusions hold on new data. Six steps, each producing a file the report can cite.</p>
+  </div>
+  <div class="timeline">
+    <div class="wk"><div class="when">STEP 1 · EXTRACT</div><p>Every design element with its page and a status of Specified, Partly specified or Not specified. <span class="tag ok">Drafted</span></p><p class="muted"><code>docs/fare/01-extraction-sheet.md</code></p></div>
+    <div class="wk"><div class="when">STEP 2 · REGISTER THE CLAIMS</div><p>Every reported result as a hypothesis, with the paper's numbers. <span class="tag ok">Drafted</span></p><p class="muted"><code>docs/fare/02-claims.md</code></p></div>
+    <div class="wk"><div class="when">STEP 3 · FILL THE GAPS, ON THE RECORD</div><p>For every item not fully specified: options, choice, reason, and whether it could change results. If it could, it becomes an ablation.</p><p class="muted"><code>docs/fare/03-decisions.md</code></p></div>
+    <div class="wk"><div class="when">STEP 4 · REBUILD THE PROMPTS</div><p>Written from the agent descriptions, versioned, labelled as reconstructions.</p><p class="muted"><code>configs/prompts/fare/*.yaml</code></p></div>
+    <div class="wk"><div class="when">STEP 5 · BUILD, THEN CHECK CONFORMANCE</div><p>A teammate who did not write the code checks every Specified item against the running system.</p><p class="muted"><code>docs/fare/05-conformance.md</code></p></div>
+    <div class="wk gate"><div class="when">STEP 6 · TEST THE CLAIMS</div><p>Each claim marked holds, partly or does not hold, with confidence intervals, plus a table of every deviation from the paper.</p><p class="muted">Replication chapter of the report</p></div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="agents">
+  <div class="sec-head">
+    <div class="eyebrow">4 · The six agents on SEC filings</div>
+    <h2>Same roles, new documents, no advice</h2>
+    <p class="muted">Two FARE agents recommend buying or selling. Ours keep their analysis and drop the recommendation. Their FARE metrics are adapted and the change is recorded in the decisions log.</p>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Agent</th><th>Task on filings</th><th>Filings</th><th>Metric</th></tr></thead>
+      <tbody>
+        <tr><td>Statement Extraction</td><td>Factual answer quoting the filing and naming its section</td><td>10-K, 10-Q, 8-K</td><td>RAGAS CP, F, RR + citation precision</td></tr>
+        <tr><td>Tone</td><td>Tone of one period's MD&amp;A and earnings release, with the critic loop</td><td>10-K Item 7, 10-Q Item 2, 8-K EX-99.1</td><td>TAEF</td></tr>
+        <tr><td>Tone Shift</td><td>How tone moves across consecutive periods</td><td>Same as Tone</td><td>TAS</td></tr>
+        <tr><td>Comparison</td><td>Several companies on one topic in one period</td><td>10-K, 10-Q sections</td><td>CAS</td></tr>
+        <tr><td><b>Thesis Check</b><br><span class="muted">was Investment</span></td><td>Does filing evidence support, weaken or leave open the user's stated reason for holding? Quotes required. No hold or sell.</td><td>10-K, 10-Q, 8-K</td><td>IRAS, adapted</td></tr>
+        <tr><td><b>Scenario</b><br><span class="muted">was Simulation</span></td><td>Actual vs hypothetical holding. Returns computed by code from prices; narrative from filings. No guidance.</td><td>Filings + daily prices</td><td>EAS + CODS, adapted</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <p><b>Universe:</b> the team's 25 companies, fixed for the whole phase, listed with CIKs in <code>configs/universe.yaml</code>. Filings from FY2023 to FY2025.</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="arch">
+  <div class="sec-head">
+    <div class="eyebrow">5 · System architecture</div>
+    <h2>A pipeline of swappable stages, behind an API</h2>
+    <p class="muted">Every stage is picked from a registry by the pipeline config. The playground and the evaluation harness both call the same API.</p>
+  </div>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph ING["Ingest and index"]
+    ED["EDGAR filings by CIK"] --> PR["Parse"] --> CK["Chunk"] --> EM["Embed"] --> IX[("Index + metadata")]
+  end
+  subgraph AG["Agent layer (LangGraph)"]
+    OR{"Orchestrator"}
+    OR --> A1["Statement Extraction"]
+    OR --> A2["Tone + critic"]
+    OR --> A3["Tone Shift"]
+    OR --> A4["Comparison"]
+    OR --> A5["Thesis Check"]
+    OR --> A6["Scenario"]
+  end
+  Q["Query"] --> OR
+  RT["Retrieve"]
+  IX --> RT
+  AG &lt;--&gt; RT
+  AG &lt;--&gt; MG["Model gateway"]
+  TL["Tools: XBRL, prices, calculator"] &lt;--&gt; AG
+  AG --> ANS["Answer + citations"]
+  ANS --> JD["Judges (versioned)"]
+  JD --> ST[("Results + traces")]
+  ST --> API["FastAPI"]
+  API --> UI["React playground"]
+</pre>
+  </div>
+  <p class="caption">One query enters the orchestrator, which activates one agent. Judges score the answer after the fact; they never influence the answer (except the Tone critic, see decisions log).</p>
+</section>
+
+<!-- 6 -->
+<section id="components">
+  <div class="sec-head">
+    <div class="eyebrow">6 · Components</div>
+    <h2>Each component has its own metric</h2>
+  </div>
+  <div class="stack">
+    <div class="comp"><div class="cid">C1</div><div class="body">
+      <h3>EDGAR source</h3>
+      <dl>
+        <dt>Does</dt><dd>Lists and downloads 10-K, 10-Q and 8-K filings (with exhibits) for each CIK. Caches raw files by accession number.</dd>
+        <dt>Design</dt><dd>SEC submissions API; declared User-Agent; at most 10 requests per second. <code>NseSource</code> joins in Phase I.</dd>
+        <dt>Measured by</dt><dd>Coverage: filings fetched vs filings listed for the universe.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C2</div><div class="body">
+      <h3>Parse, chunk, embed, retrieve</h3>
+      <dl>
+        <dt>Does</dt><dd>Turns filings into sections and chunks with metadata, embeds them and retrieves the top-k for a query, filtered by company and period.</dd>
+        <dt>Design</dt><dd>Four registries, v0 = FARE's settings. Variants in section 7.</dd>
+        <dt>Measured by</dt><dd>Section-boundary accuracy; Recall@k, MRR, nDCG@10; RAGAS context precision; wrong-period rate.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C3</div><div class="body">
+      <h3>Model gateway</h3>
+      <dl>
+        <dt>Does</dt><dd>The only path to an LLM. Picks provider and model from config, returns text or schema-checked JSON.</dd>
+        <dt>Design</dt><dd>LiteLLM underneath; disk cache keyed by model, prompt hash and parameters; logs tokens, latency and cost; temperature 0.</dd>
+        <dt>Measured by</dt><dd>Supplies cost and latency to every result.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C4</div><div class="body">
+      <h3>Orchestrator and agents</h3>
+      <dl>
+        <dt>Does</dt><dd>Routes each query to one of six agents; the agent retrieves, reads chunks in batches and answers with citations.</dd>
+        <dt>Design</dt><dd>LangGraph graph with a shared state. Routing and agent prompts are versioned configs. Tools (XBRL lookup, price returns, calculator) are typed functions; the Scenario agent uses price returns from v0.</dd>
+        <dt>Measured by</dt><dd>Routing accuracy on labelled queries; per-agent FARE metrics; steps, failures, cost.</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C5</div><div class="body">
+      <h3>Judges and evaluation harness</h3>
+      <dl>
+        <dt>Does</dt><dd>Runs a pipeline config over a query set, scores each answer with the chosen judge version, writes result rows.</dd>
+        <dt>Design</dt><dd>Judge versions are plugins like any stage. Dev/test splits frozen and tagged; the harness refuses test runs without a flag.</dd>
+        <dt>Measured by</dt><dd>Judge agreement with human grades (Cohen's κ).</dd>
+      </dl>
+    </div></div>
+    <div class="comp"><div class="cid">C6</div><div class="body">
+      <h3>Results store and API</h3>
+      <dl>
+        <dt>Does</dt><dd>Keeps every run, trace and score; serves them to the playground; runs live pipelines on request.</dd>
+        <dt>Design</dt><dd>DuckDB tables + JSONL traces; FastAPI with <code>POST /runs</code>, <code>GET /runs/{id}</code>, <code>GET /variants</code>, <code>GET /benchmarks</code>.</dd>
+        <dt>Measured by</dt><dd>Any past result can be regenerated from its config hash.</dd>
+      </dl>
+    </div></div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="variants">
+  <div class="sec-head">
+    <div class="eyebrow">7 · Variants per stage</div>
+    <h2>v0 is FARE; everything else is an experiment</h2>
+    <p class="muted">A pipeline config names one variant per stage. Benchmarks change one stage at a time from v0, plus a few chosen combinations. The playground can run any combination on a single query.</p>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Stage</th><th>v0 (FARE)</th><th>Variants</th></tr></thead>
+      <tbody>
+        <tr><td>Parse</td><td>HTML to clean text</td><td>Section-aware (Items), table-preserving</td></tr>
+        <tr><td>Chunk</td><td>Recursive, 800 / 100</td><td>Section-aware, semantic, 1500 / 200</td></tr>
+        <tr><td>Embed</td><td>all-MiniLM-L6-v2</td><td>bge-small, e5, one hosted embedding API</td></tr>
+        <tr><td>Retrieve</td><td>FAISS flat L2, top-10</td><td>BM25, hybrid (RRF), + reranker, top-k sweep</td></tr>
+        <tr><td>Route</td><td>LLM single intent</td><td>Keyword rules, embedding classifier</td></tr>
+        <tr><td>Agents</td><td>Reconstructed FARE prompts</td><td>Improved prompts; + XBRL and calculator tools</td></tr>
+        <tr><td>Generator</td><td>2–4 hosted models</td><td>Any model through the gateway</td></tr>
+        <tr><td>Judge</td><td><code>judge-v1-google</code></td><td><code>v2-frozen-refs</code>, <code>v3-objective</code>, human-calibrated</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="eval">
+  <div class="sec-head">
+    <div class="eyebrow">8 · Evaluation</div>
+    <h2>How we know a change is an improvement</h2>
+  </div>
+  <div class="callout warn">
+    <p><b>Versioned judges.</b> A new judge version changes the measuring tool, not the system. Compare system versions only under the same judge version. Compare judge versions by how often they agree with human grades, not by which gives higher scores.</p>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Set</th><th>Contents</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td class="id">Q-FARE</td><td>Queries per agent, following FARE's Table 2 sampling rules, regenerated for our 25 companies</td><td>Per-agent FARE metrics, claims C1–C8</td></tr>
+        <tr><td class="id">Q-FIN</td><td>FinanceBench open sample (check licence)</td><td>Statement Extraction, retrieval recall</td></tr>
+        <tr><td class="id">Q-XBRL</td><td>Questions generated from XBRL facts, exact answers</td><td>Numeric accuracy, tools ablation</td></tr>
+        <tr><td class="id">Q-ROUTE</td><td>Queries labelled with the intended agent</td><td>Routing accuracy</td></tr>
+        <tr><td class="id">H-100</td><td>100 answers graded by two team members</td><td>Judge agreement (κ)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Id</th><th>System</th><th>Question it answers</th></tr></thead>
+      <tbody>
+        <tr><td class="id">B0</td><td>LLM only, no retrieval</td><td>How much does the model already know?</td></tr>
+        <tr><td class="id">B1</td><td>Single-agent RAG</td><td>FARE's unmeasured contrast case (claim C8)</td></tr>
+        <tr><td class="id">B2</td><td>FARE rebuild, all v0</td><td>RQ1</td></tr>
+        <tr><td class="id">B3</td><td>B2 + XBRL and calculator tools</td><td>Do tools remove numeric errors?</td></tr>
+        <tr><td class="id">B4</td><td>B3 + citation checks</td><td>Does grounding raise faithfulness?</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Temperature 0; 95% bootstrap confidence intervals; paired tests between systems; cost and latency on every row. Latency is our own measurement on hosted APIs and is not compared with FARE's T4 numbers.</p>
+</section>
+
+<!-- 9 -->
+<section id="playground">
+  <div class="sec-head">
+    <div class="eyebrow">9 · Playground</div>
+    <h2>A React front end that shows every stage</h2>
+    <p class="muted">Built in React (Vite + TypeScript) from the first milestone, talking only to the FastAPI backend.</p>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="k">BENCHMARK VIEW</div>
+      <ul class="plain">
+        <li>Saved results for every pipeline config</li>
+        <li>Filter by stage, variant, model, agent and judge version</li>
+        <li>Scores with confidence intervals, cost and latency</li>
+        <li>Compare two configs side by side</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="k">LIVE RUN VIEW</div>
+      <ul class="plain">
+        <li>Pick one variant per stage and a model</li>
+        <li>Ask a question about any of the 25 companies</li>
+        <li>See each stage: chunks retrieved, agent chosen, agent steps, answer with citations, judge verdict</li>
+        <li>Time and cost per stage</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="contracts">
+  <div class="sec-head">
+    <div class="eyebrow">10 · Data contracts</div>
+    <h2>The objects passed between stages</h2>
+  </div>
+<pre class="code"><span class="c"># Document / Chunk</span>
+doc_id, cik, ticker, form, accession, fiscal_year, fiscal_period, filed_at, url, sections[], text
+chunk_id, doc_id, section, start_char, end_char, text, embed_variant, index_version
+
+<span class="c"># PipelineConfig — one variant per stage; its hash tags every result</span>
+parse, chunk, embed, retrieve, route, agents_prompt_version, tools[], model, judge
+
+<span class="c"># Query / RoutedQuery</span>
+query_id, text, agent_expected?, cik[]?, period?, portfolio?, dataset, split
+routed_agent, route_confidence
+
+<span class="c"># AgentOutput</span>
+agent, answer_text, claims: [{text, chunk_ids[]}], numbers: [{value, unit, source}], confidence
+
+<span class="c"># Trace / EvalRecord</span>
+run_id, config_hash, steps: [{stage, input, output, model?, tokens, latency_ms, cost}]
+run_id, query_id, judge_version, metrics: {…}, verdict_reason</pre>
+</section>
+
+<!-- 11 -->
+<section id="stack">
+  <div class="sec-head">
+    <div class="eyebrow">11 · Technology</div>
+    <h2>Hosted models, local everything else</h2>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Concern</th><th>Choice</th></tr></thead>
+      <tbody>
+        <tr><td>Language</td><td>Python 3.12 with uv</td></tr>
+        <tr><td>Agents</td><td>LangGraph (as FARE)</td></tr>
+        <tr><td>LLMs</td><td>Hosted APIs through LiteLLM; Gemini API for Google Search grounding in <code>judge-v1-google</code></td></tr>
+        <tr><td>Chunking, embeddings, index</td><td>LangChain text splitter, SentenceTransformers, FAISS (as FARE)</td></tr>
+        <tr><td>Evaluation</td><td>Own harness; RAGAS for FARE's RAG metrics</td></tr>
+        <tr><td>Storage</td><td>DuckDB + JSONL traces</td></tr>
+        <tr><td>API</td><td>FastAPI</td></tr>
+        <tr><td>Front end</td><td>React + Vite + TypeScript</td></tr>
+        <tr><td>Quality</td><td>pytest, ruff, pre-commit</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="plan">
+  <div class="sec-head">
+    <div class="eyebrow">12 · Plan</div>
+    <h2>Tracer first, then agents, then variants</h2>
+    <p class="muted">Weeks start Monday 5 October 2026. Filled dots are review gates. Detail in <code>docs/IMPLEMENTATION-PLAN.md</code>.</p>
+  </div>
+  <div class="timeline">
+    <div class="wk"><div class="when">M0 · WEEK OF 5 OCT</div><p>Repo fixes, 25-company universe, data contracts, stage registry, FARE decisions log.</p></div>
+    <div class="wk gate"><div class="when">M1 · 12–23 OCT</div><p><b>Tracer:</b> EDGAR → parse → chunk → embed → FAISS → router → Statement Extraction → RAGAS → result row, visible in the React page.</p></div>
+    <div class="wk gate"><div class="when">M2 · 26 OCT – 13 NOV</div><p>Other five agents, Tone critic, judge v1, Q-FARE sets, baselines B0 and B1. First claims table.</p></div>
+    <div class="wk gate"><div class="when">M3 · 16 NOV – 4 DEC</div><p>Stage variants, judge v2 with human agreement, playground benchmark and live views. <b>Semester VII review.</b></p></div>
+    <div class="wk"><div class="when">M4 · DECEMBER ON</div><p>Tools (B3), citation checks (B4), judge v3, replication chapter. Then Phase I.</p></div>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="risks">
+  <div class="sec-head">
+    <div class="eyebrow">13 · Risks</div>
+    <h2>What could derail the phase</h2>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td>The paper leaves out prompts, judge model and batch size</td><td>Decisions log with reasons; ablate any gap that could change results; email the authors.</td></tr>
+        <tr><td>Filings differ from transcripts (no dialogue, longer, legal wording)</td><td>That difference is RQ1's subject; report per-agent where claims break.</td></tr>
+        <tr><td>Too many variant combinations to afford</td><td>One stage at a time; response cache; 50-query dev slices; full runs only at gates.</td></tr>
+        <tr><td>Google Search results drift, so judge v1 is not repeatable</td><td>Store every retrieved reference with the run; judge v2 freezes references.</td></tr>
+        <tr><td>Gemini 2.5 models retired by the provider</td><td>Check availability in M0; record the substitute as a deviation.</td></tr>
+        <tr><td>React playground eats agent-building time</td><td>One owner (stream D); the UI only reads the API; tracer UI first, polish at M3.</td></tr>
+        <tr><td>SEC rate limits</td><td>User-Agent, throttle, local cache of every filing.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <p>Built from the FARE paper (CC BY 4.0) and the team's decisions of 29 Sep 2026. Companion to the Loupe Project Compass page.</p>
+</footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:matchMedia("(prefers-color-scheme: dark)").matches?"dark":"default"});</script>
+</html>

@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+
+# Secrets
+.env
+.env.*
+
+# Downloaded and derived data (keep folder placeholders)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/
+data/cache/
+
+# Frontend
+web/node_modules/
+web/dist/

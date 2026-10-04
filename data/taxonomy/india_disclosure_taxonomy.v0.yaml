@@ -1,0 +1,470 @@
+# India Disclosure Risk Taxonomy — DRAFT v0
+# ------------------------------------------------------------------------------
+# Purpose : the fixed label space for Stage 2 (Extract). Every extracted event
+#           must map to exactly one `id` below, with a verbatim quote.
+# Method  : transfers Dolphin et al. (Paper 1: 3-tier risk taxonomy; Paper 2:
+#           119-type 8-K event taxonomy) from SEC Item codes to SEBI LODR
+#           Schedule III, which plays the same role for Indian filings.
+# Status  : DRAFT written 2026-09-29 from memory of the LODR text as amended
+#           in June 2023. Every `lodr_ref` MUST be checked against the current
+#           consolidated SEBI (LODR) Regulations, 2015 before the gold set is
+#           annotated. Items marked `verify: true` are the least certain.
+# Scope   : MVP = the first 7 dimensions (47 event types, all driven by
+#           NSE/BSE announcements and XBRL). The last 2 (BRSR, DRHP) are
+#           stubs, deferred.
+#
+# Tiers   : dimension (L1) -> category (L2) -> event type (L3, the label).
+# Fields  :
+#   id           stable snake_case label the extractor must emit
+#   lodr_ref     regulation / Schedule III paragraph the event comes from
+#   materiality  deemed   = Para A, always disclosed
+#                threshold = Para B, disclosed only above Reg 30(4) test
+#                other     = outside Schedule III (SAST, PIT, Reg 23, ...)
+#   signal       adverse | favorable | neutral | depends (direction for risk)
+#   description  what the embedding mapper matches against (Paper 1: the
+#                quality of this sentence drives mapping precision; the F14
+#                improvement loop rewrites it)
+#   cues         phrases typical in Indian filings (help annotators + prompts)
+#   feeds        compute features in Stage 3 that consume this event
+# ------------------------------------------------------------------------------
+
+version: 0.1.0
+jurisdiction: IN
+source_regulations:
+  - "SEBI (Listing Obligations and Disclosure Requirements) Regulations, 2015 — Reg 30, Schedule III Part A"
+  - "SEBI (Substantial Acquisition of Shares and Takeovers) Regulations, 2011 — Reg 31 (encumbrance)"
+  - "SEBI (Prohibition of Insider Trading) Regulations, 2015 — Reg 7"
+  - "SEBI LODR Reg 23 (related party transactions)"
+  - "SEBI LODR Reg 30(11) (market rumour verification)"
+
+materiality_test_reg_30_4: >
+  Para B events are disclosed when their value or impact exceeds the lower of
+  2% of turnover, 2% of net worth, or 5% of the 3-year average absolute
+  profit after tax (per last audited consolidated financials). verify: true
+
+extraction_record_schema:     # one row per extracted event (Paper 2 shape)
+  event_id: string            # uuid
+  taxonomy_id: string         # must be an `id` from this file (schema-checked)
+  company: {symbol: string, isin: string}
+  source: {doc_id: string, url: string, filed_at: datetime, exchange: "NSE|BSE", page: int, section: string}
+  quote: string               # verbatim span; rejected if fuzzy n-gram match < threshold
+  quote_match_score: float    # 0..1 from the validator
+  fields: object              # typed slots per event (e.g. rating_from, rating_to)
+  quality_score: int          # 1..5, assigned in a SEPARATE second pass (Paper 2)
+  extractor: {model: string, prompt_version: string, taxonomy_version: string}
+
+dimensions:
+
+  # ============================================================================
+  - id: promoter_ownership
+    name: Promoter & ownership risk
+    categories:
+      - id: pledge_encumbrance
+        name: Pledge and encumbrance of promoter shares
+        events:
+          - id: pledge_created
+            lodr_ref: "SAST Reg 31(1)"
+            materiality: other
+            signal: adverse
+            description: Promoter or promoter group creates a pledge, lien or other encumbrance on shares of the company.
+            cues: ["creation of pledge", "encumbrance", "Reg 31(1)", "invocation"]
+            feeds: [promoter_pledge_pct, pledge_pct_change_qoq]
+          - id: pledge_invoked
+            lodr_ref: "SAST Reg 31(2)"
+            materiality: other
+            signal: adverse
+            description: A lender invokes a pledge on promoter shares, transferring or selling them.
+            cues: ["invocation of pledge", "invoked"]
+            feeds: [promoter_pledge_pct, distress_score]
+          - id: pledge_released
+            lodr_ref: "SAST Reg 31(2)"
+            materiality: other
+            signal: favorable
+            description: A pledge or encumbrance on promoter shares is released.
+            cues: ["release of pledge", "revocation of encumbrance"]
+            feeds: [promoter_pledge_pct]
+      - id: control_change
+        name: Control and shareholding change
+        events:
+          - id: control_agreement
+            lodr_ref: "Sch III Para A(5A)"
+            materiality: deemed
+            signal: depends
+            description: Agreement among shareholders, promoters or KMP that affects management or control of the company.
+            cues: ["shareholders agreement", "change in control"]
+            verify: true
+          - id: open_offer_triggered
+            lodr_ref: "SAST Reg 3/4"
+            materiality: other
+            signal: depends
+            description: An acquirer crosses a takeover threshold and makes an open offer for the company's shares.
+            cues: ["open offer", "public announcement", "SAST"]
+          - id: insider_trade_disclosed
+            lodr_ref: "PIT Reg 7(2)"
+            materiality: other
+            signal: depends
+            description: Promoter, director or designated person discloses a trade in company securities above the PIT threshold.
+            cues: ["Form C", "Regulation 7(2)", "insider trading"]
+
+  # ============================================================================
+  - id: related_party
+    name: Related-party transactions
+    categories:
+      - id: rpt
+        name: Related-party transactions
+        events:
+          - id: material_rpt_approval_sought
+            lodr_ref: "LODR Reg 23(4)"
+            materiality: other
+            signal: depends
+            description: Company seeks shareholder approval for a material related-party transaction.
+            cues: ["material related party transaction", "Regulation 23", "postal ballot"]
+            feeds: [rpt_to_revenue_ratio]
+          - id: rpt_half_yearly_disclosure
+            lodr_ref: "LODR Reg 23(9)"
+            materiality: other
+            signal: neutral
+            description: Half-yearly disclosure of related-party transactions filed with the exchange.
+            cues: ["disclosure of related party transactions", "half year ended"]
+            feeds: [rpt_to_revenue_ratio, rpt_to_networth_ratio]
+
+  # ============================================================================
+  - id: credit_distress
+    name: Financial distress & credit
+    categories:
+      - id: rating
+        name: Credit rating actions
+        events:
+          - id: rating_downgrade
+            lodr_ref: "Sch III Para A(3)"
+            materiality: deemed
+            signal: adverse
+            description: A credit rating agency downgrades a rating of the company's debt or bank facilities.
+            cues: ["downgraded", "revised from", "CRISIL", "ICRA", "CARE", "India Ratings"]
+            feeds: [distress_score]
+          - id: rating_outlook_negative
+            lodr_ref: "Sch III Para A(3)"
+            materiality: deemed
+            signal: adverse
+            description: Rating outlook revised to negative or rating placed on watch with negative implications.
+            cues: ["outlook revised to negative", "rating watch with negative implications"]
+            feeds: [distress_score]
+          - id: rating_upgrade
+            lodr_ref: "Sch III Para A(3)"
+            materiality: deemed
+            signal: favorable
+            description: A credit rating agency upgrades a rating or revises outlook to positive.
+            cues: ["upgraded", "outlook revised to positive"]
+          - id: rating_new_or_reaffirmed
+            lodr_ref: "Sch III Para A(3)"
+            materiality: deemed
+            signal: neutral
+            description: New credit rating assigned or existing rating reaffirmed.
+            cues: ["assigned", "reaffirmed"]
+      - id: default_restructuring
+        name: Default and restructuring
+        events:
+          - id: loan_default
+            lodr_ref: "Sch III Para A(6); SEBI default-disclosure circular"
+            materiality: deemed
+            signal: adverse
+            description: Company defaults on payment of interest or principal on loans or debt securities.
+            cues: ["default in payment", "delay in servicing", "non-payment of interest"]
+            feeds: [distress_score]
+            verify: true
+          - id: debt_restructuring
+            lodr_ref: "Sch III Para A(9)"
+            materiality: deemed
+            signal: adverse
+            description: Resolution plan or restructuring of loans or borrowings from banks or financial institutions.
+            cues: ["resolution plan", "restructuring", "inter-creditor agreement"]
+            feeds: [distress_score]
+            verify: true
+          - id: one_time_settlement
+            lodr_ref: "Sch III Para A(10)"
+            materiality: deemed
+            signal: adverse
+            description: Company enters into a one-time settlement with a bank or lender.
+            cues: ["one time settlement", "OTS"]
+            feeds: [distress_score]
+          - id: insolvency_event
+            lodr_ref: "Sch III Para A(16)"
+            materiality: deemed
+            signal: adverse
+            description: Filing, admission or any step in a corporate insolvency resolution process under IBC before NCLT.
+            cues: ["NCLT", "Section 7", "Section 9", "IBC", "CIRP", "interim resolution professional"]
+            feeds: [distress_score]
+          - id: guarantee_given
+            lodr_ref: "Sch III Para B(11)"
+            materiality: threshold
+            signal: depends
+            description: Company gives a guarantee, indemnity or surety for a third party.
+            cues: ["corporate guarantee", "surety", "indemnity"]
+
+  # ============================================================================
+  - id: audit_governance
+    name: Audit & governance red flags
+    categories:
+      - id: auditor
+        name: Statutory auditor
+        events:
+          - id: auditor_resignation
+            lodr_ref: "Sch III Para A(7A)"
+            materiality: deemed
+            signal: adverse
+            description: Statutory auditor resigns before completing its term, with reasons disclosed.
+            cues: ["resignation of statutory auditor", "reasons for resignation"]
+            feeds: [distress_score, governance_flag_count]
+          - id: auditor_change
+            lodr_ref: "Sch III Para A(7)"
+            materiality: deemed
+            signal: neutral
+            description: Appointment or rotation of the statutory auditor at term end.
+            cues: ["appointment of statutory auditor", "rotation"]
+          - id: audit_qualification
+            lodr_ref: "LODR Reg 33(3)(d)"
+            materiality: other
+            signal: adverse
+            description: Auditor issues a qualified opinion, adverse opinion or disclaimer on the financial results.
+            cues: ["qualified opinion", "basis for qualified opinion", "statement on impact of audit qualifications"]
+            feeds: [distress_score, governance_flag_count]
+            verify: true
+          - id: forensic_audit
+            lodr_ref: "Sch III Para A(17)"
+            materiality: deemed
+            signal: adverse
+            description: Initiation of a forensic audit of the company, by the company or a lender or regulator.
+            cues: ["forensic audit"]
+            feeds: [governance_flag_count]
+      - id: board_kmp
+        name: Board and key managerial personnel
+        events:
+          - id: independent_director_resignation
+            lodr_ref: "Sch III Para A(7B)"
+            materiality: deemed
+            signal: adverse
+            description: Independent director resigns before term end, with detailed reasons.
+            cues: ["resignation of independent director", "no other material reasons"]
+            feeds: [governance_flag_count]
+          - id: kmp_resignation
+            lodr_ref: "Sch III Para A(7C)"
+            materiality: deemed
+            signal: depends
+            description: Resignation of CFO, CEO, company secretary, compliance officer, senior management or a non-independent director.
+            cues: ["resignation of Chief Financial Officer", "cessation"]
+            feeds: [governance_flag_count]
+          - id: kmp_appointment
+            lodr_ref: "Sch III Para A(7)"
+            materiality: deemed
+            signal: neutral
+            description: Appointment of a director, KMP or senior management personnel.
+            cues: ["appointment of", "brief profile"]
+          - id: ceo_unavailable
+            lodr_ref: "Sch III Para A(7D)"
+            materiality: deemed
+            signal: adverse
+            description: Managing director or CEO is unavailable to perform duties for an extended period.
+            cues: ["leave of absence", "indisposed"]
+            verify: true
+      - id: fraud_restatement
+        name: Fraud, arrest and restatement
+        events:
+          - id: fraud_or_arrest
+            lodr_ref: "Sch III Para A(6)"
+            materiality: deemed
+            signal: adverse
+            description: Fraud or default by the company, promoter, director or KMP, or arrest of any of them.
+            cues: ["fraud", "arrested", "custody"]
+            feeds: [governance_flag_count, distress_score]
+          - id: employee_fraud
+            lodr_ref: "Sch III Para B(9)"
+            materiality: threshold
+            signal: adverse
+            description: Fraud or default by employees that has or may have an impact on the company.
+            cues: ["fraud by employee", "misappropriation"]
+          - id: financial_restatement
+            lodr_ref: "Sch III Para A(21)"
+            materiality: deemed
+            signal: adverse
+            description: Voluntary revision of financial statements or board report under Section 131 of the Companies Act.
+            cues: ["revision of financial statements", "Section 131", "restated"]
+            feeds: [governance_flag_count]
+            verify: true
+
+  # ============================================================================
+  - id: regulatory_legal
+    name: Regulatory & legal
+    categories:
+      - id: regulatory_action
+        name: Regulatory and enforcement action
+        events:
+          - id: regulatory_order_or_penalty
+            lodr_ref: "Sch III Para A(19)/(20)"
+            materiality: deemed
+            signal: adverse
+            description: Order, penalty, suspension, debarment or other action by SEBI, RBI, tax authorities, ED, DRI or another regulator or court.
+            cues: ["show cause notice", "penalty", "adjudication order", "search and seizure", "Enforcement Directorate"]
+            feeds: [governance_flag_count]
+            verify: true
+          - id: penalty_payment_default
+            lodr_ref: "Sch III Para B(13)"
+            materiality: threshold
+            signal: adverse
+            description: Delay or default in paying fines, penalties or dues to a regulatory or statutory authority.
+            cues: ["delay in payment of penalty"]
+            verify: true
+          - id: license_event
+            lodr_ref: "Sch III Para B(12)"
+            materiality: threshold
+            signal: depends
+            description: Grant, withdrawal, surrender, cancellation or suspension of a key licence or regulatory approval.
+            cues: ["licence", "approval", "suspension", "USFDA"]
+          - id: regulatory_framework_change
+            lodr_ref: "Sch III Para B(7)"
+            materiality: threshold
+            signal: depends
+            description: Effect on the company of a change in the regulatory framework that applies to it.
+            cues: ["change in regulation", "notification"]
+      - id: litigation
+        name: Litigation and tax disputes
+        events:
+          - id: litigation_material
+            lodr_ref: "Sch III Para B(8)"
+            materiality: threshold
+            signal: adverse
+            description: Pending litigation or dispute, or its outcome, that may materially impact the company, including tax demands.
+            cues: ["order received", "demand notice", "GST", "income tax", "arbitration award", "High Court"]
+
+  # ============================================================================
+  - id: operations_business
+    name: Operations & business events
+    categories:
+      - id: orders_contracts
+        name: Orders and contracts
+        events:
+          - id: order_win
+            lodr_ref: "Sch III Para B(4)"
+            materiality: threshold
+            signal: favorable
+            description: Company is awarded or bags a significant order or contract.
+            cues: ["bagged an order", "letter of award", "LoA", "order worth"]
+          - id: order_cancellation
+            lodr_ref: "Sch III Para B(4)"
+            materiality: threshold
+            signal: adverse
+            description: Termination or cancellation of a previously awarded order or contract.
+            cues: ["termination of contract", "cancellation of order"]
+      - id: operations
+        name: Operations
+        events:
+          - id: operations_disruption
+            lodr_ref: "Sch III Para B(6)"
+            materiality: threshold
+            signal: adverse
+            description: Disruption of operations from fire, natural calamity, strike, lockout or similar cause.
+            cues: ["fire", "strike", "lockout", "force majeure", "shutdown"]
+          - id: production_commencement_or_delay
+            lodr_ref: "Sch III Para B(1)"
+            materiality: threshold
+            signal: depends
+            description: Commencement, or postponement of commencement, of commercial production at a unit.
+            cues: ["commercial production", "commissioning", "postponed"]
+          - id: capacity_or_product_launch
+            lodr_ref: "Sch III Para B(3)"
+            materiality: threshold
+            signal: favorable
+            description: Capacity addition or launch of a new product.
+            cues: ["capacity expansion", "launch"]
+          - id: business_change
+            lodr_ref: "Sch III Para B(2)"
+            materiality: threshold
+            signal: depends
+            description: Change in the nature of business, new line of business, strategic tie-up, or closure of a unit.
+            cues: ["strategic partnership", "closure of unit", "new line of business"]
+      - id: corporate_actions
+        name: Corporate actions and capital
+        events:
+          - id: acquisition_or_scheme
+            lodr_ref: "Sch III Para A(1)"
+            materiality: deemed
+            signal: depends
+            description: Acquisition, merger, demerger, scheme of arrangement, or sale of a unit or subsidiary.
+            cues: ["scheme of arrangement", "amalgamation", "acquisition of", "divestment"]
+          - id: capital_raise_or_buyback
+            lodr_ref: "Sch III Para A(2)/(4)"
+            materiality: deemed
+            signal: depends
+            description: Issue of securities, QIP, preferential issue, rights issue, buyback, split or consolidation.
+            cues: ["QIP", "preferential issue", "rights issue", "buyback", "sub-division"]
+          - id: board_outcome_results
+            lodr_ref: "Sch III Para A(4)"
+            materiality: deemed
+            signal: neutral
+            description: Outcome of a board meeting approving financial results, dividends or fund raising.
+            cues: ["outcome of board meeting", "financial results for the quarter"]
+            feeds: [xbrl_results_ingest]
+          - id: earnings_call_transcript
+            lodr_ref: "Sch III Para A(15)"
+            materiality: deemed
+            signal: neutral
+            description: Schedule, audio recording or transcript of an analyst or investor earnings call.
+            cues: ["transcript of earnings call", "analyst meet", "investor presentation"]
+            feeds: [transcript_ingest]   # the F6 earnings-cycle data source
+
+  # ============================================================================
+  - id: market_information
+    name: Market information & rumours
+    categories:
+      - id: rumour
+        name: Rumour verification (Reg 30(11))
+        events:
+          - id: rumour_confirmed
+            lodr_ref: "LODR Reg 30(11)"
+            materiality: other
+            signal: depends
+            description: Company confirms a market rumour reported in mainstream media about an impending event.
+            cues: ["clarification on news item", "we confirm", "Regulation 30(11)"]
+            feeds: [rumour_price_window]
+          - id: rumour_denied
+            lodr_ref: "LODR Reg 30(11)"
+            materiality: other
+            signal: depends
+            description: Company denies a market rumour reported in mainstream media.
+            cues: ["clarification", "speculative in nature", "we deny", "no such proposal"]
+            feeds: [rumour_price_window]
+          - id: rumour_clarified_partial
+            lodr_ref: "LODR Reg 30(11)"
+            materiality: other
+            signal: depends
+            description: Company responds to a rumour without clear confirmation or denial, for example evaluating opportunities.
+            cues: ["evaluates various opportunities", "will disclose as and when"]
+            feeds: [rumour_price_window]
+          - id: social_media_communication
+            lodr_ref: "Sch III Para A(18)"
+            materiality: deemed
+            signal: neutral
+            description: Announcement or communication by the company through social media that must also be filed with the exchange.
+            cues: ["social media"]
+            verify: true
+
+  # ============================================================================
+  - id: esg_brsr
+    name: ESG / BRSR
+    status: deferred        # stub — needs BRSR Core XBRL parsing, post-MVP
+    categories: []
+
+  - id: ipo_offer_document
+    name: IPO / offer-document risk (ICDR, DRHP)
+    status: deferred        # stub — 500–900 page DRHPs, post-MVP
+    categories: []
+
+# ------------------------------------------------------------------------------
+# Stage 3 compute features referenced above (deterministic Python, never LLM):
+#   promoter_pledge_pct        pledged promoter shares / promoter holding (shareholding pattern XBRL)
+#   pledge_pct_change_qoq      quarter-on-quarter change of the above
+#   rpt_to_revenue_ratio       RPT value (Reg 23(9)) / revenue from operations (results XBRL)
+#   rpt_to_networth_ratio      RPT value / net worth
+#   governance_flag_count      count of adverse audit_governance + regulatory events, trailing 12 months
+#   distress_score             weighted composite of the fed events + pledge + rating features (F11)
+#   rumour_price_window        abnormal return from rumour date to verification date (F9)
+# ------------------------------------------------------------------------------
