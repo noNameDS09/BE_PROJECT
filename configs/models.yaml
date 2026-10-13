@@ -1,0 +1,40 @@
+# Model registry. Every LLM call goes through loupe.llm.Gateway using an alias below.
+# Free-tier model names change often: confirm with `loupe models check` and record the
+# working set (and any substitution) in docs/decisions.md before experiments.
+#
+# rpm: requests per minute we allow ourselves (0 = no limit). Set below the provider's
+#      free-tier limit so long eval runs don't hit 429s.
+
+models:
+  gemini-flash:
+    model: gemini/gemini-2.5-flash
+    provider: gemini
+    rpm: 8
+  gemini-flash-lite:
+    model: gemini/gemini-2.5-flash-lite
+    provider: gemini
+    rpm: 12
+  groq-llama-70b:
+    model: groq/llama-3.3-70b-versatile
+    provider: groq
+    rpm: 25
+  nim-llama-70b:
+    model: nvidia_nim/meta/llama-3.3-70b-instruct
+    provider: nvidia_nim
+    rpm: 30
+  or-qwen-72b:
+    model: openrouter/qwen/qwen-2.5-72b-instruct:free
+    provider: openrouter
+    rpm: 15
+  or-llama-70b:
+    model: openrouter/meta-llama/llama-3.3-70b-instruct:free
+    provider: openrouter
+    rpm: 15
+  ollama-qwen-7b:
+    model: ollama_chat/qwen2.5:7b-instruct
+    provider: ollama
+    rpm: 0
+  ollama-llama-8b:
+    model: ollama_chat/llama3.1:8b
+    provider: ollama
+    rpm: 0

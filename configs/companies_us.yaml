@@ -1,0 +1,32 @@
+# US company universe: DRAFT, not frozen.
+# Selection rule (docs/PLAN.md, D3): ~15 companies from the FinanceBench open sample that still
+# file with the SEC, plus ~10 chosen by scanning FY2023-25 8-Ks for risk events
+# (items 1.03 bankruptcy, 2.04 debt-default triggers, 4.01 auditor change,
+# 4.02 restatement, 5.02 officer departures).
+# CIKs are resolved from SEC's company_tickers.json once SEC_USER_AGENT is set.
+# split: assigned by a seeded, sector-stratified draw (8 dev / 17 test) at freeze time.
+
+version: 0
+status: draft
+financebench_candidates:  # pick ~15; all appear in the FinanceBench open sample
+  - MMM   # 3M
+  - ADBE  # Adobe
+  - AMD   # Advanced Micro Devices
+  - AMZN  # Amazon
+  - AXP   # American Express
+  - BBY   # Best Buy
+  - BA    # Boeing
+  - KO    # Coca-Cola
+  - CVS   # CVS Health
+  - JNJ   # Johnson & Johnson
+  - JPM   # JPMorgan Chase
+  - LMT   # Lockheed Martin
+  - MGM   # MGM Resorts
+  - MSFT  # Microsoft
+  - NKE   # Nike
+  - PEP   # PepsiCo
+  - PFE   # Pfizer
+  - VZ    # Verizon
+  - WMT   # Walmart
+event_candidates: []  # filled by the 8-K risk-event scan
+companies: []         # final 25, with cik, sector, split
