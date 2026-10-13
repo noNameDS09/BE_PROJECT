@@ -1,0 +1,135 @@
+# Public datasets used for evaluation (docs/PLAN.md, "Public datasets adopted").
+# `loupe datasets download` saves each to data/raw/public/<name>/ with a MANIFEST.json
+# (source URL, bytes, sha256, retrieval time, licence). Licences were checked 2026-10-13.
+# Non-commercial licences (CC-BY-NC) are fine for this research project; never redistribute.
+# defer: true = large; only downloaded with --include-deferred.
+
+datasets:
+  financebench:
+    licence: CC-BY-NC-4.0
+    homepage: https://github.com/patronus-ai/financebench
+    paper: "Islam et al. 2023, arXiv:2311.11944"
+    role: Retrieval + QA on real 10-K/10-Q/8-K PDFs with page-level evidence; published GPT-4/Llama-2 results
+    base: https://raw.githubusercontent.com/patronus-ai/financebench/main
+    files:
+      - data/financebench_open_source.jsonl
+      - data/financebench_document_information.jsonl
+      - results/gpt-4-1106-preview_closedBook.jsonl
+      - results/gpt-4-1106-preview_sharedStore.jsonl
+      - results/gpt-4-1106-preview_singleStore.jsonl
+      - results/gpt-4-1106-preview_oracle.jsonl
+      - results/gpt-4-1106-preview_inContext.jsonl
+      - results/gpt-4_closedBook.jsonl
+      - results/gpt-4_sharedStore.jsonl
+      - results/gpt-4_singleStore.jsonl
+      - results/gpt-4_oracle.jsonl
+      - results/llama2_sharedStore.jsonl
+      - results/llama2_singleStore.jsonl
+      - results/claude-2_inContext.jsonl
+    extra: financebench_pdfs  # the source PDFs referenced by the open-sample questions
+
+  finder:
+    licence: CC-BY-NC-4.0
+    homepage: https://huggingface.co/datasets/Linq-AI-Research/FinDER
+    paper: "Choi et al., ICAIF 2025, arXiv:2504.15800"
+    role: Retrieval against expert-annotated gold passages (10-K)
+    base: https://huggingface.co/datasets/Linq-AI-Research/FinDER/resolve/main
+    files:
+      - data/train-00000-of-00001.parquet
+      - 10-k.zip
+
+  failsafeqa:
+    licence: MIT
+    homepage: https://huggingface.co/datasets/Writer/FailSafeQA
+    paper: "Kamble et al. 2025, arXiv:2502.06329"
+    role: Hallucination and refusal under misspelled, incomplete or missing context
+    base: https://huggingface.co/datasets/Writer/FailSafeQA/resolve/main
+    files:
+      - FAILSAFEQA_benchmark_data-FINAL.jsonl
+      - query_to_class.json
+
+  secque:
+    licence: MIT (evaluation only)
+    homepage: https://huggingface.co/datasets/nogabenyoash/SecQue
+    paper: "Ben Yoash et al., GEM 2025, arXiv:2504.04596"
+    role: Analyst-style comparison, ratio, risk and analysis questions over SEC filings
+    base: https://huggingface.co/datasets/nogabenyoash/SecQue/resolve/main
+    files:
+      - SECQUE_benchmark_Analysis.jsonl
+      - SECQUE_benchmark_Comparison.jsonl
+      - SECQUE_benchmark_Ratio.jsonl
+      - SECQUE_benchmark_Risk.jsonl
+
+  finance_agent_v1:
+    licence: CC-BY-4.0
+    homepage: https://huggingface.co/datasets/vals-ai/finance_agent_benchmark
+    paper: "Bigeard et al. 2025, arXiv:2508.00828"
+    role: Agent tool use on EDGAR (public split)
+    base: https://huggingface.co/datasets/vals-ai/finance_agent_benchmark/resolve/main
+    files:
+      - finance_agent_benchmark.csv
+
+  finance_agent_v2:
+    licence: MIT
+    homepage: https://github.com/vals-ai/finance-agent-v2
+    role: Agent tool use on EDGAR (v2 public split)
+    base: https://raw.githubusercontent.com/vals-ai/finance-agent-v2/main
+    files:
+      - data/public.csv
+
+  finqa:
+    licence: MIT
+    homepage: https://github.com/czyssrs/FinQA
+    paper: "Chen et al., EMNLP 2021"
+    role: Numeric reasoning over earnings-report tables and text (code-as-action module)
+    base: https://raw.githubusercontent.com/czyssrs/FinQA/main
+    files:
+      - dataset/dev.json
+      - dataset/test.json
+
+  convfinqa:
+    licence: MIT
+    homepage: https://github.com/czyssrs/ConvFinQA
+    paper: "Chen et al., EMNLP 2022"
+    role: Multi-turn numeric conversations
+    base: https://raw.githubusercontent.com/czyssrs/ConvFinQA/main
+    files:
+      - data.zip
+
+  tatqa:
+    licence: CC-BY-4.0
+    homepage: https://github.com/NExTplusplus/TAT-QA
+    paper: "Zhu et al., ACL 2021"
+    role: Hybrid table + text numeric QA with scale (thousand/million)
+    base: https://raw.githubusercontent.com/NExTplusplus/TAT-QA/master
+    files:
+      - dataset_raw/tatqa_dataset_dev.json
+      - dataset_raw/tatqa_dataset_test_gold.json
+
+  docfinqa:
+    licence: MIT
+    homepage: https://huggingface.co/datasets/kensho/DocFinQA
+    paper: "Reddy et al., ACL 2024"
+    role: Numeric QA over full-length filings (test split only, 581 MB)
+    base: https://huggingface.co/datasets/kensho/DocFinQA/resolve/main
+    defer: true
+    files:
+      - test.json
+
+  indfin_bench:
+    licence: CC-BY-NC-4.0
+    homepage: https://huggingface.co/datasets/cofacto/IndFin-Bench
+    role: India pilot - QA over Indian listed-company filings (vendor-made, 100 items)
+    base: https://huggingface.co/datasets/cofacto/IndFin-Bench/resolve/main
+    files:
+      - IndFin-Bench.csv
+
+  indiafinbench:
+    licence: CC-BY-4.0
+    homepage: https://huggingface.co/datasets/Rajveer-code/IndiaFinBench
+    paper: "Pall 2026, arXiv:2604.19298"
+    role: India pilot - SEBI/RBI regulatory QA
+    base: https://huggingface.co/datasets/Rajveer-code/IndiaFinBench/resolve/main
+    files:
+      - data/dev-00000-of-00001.parquet
+      - data/test-00000-of-00001.parquet
