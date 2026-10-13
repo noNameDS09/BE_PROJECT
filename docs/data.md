@@ -67,6 +67,27 @@ uv run loupe ingest build     # clean text + sections + parse-quality report
 - 10-Q: Part I Items 1 and 2 found.
 - 8-K: every item SEC lists for the filing found, except 9.01 (exhibit list).
 
+### Snapshot (built 2026-10-13)
+
+| Measure | Result |
+|---|---|
+| Filings listed in the window / fetched | **1,409 / 1,409 (100%)**: 76 10-K, 225 10-Q, 1,108 8-K |
+| Documents after parsing (filings + EX-99.1 releases) | 1,465 |
+| Raw SEC data on disk | 1.1 GB |
+| XBRL facts (2015 onward) | 488,147 rows · 3,086 concepts · 25 companies |
+| 10-K with Items 1A, 7 and 8 all found | 98.7% (section recall 99.1%) |
+| 10-Q with Part I Items 1 and 2 found | 98.7% (99.3%) |
+| 8-K with every listed item found | 99.6% (99.7%) |
+
+The 8 remaining misses are listed in `parse_report.json`:
+- Diebold Nixdorf's FY2025 10-K uses a cross-reference index with no "Item" headings, and some of its 10-Qs have the same problem.
+- Four 8-Ks have unusual heading layouts.
+
+**Spot check:** FY2024 revenue in `facts_latest` matches the reported figures:
+- AMD: $25.785B
+- PepsiCo: $91.854B
+- JPMorgan: $177.556B
+
 ## 3. Public evaluation datasets
 
 Defined in `configs/datasets.yaml`. Each one is downloaded to `data/raw/public/<name>/` with a `MANIFEST.json` recording the URL, size, sha256, licence and retrieval time.
@@ -91,8 +112,13 @@ uv run loupe datasets download docfinqa        # deferred: DocFinQA test split, 
 
 Non-commercial licences are fine for this research project. Never redistribute the files.
 
+Snapshot (2026-10-13): all 11 non-deferred sets downloaded, about 465 MB in total. FinanceBench includes the 84 source PDFs cited by its open questions.
+
 ## 4. Not yet collected
 
 - **Daily prices** (for the price-forecast experiment and the Scenario tool): source not chosen yet.
+  - Stooq now shows a bot-verification page, which we must not bypass.
+  - Yahoo's unofficial endpoint rate-limits us (HTTP 429).
+  - Options: a free-key API (Alpha Vantage, Tiingo).
 - **Earnings-call transcripts:** skipped for the US (decision D10).
 - **India data:** P6.

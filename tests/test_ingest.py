@@ -41,3 +41,31 @@ def test_8k_items_are_found():
         "Item 9.01 Financial Statements and Exhibits.\n(d) Exhibits\n"
     )
     assert [s.item for s in sections.split("8-K", text)] == ["2.02", "9.01"]
+
+
+def test_8k_heading_without_space_and_combined_items():
+    text = (
+        "Item 7.01Regulation FD Disclosure\nThe company furnished...\n"
+        "Item 2.02 Results of Operations and Item 8.01 Other Events\nOn May 1...\n"
+    )
+    assert [s.item for s in sections.split("8-K", text)] == ["7.01", "2.02", "8.01"]
+
+
+def test_periodic_heading_without_space_does_not_misread_letters():
+    text = "Item 1Business\nWe make things.\nItem 1ARisk Factors\nRisks.\n"
+    assert [s.item for s in sections.split("10-K", text)] == ["1", "1A"]
+
+
+def test_10q_ignores_toc_part_rows_and_falls_back_to_titles():
+    text = (
+        "Part II - Other Information | 21\n"  # TOC row, must not switch parts
+        "Item 2. Management's Discussion and Analysis.\nResults improved.\n"
+        "Part II - Other Information\nItem 2. Unregistered Sales\nNone.\n"
+    )
+    assert [s.item for s in sections.split("10-Q", text)] == ["I-2", "II-2"]
+
+    no_item_words = (
+        "Financial Statements\nBalance sheet...\n"
+        "Management\u2019s Discussion and Analysis of Financial Condition\nWe grew.\n"
+    )
+    assert [s.item for s in sections.split("10-Q", no_item_words)] == ["I-1", "I-2"]

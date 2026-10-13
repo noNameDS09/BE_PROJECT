@@ -6,7 +6,9 @@ view keeps the most recently filed value for each (company, concept, unit, perio
 which is what questions and tools should use.
 """
 
+import csv
 import hashlib
+import tempfile
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -106,10 +108,13 @@ def load_facts(db_path: Path, company_id: str, companyfacts: dict[str, Any]) -> 
     """Replace one company's facts in the DuckDB store; return the number of rows."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
     rows = iter_rows(company_id, companyfacts)
-    with duckdb.connect(str(db_path)) as con:
+    with duckdb.connect(str(db_path)) as con, tempfile.TemporaryDirectory() as tmp:
         con.execute(SCHEMA)
         con.execute("DELETE FROM facts WHERE company_id = ?", [company_id])
         if rows:
-            placeholders = ", ".join("?" * len(rows[0]))
-            con.executemany(f"INSERT INTO facts ({COLUMNS}) VALUES ({placeholders})", rows)
+            # bulk load through CSV: row-by-row inserts are far too slow for ~10^5 facts
+            path = Path(tmp) / "facts.csv"
+            with path.open("w", newline="") as f:
+                csv.writer(f).writerows(rows)
+            con.execute(f"COPY facts ({COLUMNS}) FROM '{path}' (HEADER false, NULLSTR '')")
     return len(rows)
