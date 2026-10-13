@@ -248,7 +248,7 @@ flowchart LR
 | Phase | Goal | Done when | Status |
 |---|---|---|---|
 | **P0** | Setup and pre-registration | Models checked, company list frozen, hypotheses tagged `prereg-v1` | 🟡 in progress |
-| **P1** | US data layer | ≥95% filing coverage; cited search works for every company | 🟡 universe, filings, XBRL and public datasets collected; parsing and index next |
+| **P1** | US data layer | ≥95% filing coverage; cited search works for every company | 🟡 25 companies, 1,409/1,409 filings, 488k XBRL facts, 11 public datasets, ≥98.7% section detection; chunking + index next |
 | **P2** | Thin end-to-end + Bench skeleton | One question runs on B0 vs Loupe across 2 models in the Compare page | ⬜ |
 | **P3** | All arms, full toolset, event extraction | Every arm answers the same 10 questions; tools pass unit tests | ⬜ |
 | **P4** | Datasets | Public loaders + verified Loupe-Gold + audit error rate | ⬜ |
