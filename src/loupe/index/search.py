@@ -228,7 +228,6 @@ def load_chunks(conn, dense_model: str | None = None) -> HybridIndex:
     rows = [(c["chunk_id"], c["text"]) for c in chunks]
     companies = {c["chunk_id"]: c["company_id"] for c in chunks}
     metadata = {
-        c["chunk_id"]: {k: v for k, v in c.items() if k not in {"chunk_id", "text"}}
-        for c in chunks
+        c["chunk_id"]: {k: v for k, v in c.items() if k not in {"chunk_id", "text"}} for c in chunks
     }
     return HybridIndex(rows, dense_model=dense_model, companies=companies, metadata=metadata)
