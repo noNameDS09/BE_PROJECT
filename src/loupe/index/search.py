@@ -136,6 +136,11 @@ class HybridIndex:
         # scoring, which is what docs/PLAN.md requires of every arm.
         self.companies: dict[str, str] = dict(companies or {})
         self.metadata: dict[str, dict] = dict(metadata or {})
+        # A chunk_id is "<section_id>:<index>", so the document cannot be
+        # recovered by splitting the id; it comes from the caller's metadata.
+        self.doc_ids: dict[str, str] = {
+            cid: meta["doc_id"] for cid, meta in self.metadata.items() if "doc_id" in meta
+        }
         self.bm25 = BM25Index(docs)
         self.dense = DenseIndex(list(self.texts), dense_model) if dense_model else None
         if self.dense is not None:
@@ -170,7 +175,7 @@ class HybridIndex:
             hits.append(
                 SearchHit(
                     chunk_id=chunk_id,
-                    doc_id=chunk_id.split(":")[0],
+                    doc_id=self.doc_ids.get(chunk_id, ""),
                     company_id=self.companies.get(chunk_id, ""),
                     text=text,
                     score=score,
@@ -223,11 +228,7 @@ def load_chunks(conn, dense_model: str | None = None) -> HybridIndex:
     rows = [(c["chunk_id"], c["text"]) for c in chunks]
     companies = {c["chunk_id"]: c["company_id"] for c in chunks}
     metadata = {
-        c["chunk_id"]: {
-            k: v
-            for k, v in c.items()
-            if k not in {"chunk_id", "text", "doc_id", "company_id", "section_id"}
-        }
+        c["chunk_id"]: {k: v for k, v in c.items() if k not in {"chunk_id", "text"}}
         for c in chunks
     }
     return HybridIndex(rows, dense_model=dense_model, companies=companies, metadata=metadata)

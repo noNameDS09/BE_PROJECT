@@ -116,3 +116,28 @@ def test_bm25_allowed_mask_restricts_scoring(allowed_none):
 
 def test_empty_index_returns_nothing():
     assert HybridIndex([], companies={}).search("anything", top_k=5) == []
+
+
+def test_hit_carries_the_real_doc_id_not_the_section_id():
+    """A chunk_id is '<section_id>:<index>'; splitting it gives a section id,
+    which cannot be resolved to a filing URL. doc_id must come from metadata."""
+    metadata = {
+        "a0:000": {"doc_id": "DOCX", "item": "7", "form": "10-K"},
+        "a0:001": {"doc_id": "DOCY", "item": "1A", "form": "10-Q"},
+        "a0:002": {"doc_id": "DOCZ", "item": "8", "form": "10-K"},
+        "a0:003": {"doc_id": "DOCW", "item": "2", "form": "10-Q"},
+        "b0:000": {"doc_id": "DOCV", "item": "1A", "form": "10-K"},
+        "b0:001": {"doc_id": "DOCU", "item": "7", "form": "10-K"},
+    }
+    index = HybridIndex(DOCS, companies=COMPANIES, metadata=metadata)
+    hits = index.search("gross margin", top_k=3)
+    assert all(hit.doc_id.startswith("DOC") for hit in hits)
+    assert all(hit.doc_id != hit.chunk_id.split(":")[0] for hit in hits)
+
+
+def test_hit_metadata_carries_citation_context():
+    metadata = {cid: {"doc_id": "D", "item": "1A", "form": "10-K"} for cid, _ in DOCS}
+    index = HybridIndex(DOCS, companies=COMPANIES, metadata=metadata)
+    hit = index.search("cybersecurity", top_k=1)[0]
+    assert hit.metadata["item"] == "1A"
+    assert hit.metadata["form"] == "10-K"
