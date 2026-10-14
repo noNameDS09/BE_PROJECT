@@ -13,7 +13,8 @@ from loupe.sources.us import edgar
 from loupe.sources.us.sec_client import SecClient
 
 FORMS = ("10-K", "10-Q", "8-K")
-EXHIBITS = {"8-K": ("EX-99.1",), "10-K": (), "10-Q": ()}
+# press releases: most filers use EX-99.1, some (PFE, BBY, VZ) plain EX-99
+EXHIBITS = {"8-K": ("EX-99.1", "EX-99"), "10-K": (), "10-Q": ()}
 
 
 class FilingRecord(BaseModel):
