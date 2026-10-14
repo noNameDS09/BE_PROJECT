@@ -304,6 +304,25 @@ uv run pytest              # run tests
 
 Optional, for local models: install [Ollama](https://ollama.com) and run `ollama pull qwen2.5:7b-instruct`.
 
+### Building the corpus (P1)
+
+`SEC_USER_AGENT` must be set in `.env` — SEC returns HTTP 403 without a contact address.
+
+```bash
+uv run loupe ingest --companies AMD --limit 4   # one company, a few filings
+uv run loupe ingest                             # the whole universe
+uv run loupe coverage                           # what landed, per company
+uv run loupe search "gross margin" --company AMD --top-k 5
+uv run loupe scan-risk                          # rank companies by 8-K risk events
+```
+
+Everything lands in `data/loupe.duckdb` (git-ignored). `data/raw/` and
+`data/cache/` hold the HTTP caches; delete them to force a clean re-fetch.
+Ingest is resumable: a filing already in the store is skipped.
+
+Prices are optional and may be unavailable depending on which free providers
+are reachable (see [D14](docs/decisions.md)); the rest of the corpus still builds.
+
 ## How we work
 
 - **Branches:** work on a feature branch and open a PR into `initialize`; `initialize` is merged into `main` at milestones.

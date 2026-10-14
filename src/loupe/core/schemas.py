@@ -27,8 +27,14 @@ class Section(BaseModel):
     doc_id: str
     title: str
     item: str | None = None  # e.g. "1A", "7", "2.02"
+    # Offsets are into the section's own text, not the whole filing.
+    # edgartools normalises whitespace differently between the full document
+    # body and the section text, so a section slice is not byte-identical to
+    # the matching span of the body. The verifier therefore resolves quotes
+    # against the stored section text; see docs/decisions.md.
     start_char: int
     end_char: int
+    part: str | None = None
 
 
 class Document(BaseModel):
@@ -46,6 +52,17 @@ class Document(BaseModel):
     sections: list[Section] = Field(default_factory=list)
 
 
+class Citation(BaseModel):
+    doc_id: str | None = None
+    chunk_id: str | None = None
+    fact_id: str | None = None
+    quote: str | None = None
+    start_char: int | None = None
+    end_char: int | None = None
+    url: str | None = None
+    verified: bool | None = None  # set by the verifier, never by the model
+
+
 class Chunk(BaseModel):
     chunk_id: str
     doc_id: str
@@ -56,6 +73,35 @@ class Chunk(BaseModel):
     section_id: str | None = None
     page: int | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SearchHit(BaseModel):
+    """One retrieved chunk, scored and ready to hand to an orchestrator.
+
+    `citation` is what a tool returns to a model: enough to open the source
+    and check the quote. `score` and `scores` are diagnostics for the Bench.
+    """
+
+    chunk_id: str
+    doc_id: str
+    company_id: str
+    text: str
+    score: float
+    citation: Citation
+    scores: dict[str, float] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CompanyInfo(BaseModel):
+    """A universe entry resolved against SEC's live ticker file."""
+
+    ticker: str
+    name: str
+    cik: str
+    country: Literal["US", "IN"] = "US"
+    sector: str | None = None
+    split: Literal["dev", "test"] | None = None
+    source: str = "financebench"  # or "event_scan"
 
 
 class Fact(BaseModel):
@@ -71,17 +117,6 @@ class Fact(BaseModel):
     form: str | None = None
     accession: str | None = None
     source_url: str | None = None
-
-
-class Citation(BaseModel):
-    doc_id: str | None = None
-    chunk_id: str | None = None
-    fact_id: str | None = None
-    quote: str | None = None
-    start_char: int | None = None
-    end_char: int | None = None
-    url: str | None = None
-    verified: bool | None = None  # set by the verifier, never by the model
 
 
 class Event(BaseModel):
