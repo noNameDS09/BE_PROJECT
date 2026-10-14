@@ -105,7 +105,7 @@ INDEX_PAGE = """
 <tr><th>Seq</th><th>Description</th><th>Document</th><th>Type</th><th>Size</th></tr>
 <tr><td>1</td><td>8-K</td><td><a href="/x/e.htm">e.htm</a> &nbsp;&nbsp;iXBRL</td>
 <td>8-K</td><td>31546</td></tr>
-<tr><td>2</td><td>PRESS RELEASE</td><td><a href="/x/ex991.htm">ex991.htm</a></td>
+<tr class="evenRow"><td>2</td><td>PRESS RELEASE</td><td><a href="/x/ex991.htm">ex991.htm</a></td>
 <td>EX-99.1</td><td>90000</td></tr>
 <tr><td>&nbsp;</td><td>Complete submission text file</td><td><a href="/x/a.txt">a.txt</a></td>
 <td>&nbsp;</td><td>204943</td></tr>

@@ -60,7 +60,7 @@ uv run loupe ingest build     # clean text + sections + parse-quality report
 - 10-Q Items, prefixed with their part: I-1, I-2, II-1A and so on.
 - 8-K Items: 2.02, 4.02 and so on.
 - Table-of-contents rows are recognised by their trailing page number and skipped.
-- EX-99.1 earnings releases are stored as separate documents.
+- Press-release exhibits (EX-99.1, or plain EX-99 for PFE/BBY/VZ) are stored as separate documents.
 
 **Quality check:**
 - 10-K: Items 1A, 7 and 8 found.
@@ -72,8 +72,9 @@ uv run loupe ingest build     # clean text + sections + parse-quality report
 | Measure | Result |
 |---|---|
 | Filings listed in the window / fetched | **1,409 / 1,409 (100%)**: 76 10-K, 225 10-Q, 1,108 8-K |
-| Documents after parsing (filings + EX-99.1 releases) | 1,465 |
-| Raw SEC data on disk | 1.1 GB |
+| Documents after parsing | 2,094: 1,409 filings + 685 press-release exhibits (EX-99.1 / EX-99) |
+| Earnings 8-Ks (Item 2.02) with their press release | 302 / 304 |
+| Raw SEC data on disk | 1.3 GB |
 | XBRL facts (2015 onward) | 488,147 rows · 3,086 concepts · 25 companies |
 | 10-K with Items 1A, 7 and 8 all found | 98.7% (section recall 99.1%) |
 | 10-Q with Part I Items 1 and 2 found | 98.7% (99.3%) |

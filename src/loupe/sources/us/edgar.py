@@ -120,7 +120,7 @@ def parse_index(page: str) -> list[FilingDocument]:
     if not table:
         return []
     docs = []
-    for row in re.findall(r"(?is)<tr>(.*?)</tr>", table.group(0)):
+    for row in re.findall(r"(?is)<tr[^>]*>(.*?)</tr>", table.group(0)):
         cells = [
             html.unescape(re.sub(r"<[^>]+>", "", c)).replace("\xa0", " ").strip()
             for c in re.findall(r"(?is)<td[^>]*>(.*?)</td>", row)
