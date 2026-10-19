@@ -18,7 +18,8 @@ from pydantic import BaseModel
 
 Period = Literal["FY", "Q1", "Q2", "Q3", "Q4"]
 ARCHIVE = "https://www.sec.gov/Archives/edgar/data/{cik}/{folder}/"
-DAYS = {"FY": (350, 380), "Q": (80, 100), "9M": (260, 285)}
+# quarters up to 16 weeks (Kroger Q1); nine months from 36 weeks (PepsiCo) to 40 weeks (Kroger)
+DAYS = {"FY": (350, 380), "Q": (80, 115), "9M": (245, 290)}
 TOLERANCE = timedelta(days=7)
 
 
@@ -59,9 +60,10 @@ def _adj_year(d: date) -> int:
 
 
 class FiscalCalendar:
-    def __init__(self, fy_ends: list[date], offset: int):
+    def __init__(self, fy_ends: list[date], offset: int, quarter_ends: list[date] | None = None):
         self.fy_ends = sorted(fy_ends)
         self.offset = offset
+        self.quarter_ends = sorted(quarter_ends or [])  # actual 10-Q period ends
 
     def fy_label(self, fy_end: date) -> int:
         return _adj_year(fy_end) + self.offset
@@ -77,8 +79,22 @@ class FiscalCalendar:
         return None
 
     def quarter_end(self, fiscal_year: int, q: int) -> date | None:
+        """End of fiscal quarter q: the q-th 10-Q period end inside the fiscal year when known
+        (quarters can be 12 or 16 weeks), else an estimate of 13 weeks per quarter."""
         end = self.fy_end_for(fiscal_year)
-        return end - timedelta(days=91 * (4 - q)) if end else None
+        if end is None:
+            return None
+        if q == 4:
+            return end
+        start = self.fy_end_for(fiscal_year - 1) or end - timedelta(days=364)
+        inside = [
+            d
+            for d in self.quarter_ends
+            if start + timedelta(days=20) < d < end - timedelta(days=20)
+        ]
+        if len(inside) == 3:
+            return inside[q - 1]
+        return end - timedelta(days=91 * (4 - q))
 
     def label(self, period_end: date) -> tuple[int, Period] | None:
         """Fiscal year and quarter of a quarter-end (or year-end) date."""
@@ -119,7 +135,16 @@ class FactsStore:
             votes = Counter(r[1] - _adj_year(r[2]) for r in rows)
             if votes and votes.most_common(1)[0][1] > len(rows) / 2:
                 offset = votes.most_common(1)[0][0]
-            self._calendars[company_id] = FiscalCalendar(ends, offset)
+            quarters = self.con.execute(
+                """
+                SELECT max(period_end) FROM facts
+                WHERE company_id = ? AND form = '10-Q' AND period_start IS NOT NULL
+                  AND datediff('day', period_start, period_end) BETWEEN 80 AND 115
+                GROUP BY accession
+                """,
+                [company_id],
+            ).fetchall()
+            self._calendars[company_id] = FiscalCalendar(ends, offset, [q[0] for q in quarters])
         return self._calendars[company_id]
 
     def _rows(
@@ -187,8 +212,9 @@ class FactsStore:
                 rows = self._rows(company_id, concept, spec.unit, end, "duration", DAYS["FY"])
             else:
                 rows = self._rows(company_id, concept, spec.unit, end, "duration", DAYS["Q"])
-                if not rows and period == "Q4":
-                    # Q4 is rarely reported on its own: full year minus nine-month YTD
+                if not rows and period == "Q4" and "/" not in spec.unit:
+                    # Q4 is rarely reported on its own: full year minus nine-month YTD.
+                    # Not for per-share values (EPS), which don't add up across periods.
                     fy_rows = self._rows(
                         company_id, concept, spec.unit, end, "duration", DAYS["FY"]
                     )
