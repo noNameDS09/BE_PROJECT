@@ -44,7 +44,7 @@
 3. While it runs, start T2 in a second terminal and do T5 by hand.
 4. Then T4, then T6.
 
-### T1 · GPU: benchmark document indexes (≈30 min)
+### T1 · GPU: benchmark document indexes (≈45 min; 44K + 270K chunks)
 Unzip `loupe-gpu-chunks.zip` (from Ayush) in the repo root. It creates `data/processed/index/docs-financebench/chunks.jsonl` and `docs-finder/chunks.jsonl`. Then:
 ```bash
 uv run --no-sync loupe index build --device cuda --from-chunks data/processed/index/docs-financebench/chunks.jsonl --out data/processed/index/docs-financebench
