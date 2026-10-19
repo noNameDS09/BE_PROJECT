@@ -1,6 +1,7 @@
 """Command-line entry point: `loupe ...`."""
 
 import json
+from datetime import date
 from pathlib import Path
 from typing import Annotated
 
@@ -10,10 +11,13 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from loupe.core.schemas import Company
+from loupe.core.schemas import Company, Document
 from loupe.core.settings import get_settings
 from loupe.datasets import public
 from loupe.datasets.public import load_specs
+from loupe.index.chunk import chunk_document
+from loupe.index.embed import EMBEDDERS, FastEmbedder
+from loupe.index.search import SearchFilter, SearchIndex, build_index
 from loupe.ingest.build import build_corpus
 from loupe.llm import Gateway, ModelRegistry
 from loupe.llm.check import probe
@@ -29,11 +33,13 @@ datasets_app = typer.Typer(no_args_is_help=True, help="Public evaluation dataset
 universe_app = typer.Typer(no_args_is_help=True, help="US company universe.")
 sec_app = typer.Typer(no_args_is_help=True, help="SEC EDGAR corpus.")
 ingest_app = typer.Typer(no_args_is_help=True, help="Parse filings into documents.")
+index_app = typer.Typer(no_args_is_help=True, help="Chunk + embed + BM25 search index.")
 app.add_typer(models_app, name="models")
 app.add_typer(datasets_app, name="datasets")
 app.add_typer(universe_app, name="universe")
 app.add_typer(sec_app, name="sec")
 app.add_typer(ingest_app, name="ingest")
+app.add_typer(index_app, name="index")
 console = Console()
 
 STATUS_STYLE = {"ok": "[green]ok[/]", "fail": "[red]fail[/]", "skip": "[dim]skip[/]"}
@@ -258,6 +264,111 @@ def ingest_build() -> None:
         )
     console.print(table)
     console.print(f"{len(report['errors'])} errors · details in {out / 'parse_report.json'}")
+
+
+def _index_dir(variant: str | None = None) -> Path:
+    root = get_settings().data_dir / "processed" / "index"
+    if variant is None:
+        default = root / "DEFAULT"
+        if not default.exists():
+            raise typer.BadParameter("No index yet: run `loupe index build` first")
+        variant = default.read_text().strip()
+    return root / variant
+
+
+@index_app.command("build")
+def index_build(
+    size: Annotated[int, typer.Option(help="Max chunk size in characters.")] = 1200,
+    overlap: Annotated[int, typer.Option(help="Overlap between chunks in characters.")] = 150,
+    embedder: Annotated[str, typer.Option(help=f"One of: {', '.join(EMBEDDERS)}.")] = "bge-small",
+    default: Annotated[bool, typer.Option(help="Make this variant the default.")] = True,
+) -> None:
+    """Chunk every parsed document (section-aware), embed locally, build BM25."""
+    data = get_settings().data_dir / "processed" / "sec"
+    variant = f"c{size}o{overlap}-{embedder}"
+    out = get_settings().data_dir / "processed" / "index" / variant
+    chunks = []
+    with console.status("chunking") as status:
+        for line in (data / "documents.jsonl").read_text().splitlines():
+            doc = Document.model_validate_json(line)
+            text = (data / "text" / f"{doc.doc_id}.txt").read_text()
+            chunks += chunk_document(doc, text, size, overlap)
+        status.update(f"loading {embedder}")
+        build_index(chunks, out, FastEmbedder(embedder), progress=status.update)
+    if default:
+        (out.parent / "DEFAULT").write_text(variant)
+    console.print(f"[green]{len(chunks):,} chunks indexed in {out}[/]")
+
+
+@app.command("search")
+def search(
+    query: str,
+    company: Annotated[list[str] | None, typer.Option(help="Ticker(s).")] = None,
+    form: Annotated[list[str] | None, typer.Option(help="10-K, 10-Q, 8-K, EX-99.1")] = None,
+    item: Annotated[
+        list[str] | None, typer.Option(help="Section item, e.g. 1A, 7, I-2, 2.02")
+    ] = None,
+    period_from: Annotated[str | None, typer.Option("--from", help="YYYY-MM-DD")] = None,
+    period_to: Annotated[str | None, typer.Option("--to", help="YYYY-MM-DD")] = None,
+    k: Annotated[int, typer.Option(help="Number of results.")] = 5,
+    mode: Annotated[str, typer.Option(help="hybrid | dense | bm25")] = "hybrid",
+    variant: Annotated[str | None, typer.Option(help="Index variant (default: DEFAULT).")] = None,
+) -> None:
+    """Search the filings and print cited passages."""
+    path = _index_dir(variant)
+    info = json.loads((path / "INFO.json").read_text())
+    index = SearchIndex.load(path, FastEmbedder(info["embedder"]))
+    f = SearchFilter(
+        companies=company,
+        forms=form,
+        items=item,
+        period_from=date.fromisoformat(period_from) if period_from else None,
+        period_to=date.fromisoformat(period_to) if period_to else None,
+    )
+    for n, hit in enumerate(index.search(query, k=k, filter=f, mode=mode), 1):  # type: ignore[arg-type]
+        c, m = hit.chunk, hit.chunk.metadata
+        items = ",".join(m.get("items") or []) or "cover"
+        console.rule(
+            f"[{n}] {c.company_id} {m.get('form')} {m.get('period_end')} item {items} "
+            f"[dim](dense #{hit.dense_rank}, bm25 #{hit.bm25_rank})[/]"
+        )
+        console.print(c.text[:700] + ("…" if len(c.text) > 700 else ""), highlight=False)
+        console.print(f"[dim]{m.get('url')}  chars {c.start_char}-{c.end_char}[/]")
+
+
+@app.command("ask")
+def ask(
+    question: str,
+    arm: Annotated[
+        list[str] | None, typer.Option(help="b0 | rag | react (repeat to compare).")
+    ] = None,
+    model: Annotated[str, typer.Option(help="Alias from configs/models.yaml.")] = "groq-llama-70b",
+    trace: Annotated[bool, typer.Option(help="Show every step and tool call.")] = False,
+) -> None:
+    """Answer a question with one or more arms; every claim is checked against evidence."""
+    from loupe.engine import Engine
+
+    engine = Engine()
+    for name in arm or ["react"]:
+        with console.status(f"{name} on {model}"):
+            answer = engine.ask(question, arm=name, model=model)
+        console.rule(f"[bold]{name}[/] · {model}")
+        console.print(answer.text, highlight=False)
+        checked = [c for c in answer.claims if c.supported is not None]
+        ok = sum(bool(c.supported) for c in checked)
+        console.print(
+            f"[dim]claims verified {ok}/{len(checked)} · evidence {len(answer.evidence)} · "
+            f"tokens {answer.tokens:,} · {answer.latency_ms / 1000:.1f}s · "
+            f"abstained {answer.abstained}[/]"
+        )
+        for c in answer.claims:
+            if c.supported is False:
+                console.print(f"  [red]unsupported:[/] {c.text[:160]}", highlight=False)
+        if trace:
+            for step in answer.trace:
+                console.print(
+                    f"  [cyan]{step.stage}:{step.name}[/] {str(step.input)[:120]}", highlight=False
+                )
 
 
 if __name__ == "__main__":

@@ -17,6 +17,9 @@ dependencies = [
     "duckdb>=1.1",
     "beautifulsoup4>=4.12",
     "lxml>=5.2",
+    "fastembed>=0.4",
+    "bm25s>=0.2",
+    "numpy>=1.26",
 ]
 
 [project.scripts]
