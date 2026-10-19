@@ -81,6 +81,7 @@ class Citation(BaseModel):
     start_char: int | None = None
     end_char: int | None = None
     url: str | None = None
+    page: int | None = None  # 0-indexed PDF page, for bring-your-own-docs benchmarks
     verified: bool | None = None  # set by the verifier, never by the model
 
 

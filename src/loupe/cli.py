@@ -15,6 +15,7 @@ from loupe.core.schemas import Company, Document
 from loupe.core.settings import get_settings
 from loupe.datasets import public
 from loupe.datasets.public import load_specs
+from loupe.eval.cli import app as eval_app
 from loupe.index.chunk import chunk_document
 from loupe.index.embed import EMBEDDERS, FastEmbedder
 from loupe.index.search import SearchFilter, SearchIndex, build_index
@@ -40,6 +41,7 @@ app.add_typer(universe_app, name="universe")
 app.add_typer(sec_app, name="sec")
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(index_app, name="index")
+app.add_typer(eval_app, name="eval")
 console = Console()
 
 STATUS_STYLE = {"ok": "[green]ok[/]", "fail": "[red]fail[/]", "skip": "[dim]skip[/]"}
