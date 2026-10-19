@@ -1,6 +1,7 @@
 """Command-line entry point: `loupe ...`."""
 
 import json
+import time
 from datetime import date
 from pathlib import Path
 from typing import Annotated
@@ -12,14 +13,14 @@ from rich.console import Console
 from rich.table import Table
 
 from loupe.core.jsonl import jsonl_lines
-from loupe.core.schemas import Company, Document
+from loupe.core.schemas import Chunk, Company, Document
 from loupe.core.settings import get_settings
 from loupe.datasets import public
 from loupe.datasets.public import load_specs
 from loupe.eval.cli import app as eval_app
 from loupe.extract.cli import app as extract_app
-from loupe.index.chunk import chunk_document
-from loupe.index.embed import EMBEDDERS, FastEmbedder
+from loupe.index.chunk import chunk_document, context_header
+from loupe.index.embed import EMBEDDERS, FastEmbedder, agreement, make_embedder
 from loupe.index.search import SearchFilter, SearchIndex, build_index
 from loupe.ingest.build import build_corpus
 from loupe.llm import Gateway, ModelRegistry
@@ -286,23 +287,78 @@ def index_build(
     size: Annotated[int, typer.Option(help="Max chunk size in characters.")] = 1200,
     overlap: Annotated[int, typer.Option(help="Overlap between chunks in characters.")] = 150,
     embedder: Annotated[str, typer.Option(help=f"One of: {', '.join(EMBEDDERS)}.")] = "bge-small",
+    device: Annotated[str, typer.Option(help="cpu (ONNX) | cuda | mps")] = "cpu",
+    from_chunks: Annotated[
+        Path | None, typer.Option(help="Embed an existing chunks.jsonl instead of re-chunking.")
+    ] = None,
     default: Annotated[bool, typer.Option(help="Make this variant the default.")] = True,
 ) -> None:
-    """Chunk every parsed document (section-aware), embed locally, build BM25."""
-    data = get_settings().data_dir / "processed" / "sec"
+    """Chunk every parsed document (section-aware), embed, build BM25.
+
+    On a CPU this takes hours for the full corpus; use --device cuda on an NVIDIA GPU
+    (see docs/GPU-INDEX-BUILD.md)."""
     variant = f"c{size}o{overlap}-{embedder}"
     out = get_settings().data_dir / "processed" / "index" / variant
-    chunks = []
-    with console.status("chunking") as status:
-        for line in jsonl_lines(data / "documents.jsonl"):
-            doc = Document.model_validate_json(line)
-            text = (data / "text" / f"{doc.doc_id}.txt").read_text()
-            chunks += chunk_document(doc, text, size, overlap)
-        status.update(f"loading {embedder}")
-        build_index(chunks, out, FastEmbedder(embedder), progress=status.update)
+    if from_chunks is not None:
+        chunks = [Chunk.model_validate_json(x) for x in jsonl_lines(from_chunks)]
+        console.print(f"Loaded {len(chunks):,} chunks from {from_chunks}")
+    else:
+        data = get_settings().data_dir / "processed" / "sec"
+        chunks = []
+        with console.status("chunking"):
+            for line in jsonl_lines(data / "documents.jsonl"):
+                doc = Document.model_validate_json(line)
+                text = (data / "text" / f"{doc.doc_id}.txt").read_text()
+                chunks += chunk_document(doc, text, size, overlap)
+    started = time.time()
+
+    def progress(msg: str) -> None:
+        console.log(f"{msg} · {time.time() - started:,.0f}s")
+
+    console.log(f"loading {embedder} on {device}")
+    build_index(chunks, out, make_embedder(embedder, device), progress=progress)
     if default:
         (out.parent / "DEFAULT").write_text(variant)
-    console.print(f"[green]{len(chunks):,} chunks indexed in {out}[/]")
+    console.print(
+        f"[green]{len(chunks):,} chunks indexed in {out} ({time.time() - started:,.0f}s)[/]"
+    )
+
+
+@index_app.command("check")
+def index_check(
+    variant: Annotated[str | None, typer.Option(help="Index variant (default: DEFAULT).")] = None,
+    sample: Annotated[int, typer.Option(help="Chunks to re-embed locally.")] = 64,
+) -> None:
+    """Verify an index built elsewhere (e.g. on a GPU): counts match, vectors agree with ONNX.
+
+    A seeded sample of chunks is re-embedded locally; cosine with the stored vectors must be
+    at least 0.99."""
+    import random
+
+    import numpy as np
+
+    path = _index_dir(variant)
+    info = json.loads((path / "INFO.json").read_text())
+    lines = jsonl_lines(path / "chunks.jsonl")
+    dense = np.load(path / "dense.npy", mmap_mode="r")
+    ok = len(lines) == info["chunks"] == dense.shape[0]
+    status = "[green]consistent[/]" if ok else "[red]MISMATCH[/]"
+    console.print(
+        f"chunks.jsonl {len(lines):,} · dense.npy {dense.shape} · "
+        f"INFO {info['chunks']:,} -> {status}"
+    )
+    idx = sorted(random.Random(20261013).sample(range(len(lines)), min(sample, len(lines))))
+    chunks = [Chunk.model_validate_json(lines[i]) for i in idx]
+    fresh = FastEmbedder(info["embedder"]).passages([context_header(c) + c.text for c in chunks])
+    cos = agreement(np.asarray(dense[idx]), fresh)
+    good = bool(cos.min() >= 0.99)
+    verdict = "[green]vectors match[/]" if good else "[red]vectors differ[/]"
+    console.print(
+        f"re-embedded {len(idx)} chunks: cosine min {cos.min():.4f}, "
+        f"mean {cos.mean():.4f} -> {verdict}"
+    )
+    if not (ok and good):
+        raise typer.Exit(1)
 
 
 @app.command("search")
