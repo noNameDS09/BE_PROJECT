@@ -248,7 +248,7 @@ flowchart LR
 | Phase | Goal | Done when | Status |
 |---|---|---|---|
 | **P0** | Setup and pre-registration | Models checked, company list frozen, hypotheses tagged `prereg-v1` | 🟡 in progress |
-| **P1** | US data layer | ≥95% filing coverage; cited search works for every company | ⬜ |
+| **P1** | US data layer | ≥95% filing coverage; cited search works for every company | 🟡 25 companies, 1,409/1,409 filings, 488k XBRL facts, 11 public datasets, ≥98.7% section detection; chunking + index next |
 | **P2** | Thin end-to-end + Bench skeleton | One question runs on B0 vs Loupe across 2 models in the Compare page | ⬜ |
 | **P3** | All arms, full toolset, event extraction | Every arm answers the same 10 questions; tools pass unit tests | ⬜ |
 | **P4** | Datasets | Public loaders + verified Loupe-Gold + audit error rate | ⬜ |
@@ -274,17 +274,18 @@ Loupe/
 ├── src/loupe/
 │   ├── core/           # ✅ data contracts (schemas) and settings
 │   ├── llm/            # ✅ gateway: cache, throttle, retry, cost log; model probe
+│   ├── datasets/       # ✅ public dataset downloader with provenance (loaders, Loupe-Gold in P4)
 │   ├── cli.py          # ✅ `loupe` command
-│   ├── sources/us/     # P1  EDGAR filings, XBRL facts, prices   (sources/india/ in P6)
-│   ├── ingest/ index/  # P1  sections, chunks, embeddings, hybrid search
+│   ├── sources/us/     # ✅ EDGAR client, universe selection, filing fetch, XBRL → DuckDB (prices next)
+│   ├── ingest/         # ✅ HTML → clean text, 10-K/10-Q/8-K sections, parse-quality report
+│   ├── index/          # P1  chunks, embeddings, hybrid search
 │   ├── tools/          # P2–P3  search, facts, calc, compare, chart, timeline, trend, distress, price
 │   ├── extract/        # P3  8-K event extraction, quote validator, quality scorer
 │   ├── orchestrators/  # P2–P3  b0, rag, react, plan_execute, router, self_refine, loupe
-│   ├── datasets/       # P4  public loaders, Loupe-Gold builders and verifiers
 │   ├── eval/           # P4–P5  runner, metrics, judge, statistics
 │   └── api/            # P2  FastAPI
 ├── web/                # P2  React + Vite + TypeScript (Bench + Chat)
-├── configs/            # models.yaml, companies_us.yaml, arms/
+├── configs/            # models.yaml, companies_us.yaml, datasets.yaml, arms/
 ├── data/               # raw/ processed/ cache/ (git-ignored) · gold/ (versioned) · taxonomy/
 ├── docs/               # PLAN, hypotheses, decisions, research-log, significance/, papers/
 └── tests/
@@ -302,7 +303,26 @@ uv run loupe models check  # probe each model: reachable, tool calling, JSON mod
 uv run pytest              # run tests
 ```
 
+Build the US data (details in [`docs/data.md`](docs/data.md)):
+
+```bash
+uv run loupe universe build       # 25 companies: CIKs, eligibility, dev/test split
+uv run loupe sec fetch            # 10-K, 10-Q, 8-K + EX-99.1 for FY2023-25 (cached, 8 req/s)
+uv run loupe sec facts            # XBRL facts -> data/processed/loupe.duckdb
+uv run loupe ingest build         # clean text + sections + parse-quality report
+uv run loupe datasets download    # public benchmarks with provenance manifests
+```
+
 Optional, for local models: install [Ollama](https://ollama.com) and run `ollama pull qwen2.5:7b-instruct`.
+
+Run the Bench web app (Node 22; details in [`web/README.md`](web/README.md)):
+
+```bash
+cd web && npm install
+npm run dev:mock     # UI on mock fixtures, no backend needed (http://localhost:5173)
+npm run dev          # against the API; proxies /api to http://localhost:8000
+npm test && npm run build
+```
 
 ## How we work
 
@@ -322,5 +342,6 @@ Optional, for local models: install [Ollama](https://ollama.com) and run `ollama
 | [`docs/hypotheses.md`](docs/hypotheses.md) | Pre-registered design, metrics and decision rules |
 | [`docs/decisions.md`](docs/decisions.md) | Decisions log |
 | [`docs/research-log.md`](docs/research-log.md) | Experiment runs |
+| [`docs/data.md`](docs/data.md) | Data inventory: companies, SEC corpus, public datasets, how to rebuild |
 | [`docs/significance/`](docs/significance/) | Problem, users, competitors, impact |
 | [`docs/papers/`](docs/papers/) | Base paper (FARE) and paper map |

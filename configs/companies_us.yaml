@@ -1,32 +1,366 @@
-# US company universe: DRAFT, not frozen.
-# Selection rule (docs/PLAN.md, D3): ~15 companies from the FinanceBench open sample that still
-# file with the SEC, plus ~10 chosen by scanning FY2023-25 8-Ks for risk events
-# (items 1.03 bankruptcy, 2.04 debt-default triggers, 4.01 auditor change,
-# 4.02 restatement, 5.02 officer departures).
-# CIKs are resolved from SEC's company_tickers.json once SEC_USER_AGENT is set.
-# split: assigned by a seeded, sector-stratified draw (8 dev / 17 test) at freeze time.
+# US company universe (decision D3, docs/decisions.md).
+#
+# `selection` is edited by people; `companies` is written by `loupe universe build`,
+# which resolves CIKs from SEC's ticker file, checks eligibility and assigns the split.
+#
+# Rule:
+#  - financebench: the 15 FinanceBench open-sample companies with the most questions that still
+#    file 10-Ks (118 of the 150 open questions).
+#  - event: 10 companies with revenue >= $1B (CY2024 XBRL frames) and FY2023-25 8-K risk items
+#    (1.03 bankruptcy, 1.05 cyber incident, 2.04 acceleration trigger, 2.06 impairment,
+#    4.01 auditor change, 4.02 non-reliance), from an EDGAR full-text search scan on 2026-10-13,
+#    chosen to cover every item type and different sectors.
+#  - every company needs >= 3 10-K and >= 6 10-Q with period of report in 2023-01-01..2025-12-31.
+# split: 8 dev / 17 test, stratified by sector, random.Random(seed).
 
-version: 0
-status: draft
-financebench_candidates:  # pick ~15; all appear in the FinanceBench open sample
-  - MMM   # 3M
-  - ADBE  # Adobe
-  - AMD   # Advanced Micro Devices
-  - AMZN  # Amazon
-  - AXP   # American Express
-  - BBY   # Best Buy
-  - BA    # Boeing
-  - KO    # Coca-Cola
-  - CVS   # CVS Health
-  - JNJ   # Johnson & Johnson
-  - JPM   # JPMorgan Chase
-  - LMT   # Lockheed Martin
-  - MGM   # MGM Resorts
-  - MSFT  # Microsoft
-  - NKE   # Nike
-  - PEP   # PepsiCo
-  - PFE   # Pfizer
-  - VZ    # Verizon
-  - WMT   # Walmart
-event_candidates: []  # filled by the 8-K risk-event scan
-companies: []         # final 25, with cik, sector, split
+version: 1
+window: {start: 2023-01-01, end: 2025-12-31}
+split: {seed: 20261013, n_dev: 8}
+
+selection:
+  # FinanceBench overlap (question count in the open sample)
+  - {ticker: PEP,  group: financebench, sector: Consumer Staples, reason: "11 questions"}
+  - {ticker: AMCR, group: financebench, sector: Materials, reason: "9 questions"}
+  - {ticker: JNJ,  group: financebench, sector: Health Care, reason: "9 questions"}
+  - {ticker: MMM,  group: financebench, sector: Industrials, reason: "8 questions"}
+  - {ticker: AMD,  group: financebench, sector: Information Technology, reason: "8 questions"}
+  - {ticker: BBY,  group: financebench, sector: Consumer Discretionary, reason: "8 questions"}
+  - {ticker: BA,   group: financebench, sector: Industrials, reason: "8 questions"}
+  - {ticker: AXP,  group: financebench, sector: Financials, reason: "7 questions"}
+  - {ticker: MGM,  group: financebench, sector: Consumer Discretionary, reason: "7 questions"}
+  - {ticker: PFE,  group: financebench, sector: Health Care, reason: "6 questions"}
+  - {ticker: ULTA, group: financebench, sector: Consumer Discretionary, reason: "6 questions"}
+  - {ticker: ADBE, group: financebench, sector: Information Technology, reason: "5 questions"}
+  - {ticker: JPM,  group: financebench, sector: Financials, reason: "5 questions"}
+  - {ticker: VZ,   group: financebench, sector: Communication Services, reason: "5 questions"}
+  - {ticker: CVS,  group: financebench, sector: Health Care, reason: "4 questions; 8-K 2.04"}
+  # Risk events (8-K items in the window)
+  - {ticker: ADM,  group: event, sector: Consumer Staples, reason: "4.02 non-reliance (accounting review)"}
+  - {ticker: UNH,  group: event, sector: Health Care, reason: "1.05 cybersecurity incident"}
+  - {ticker: DBD,  group: event, sector: Information Technology, reason: "1.03 bankruptcy x3, 2.04"}
+  - {ticker: SHAK, group: event, sector: Consumer Discretionary, reason: "4.02 x2, 2.06"}
+  - {ticker: SAH,  group: event, sector: Consumer Discretionary, reason: "4.01, 2.06, 1.05"}
+  - {ticker: ECHO, group: event, sector: Communication Services, reason: "2.04 x3"}
+  - {ticker: KR,   group: event, sector: Consumer Staples, reason: "2.04, 2.06"}
+  - {ticker: RIG,  group: event, sector: Energy, reason: "2.06 x6"}
+  - {ticker: CMP,  group: event, sector: Materials, reason: "4.01, 4.02"}
+  - {ticker: BFH,  group: event, sector: Financials, reason: "2.04 x3"}
+
+companies:
+- id: PEP
+  name: PEPSICO INC
+  cik: '0000077476'
+  country: US
+  sector: Consumer Staples
+  group: financebench
+  split: test
+  fiscal_year_end: '1226'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 32
+  risk_items: {}
+- id: AMCR
+  name: Amcor plc
+  cik: '0001748790'
+  country: US
+  sector: Materials
+  group: financebench
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 41
+  risk_items: {}
+- id: JNJ
+  name: JOHNSON & JOHNSON
+  cik: '0000200406'
+  country: US
+  sector: Health Care
+  group: financebench
+  split: test
+  fiscal_year_end: '0103'
+  n_10k: 4
+  n_10q: 9
+  n_8k: 39
+  risk_items: {}
+- id: MMM
+  name: 3M CO
+  cik: '0000066740'
+  country: US
+  sector: Industrials
+  group: financebench
+  split: dev
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 47
+  risk_items: {}
+- id: AMD
+  name: ADVANCED MICRO DEVICES INC
+  cik: '0000002488'
+  country: US
+  sector: Information Technology
+  group: financebench
+  split: dev
+  fiscal_year_end: '1226'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 34
+  risk_items: {}
+- id: BBY
+  name: BEST BUY CO INC
+  cik: '0000764478'
+  country: US
+  sector: Consumer Discretionary
+  group: financebench
+  split: test
+  fiscal_year_end: '0130'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 24
+  risk_items: {}
+- id: BA
+  name: BOEING CO
+  cik: '0000012927'
+  country: US
+  sector: Industrials
+  group: financebench
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 41
+  risk_items: {}
+- id: AXP
+  name: AMERICAN EXPRESS CO
+  cik: '0000004962'
+  country: US
+  sector: Financials
+  group: financebench
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 75
+  risk_items: {}
+- id: MGM
+  name: MGM Resorts International
+  cik: '0000789570'
+  country: US
+  sector: Consumer Discretionary
+  group: financebench
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 31
+  risk_items: {}
+- id: PFE
+  name: PFIZER INC
+  cik: '0000078003'
+  country: US
+  sector: Health Care
+  group: financebench
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 35
+  risk_items: {}
+- id: ULTA
+  name: Ulta Beauty, Inc.
+  cik: '0001403568'
+  country: US
+  sector: Consumer Discretionary
+  group: financebench
+  split: dev
+  fiscal_year_end: '0130'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 27
+  risk_items: {}
+- id: ADBE
+  name: ADOBE INC.
+  cik: '0000796343'
+  country: US
+  sector: Information Technology
+  group: financebench
+  split: test
+  fiscal_year_end: '1127'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 25
+  risk_items: {}
+- id: JPM
+  name: JPMORGAN CHASE & CO
+  cik: '0000019617'
+  country: US
+  sector: Financials
+  group: financebench
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 79
+  risk_items: {}
+- id: VZ
+  name: VERIZON COMMUNICATIONS INC
+  cik: '0000732712'
+  country: US
+  sector: Communication Services
+  group: financebench
+  split: dev
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 45
+  risk_items: {}
+- id: CVS
+  name: CVS HEALTH Corp
+  cik: '0000064803'
+  country: US
+  sector: Health Care
+  group: financebench
+  split: dev
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 53
+  risk_items:
+    '2.04': 1
+- id: ADM
+  name: Archer-Daniels-Midland Co
+  cik: '0000007084'
+  country: US
+  sector: Consumer Staples
+  group: event
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 28
+  risk_items:
+    '4.02': 1
+- id: UNH
+  name: UNITEDHEALTH GROUP INC
+  cik: '0000731766'
+  country: US
+  sector: Health Care
+  group: event
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 47
+  risk_items:
+    '1.05': 1
+- id: DBD
+  name: DIEBOLD NIXDORF, Inc
+  cik: '0000028823'
+  country: US
+  sector: Information Technology
+  group: event
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 51
+  risk_items:
+    '1.03': 3
+    '2.04': 1
+- id: SHAK
+  name: Shake Shack Inc.
+  cik: '0001620533'
+  country: US
+  sector: Consumer Discretionary
+  group: event
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 32
+  risk_items:
+    '4.02': 2
+    '2.06': 1
+- id: SAH
+  name: SONIC AUTOMOTIVE INC
+  cik: '0001043509'
+  country: US
+  sector: Consumer Discretionary
+  group: event
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 26
+  risk_items:
+    '4.01': 1
+    '2.06': 1
+    '1.05': 1
+- id: ECHO
+  name: EchoStar CORP
+  cik: '0001415404'
+  country: US
+  sector: Communication Services
+  group: event
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 31
+  risk_items:
+    '2.04': 3
+- id: KR
+  name: KROGER CO
+  cik: '0000056873'
+  country: US
+  sector: Consumer Staples
+  group: event
+  split: dev
+  fiscal_year_end: '0130'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 47
+  risk_items:
+    '2.04': 1
+    '2.06': 1
+- id: RIG
+  name: Transocean Ltd.
+  cik: '0001451505'
+  country: US
+  sector: Energy
+  group: event
+  split: test
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 86
+  risk_items:
+    '2.06': 6
+- id: CMP
+  name: COMPASS MINERALS INTERNATIONAL INC
+  cik: '0001227654'
+  country: US
+  sector: Materials
+  group: event
+  split: dev
+  fiscal_year_end: '0930'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 44
+  risk_items:
+    '4.01': 1
+    '4.02': 1
+- id: BFH
+  name: BREAD FINANCIAL HOLDINGS, INC.
+  cik: '0001101215'
+  country: US
+  sector: Financials
+  group: event
+  split: dev
+  fiscal_year_end: '1231'
+  n_10k: 3
+  n_10q: 9
+  n_8k: 88
+  risk_items:
+    '2.04': 3

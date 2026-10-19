@@ -27,3 +27,6 @@ data/logs/
 # Frontend
 web/node_modules/
 web/dist/
+
+# Claude Code local state (agent worktrees)
+.claude/

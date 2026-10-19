@@ -1,0 +1,123 @@
+# Metric names the agent and tools use -> XBRL concepts to try, in order.
+# kind: duration (flow over a period, e.g. revenue) or instant (balance at a date, e.g. assets).
+# Concepts are us-gaap unless prefixed. Add a concept when a company tags the metric differently;
+# the facts tool reports which concept answered, so this list is auditable.
+
+metrics:
+  revenue:
+    kind: duration
+    unit: USD
+    concepts: [Revenues, RevenueFromContractWithCustomerExcludingAssessedTax,
+               RevenueFromContractWithCustomerIncludingAssessedTax, RevenuesNetOfInterestExpense,
+               SalesRevenueNet]
+  cost_of_revenue:
+    kind: duration
+    unit: USD
+    concepts: [CostOfRevenue, CostOfGoodsAndServicesSold, CostOfGoodsSold]
+  gross_profit:
+    kind: duration
+    unit: USD
+    concepts: [GrossProfit]
+  operating_income:
+    kind: duration
+    unit: USD
+    concepts: [OperatingIncomeLoss]
+  net_income:
+    kind: duration
+    unit: USD
+    concepts: [NetIncomeLoss, NetIncomeLossAvailableToCommonStockholdersBasic, ProfitLoss]
+  eps_diluted:
+    kind: duration
+    unit: USD/shares
+    concepts: [EarningsPerShareDiluted]
+  eps_basic:
+    kind: duration
+    unit: USD/shares
+    concepts: [EarningsPerShareBasic]
+  rd_expense:
+    kind: duration
+    unit: USD
+    concepts: [ResearchAndDevelopmentExpense, ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost]
+  sga_expense:
+    kind: duration
+    unit: USD
+    concepts: [SellingGeneralAndAdministrativeExpense]
+  interest_expense:
+    kind: duration
+    unit: USD
+    concepts: [InterestExpense, InterestExpenseNonoperating, InterestExpenseDebt]
+  pretax_income:
+    kind: duration
+    unit: USD
+    concepts: [IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest,
+               IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments,
+               IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic]
+  income_tax:
+    kind: duration
+    unit: USD
+    concepts: [IncomeTaxExpenseBenefit]
+  operating_cash_flow:
+    kind: duration
+    unit: USD
+    concepts: [NetCashProvidedByUsedInOperatingActivities]
+  capex:
+    kind: duration
+    unit: USD
+    concepts: [PaymentsToAcquirePropertyPlantAndEquipment, PaymentsToAcquireProductiveAssets]
+  depreciation_amortization:
+    kind: duration
+    unit: USD
+    concepts: [DepreciationDepletionAndAmortization, DepreciationAndAmortization]
+  dividends_paid:
+    kind: duration
+    unit: USD
+    concepts: [PaymentsOfDividends, PaymentsOfDividendsCommonStock]
+  buybacks:
+    kind: duration
+    unit: USD
+    concepts: [PaymentsForRepurchaseOfCommonStock]
+  total_assets:
+    kind: instant
+    unit: USD
+    concepts: [Assets]
+  current_assets:
+    kind: instant
+    unit: USD
+    concepts: [AssetsCurrent]
+  total_liabilities:
+    kind: instant
+    unit: USD
+    concepts: [Liabilities]
+  current_liabilities:
+    kind: instant
+    unit: USD
+    concepts: [LiabilitiesCurrent]
+  equity:
+    kind: instant
+    unit: USD
+    concepts: [StockholdersEquity, StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest]
+  cash:
+    kind: instant
+    unit: USD
+    concepts: [CashAndCashEquivalentsAtCarryingValue,
+               CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents]
+  inventory:
+    kind: instant
+    unit: USD
+    concepts: [InventoryNet]
+  long_term_debt:
+    kind: instant
+    unit: USD
+    concepts: [LongTermDebtNoncurrent, LongTermDebt, LongTermDebtAndCapitalLeaseObligations]
+  retained_earnings:
+    kind: instant
+    unit: USD
+    concepts: [RetainedEarningsAccumulatedDeficit]
+  goodwill:
+    kind: instant
+    unit: USD
+    concepts: [Goodwill]
+  shares_outstanding:
+    kind: instant
+    unit: shares
+    concepts: [dei:EntityCommonStockSharesOutstanding, CommonStockSharesOutstanding]
