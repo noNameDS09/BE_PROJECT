@@ -142,11 +142,13 @@ def fmt_value(value: float, unit: str) -> str:
 class ToolBox:
     def __init__(
         self,
-        retriever: Retriever,
+        retriever: Retriever | None,
         facts: FactsStore,
         companies: list[Company],
         snippet_chars: int = 1200,
+        scope: SearchFilter | None = None,
     ):
+        self.scope = scope  # forced filter, e.g. a benchmark item's own documents
         self.retriever = retriever
         self.facts = facts
         self.companies = companies
@@ -219,6 +221,10 @@ class ToolBox:
             period_from=date.fromisoformat(period_from) if period_from else None,
             period_to=date.fromisoformat(period_to) if period_to else None,
         )
+        if self.retriever is None:
+            return "Search is disabled for this question: answer from the context provided."
+        if self.scope is not None:
+            f = self.scope  # benchmark documents: their metadata differs from the SEC corpus
         hits = self.retriever.retrieve(query, filter=f, extra_queries=extra_queries)
         if not hits:
             return "No passages found for this query and filter."
@@ -232,6 +238,7 @@ class ToolBox:
                 start_char=c.start_char,
                 end_char=c.end_char,
                 url=m.get("url"),
+                page=c.page,
             )
             ev = ledger.add("chunk", text, citation)
             items_s = ",".join(m.get("items") or []) or "cover"

@@ -24,6 +24,7 @@ RRF_K = 60
 
 
 class SearchFilter(BaseModel):
+    doc_ids: list[str] | None = None
     companies: list[str] | None = None
     forms: list[str] | None = None
     items: list[str] | None = None
@@ -79,6 +80,7 @@ class SearchIndex:
         self.bm25 = bm25
         self.embedder = embedder
         self._company = np.array([c.company_id for c in chunks])
+        self._doc = np.array([c.doc_id for c in chunks])
         self._form = np.array([c.metadata.get("form") for c in chunks])
         self._period = np.array([c.metadata.get("period_end") or "" for c in chunks], dtype=object)
         self._items = [set(c.metadata.get("items") or []) for c in chunks]
@@ -96,6 +98,8 @@ class SearchIndex:
         mask = np.ones(len(self.chunks), dtype=bool)
         if not f:
             return mask
+        if f.doc_ids:
+            mask &= np.isin(self._doc, f.doc_ids)
         if f.companies:
             mask &= np.isin(self._company, f.companies)
         if f.forms:
