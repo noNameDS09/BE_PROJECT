@@ -16,6 +16,7 @@ from loupe.core.jsonl import jsonl_lines
 from loupe.core.schemas import Chunk, Company, Document
 from loupe.core.settings import get_settings
 from loupe.datasets import public
+from loupe.datasets.cli import app as evalsets_app
 from loupe.datasets.public import load_specs
 from loupe.eval.cli import app as eval_app
 from loupe.extract.cli import app as extract_app
@@ -46,6 +47,7 @@ app.add_typer(ingest_app, name="ingest")
 app.add_typer(index_app, name="index")
 app.add_typer(eval_app, name="eval")
 app.add_typer(extract_app, name="extract")
+app.add_typer(evalsets_app, name="evalsets")
 console = Console()
 
 STATUS_STYLE = {"ok": "[green]ok[/]", "fail": "[red]fail[/]", "skip": "[dim]skip[/]"}
