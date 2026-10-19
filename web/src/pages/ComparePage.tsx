@@ -15,8 +15,8 @@ import { armLabel, useConfig } from "../lib/useConfig";
 type Mode = "question" | "item";
 
 const DEFAULT_CONFIGS: RunConfigPick[] = [
-  { arm: "b0", model: "groq-llama-70b" },
-  { arm: "loupe", model: "groq-llama-70b" },
+  { arm: "b0", model: "nim-nemotron-super" },
+  { arm: "loupe", model: "nim-nemotron-super" },
 ];
 
 /** Keeps the default configs valid against what /config actually offers. */

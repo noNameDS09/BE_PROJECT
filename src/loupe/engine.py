@@ -87,7 +87,7 @@ class Engine:
         self,
         question: str,
         arm: str = "loupe",
-        model: str = "groq-llama-70b",
+        model: str = "nim-nemotron-super",
         retrieval: RetrievalConfig | None = None,
         tools_enabled: bool = True,
     ) -> Answer:

@@ -1,12 +1,12 @@
 """Capability probe for each registered model: reachable, tool calling, JSON mode."""
 
-import json
 from typing import Literal
 
 from pydantic import BaseModel
 
 from loupe.llm.gateway import Gateway
 from loupe.llm.registry import ModelSpec
+from loupe.orchestrators.base import parse_json
 
 Status = Literal["ok", "fail", "skip"]
 
@@ -44,7 +44,7 @@ def probe(gateway: Gateway, spec: ModelSpec) -> ModelReport:
         reply = gateway.complete(
             spec.alias,
             [{"role": "user", "content": "Reply with exactly the word OK."}],
-            max_tokens=10,
+            max_tokens=600,  # reasoning models think before answering
             use_cache=False,
         )
     except Exception as exc:
@@ -59,7 +59,7 @@ def probe(gateway: Gateway, spec: ModelSpec) -> ModelReport:
             spec.alias,
             [{"role": "user", "content": "Use the add tool to add 2 and 3."}],
             tools=[ADD_TOOL],
-            max_tokens=100,
+            max_tokens=600,
             use_cache=False,
         )
         report.tools = "ok" if any(tc.name == "add" for tc in reply.tool_calls) else "fail"
@@ -72,10 +72,12 @@ def probe(gateway: Gateway, spec: ModelSpec) -> ModelReport:
             spec.alias,
             [{"role": "user", "content": 'Return a JSON object {"answer": 5} and nothing else.'}],
             json_mode=True,
-            max_tokens=50,
+            max_tokens=600,
             use_cache=False,
         )
-        report.json_mode = "ok" if json.loads(reply.text or "").get("answer") == 5 else "fail"
+        parsed = parse_json(reply.text)
+        ok = isinstance(parsed, dict) and parsed.get("answer") == 5
+        report.json_mode = "ok" if ok else "fail"
     except Exception as exc:
         report.json_mode = "fail"
         report.note = report.note or f"json: {type(exc).__name__}"

@@ -60,9 +60,19 @@ def _matches(claim: Num, evidence: float) -> bool:
     return False
 
 
+def _units(answer: str) -> list[str]:
+    """Claims to check: each line (bullets, table rows) and each sentence within a line."""
+    out = []
+    for line in answer.splitlines():
+        line = line.strip().lstrip("*-•").strip()
+        if line:
+            out += [s.strip() for s in SENTENCE.split(line) if s.strip()]
+    return out
+
+
 def verify(answer: str, ledger: Ledger) -> list[Claim]:
     claims = []
-    for sentence in (s.strip() for s in SENTENCE.split(answer.strip())):
+    for sentence in _units(answer):
         if not sentence:
             continue
         ids = CITE.findall(sentence)

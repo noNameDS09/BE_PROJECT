@@ -24,9 +24,12 @@ CITED_RULES = """Rules:
 - Analysis only: never recommend buying, selling or holding a security."""
 
 ABSTAIN = re.compile(
-    r"\b(not (?:reported|available|found|disclosed)|no (?:evidence|information|data)|"
-    r"(?:cannot|can't|could not|unable to) (?:find|determine|answer)|"
-    r"insufficient (?:evidence|information)|no record)\b",
+    r"\b(not (?:reported|available|found|disclosed|stated|mentioned)|"
+    r"no (?:evidence|information|data|record|indication|mention)|"
+    r"(?:does|do|did) not (?:contain|mention|indicate|show|include|report|support)|"
+    r"(?:has|have|had) not (?:filed|reported|disclosed|announced)|"
+    r"(?:cannot|can't|could not|unable to) (?:find|determine|answer|confirm|verify)|"
+    r"insufficient (?:evidence|information)|false premise|premise is (?:false|incorrect))\b",
     re.I,
 )
 
@@ -124,10 +127,13 @@ class RunContext:
         return out
 
     def finish(self, text: str) -> Answer:
+        claims = verify(text, self.ledger)
+        # declining = the answer says the information is missing AND verifies no fact itself
+        abstained = bool(ABSTAIN.search(text)) and not any(c.supported for c in claims)
         return Answer(
             text=text,
-            claims=verify(text, self.ledger),
-            abstained=bool(ABSTAIN.search(text)),
+            claims=claims,
+            abstained=abstained,
             charts=list(self.ledger.charts),
             trace=self.trace,
             evidence=[e.model_dump() for e in self.ledger.items.values()],

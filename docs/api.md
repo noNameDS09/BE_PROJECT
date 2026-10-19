@@ -18,14 +18,14 @@ FastAPI serves everything under `/api`. The React app (`web/`) talks to the back
 
 // TraceStep: one model call or tool call
 { "stage": "route" | "plan" | "step" | "tool" | "answer" | "verify" | "critique",
-  "name": "groq-llama-70b" | "search_filings" | …, "input": any, "output": any, "model": "…",
+  "name": "nim-nemotron-super" | "search_filings" | …, "input": any, "output": any, "model": "…",
   "tokens_in": 812, "tokens_out": 96, "latency_ms": 1430, "cost_usd": 0.0 }
 
 // Chart: a Plotly figure spec ({data, layout}) built only from verified numbers
 { "title": "AMD revenue FY2021–2025", "figure": { "data": [...], "layout": {...} }, "evidence_ids": ["E1","E2"] }
 
 // RunResult
-{ "run_id": "r_8f2c…", "arm": "react", "model": "groq-llama-70b", "question": "…",
+{ "run_id": "r_8f2c…", "arm": "react", "model": "nim-nemotron-super", "question": "…",
   "answer": { "text": "…", "claims": [Claim], "evidence": [Evidence], "trace": [TraceStep],
               "charts": [Chart], "abstained": false },
   "tokens": 4210, "latency_ms": 6230, "cost_usd": 0.0,
@@ -39,7 +39,7 @@ FastAPI serves everything under `/api`. The React app (`web/`) talks to the back
 |---|---|---|---|
 | GET | `/api/health` | none | `{ "ok": true, "index": "c1200o150-bge-small", "models_with_keys": 3 }` |
 | GET | `/api/config` | none | `{ "arms": [{ "name", "label", "description" }], "models": [{ "alias", "provider", "available" }], "datasets": [{ "name", "items", "kinds": [...] }], "companies": [{ "id", "name", "sector", "group", "split" }] }` |
-| POST | `/api/runs` | `{ "question": "…", "arm": "react", "model": "groq-llama-70b", "item_id": null }` | `RunResult` |
+| POST | `/api/runs` | `{ "question": "…", "arm": "react", "model": "nim-nemotron-super", "item_id": null }` | `RunResult` |
 | POST | `/api/compare` | `{ "question": "…" \| null, "item_id": "financebench:…" \| null, "configs": [{ "arm", "model" }] }` (max 4 configs) | `{ "results": [RunResult] }` |
 | GET | `/api/datasets/{name}/items` | `?offset=0&limit=50&split=dev&kind=numeric&q=text` | `{ "total": 150, "items": [EvalItem] }` |
 | GET | `/api/datasets/{name}/items/{item_id}` | none | `EvalItem` |

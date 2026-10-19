@@ -1,40 +1,86 @@
 # Model registry. Every LLM call goes through loupe.llm.Gateway using an alias below.
-# Free-tier model names change often: confirm with `loupe models check` and record the
-# working set (and any substitution) in docs/decisions.md before experiments.
 #
-# rpm: requests per minute we allow ourselves (0 = no limit). Set below the provider's
-#      free-tier limit so long eval runs don't hit 429s.
+# Free-tier survey and live test, 2026-10-19: results in docs/models.md. IDs were checked against each
+# provider's live model list where it is public (OpenRouter, NVIDIA NIM); Gemini, Groq and
+# Mistral IDs come from their docs. Run `loupe models check` after adding keys: it confirms
+# each model answers, supports tool calls and JSON mode.
+#
+# rpm: requests per minute we allow ourselves (0 = no limit), set below the provider's cap.
+# The daily caps that actually bind are noted per entry; see docs/models.md for capacity.
 
 models:
-  gemini-flash:
-    model: gemini/gemini-2.5-flash
-    provider: gemini
-    rpm: 8
-  gemini-flash-lite:
+  # --- Google AI Studio (free tier; per-project limits shown in AI Studio) --------------
+  gemini-flash-lite:            # FARE's backbone; still free. ~15 RPM, ~1,000 RPD
     model: gemini/gemini-2.5-flash-lite
     provider: gemini
     rpm: 12
-  groq-llama-70b:
-    model: groq/llama-3.3-70b-versatile
+  gemini-3.1-flash-lite:        # newer Flash-Lite, free tier
+    model: gemini/gemini-3.1-flash-lite
+    provider: gemini
+    rpm: 12
+  gemini-flash:                 # FARE's backbone; still free. ~10 RPM, ~250 RPD
+    model: gemini/gemini-2.5-flash
+    provider: gemini
+    rpm: 8
+  gemini-3.6-flash:             # current Flash, free tier
+    model: gemini/gemini-3.6-flash
+    provider: gemini
+    rpm: 8
+
+  # --- NVIDIA NIM (build.nvidia.com; free, up to 40 RPM per model, no daily cap published) ---
+  nim-nemotron-super:           # 120B MoE (12B active), tool calling
+    model: nvidia_nim/nvidia/nemotron-3-super-120b-a12b
+    provider: nvidia_nim
+    rpm: 35
+  nim-gemma-4-31b:
+    model: nvidia_nim/google/gemma-4-31b-it
+    provider: nvidia_nim
+    rpm: 35
+  nim-gpt-oss-20b:
+    model: nvidia_nim/openai/gpt-oss-20b
+    provider: nvidia_nim
+    rpm: 35
+
+  # --- Mistral La Plateforme, Experiment tier (free; ~1 request/s; phone verification) ---
+  mistral-medium:               # Mistral Medium 3.5: different family from generators -> judge
+    model: mistral/mistral-medium-3.5
+    provider: mistral
+    rpm: 20
+  mistral-small:
+    model: mistral/mistral-small-2603
+    provider: mistral
+    rpm: 20
+  ministral-14b:
+    model: mistral/ministral-14b-2512
+    provider: mistral
+    rpm: 20
+
+  # --- Groq (free; 30 RPM; daily TOKEN caps bind first: 200K TPD large, 500K TPD 8B) ---
+  groq-gpt-oss-120b:            # 1K RPD, 200K TPD; ~8K input tokens/min: short prompts only
+    model: groq/openai/gpt-oss-120b
     provider: groq
     rpm: 25
-  nim-llama-70b:
-    model: nvidia_nim/meta/llama-3.3-70b-instruct
-    provider: nvidia_nim
-    rpm: 30
-  or-qwen-72b:
-    model: openrouter/qwen/qwen-2.5-72b-instruct:free
+  groq-qwen-27b:                # 1K RPD, 200K TPD; 7K input tokens/min: short prompts only
+    model: groq/qwen/qwen3.8-27b
+    provider: groq
+    rpm: 25
+
+  # --- OpenRouter :free (20 RPM; 50 requests/day, or 1,000/day after a one-time $10 top-up) ---
+  or-nemotron-super:
+    model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
     provider: openrouter
     rpm: 15
-  or-llama-70b:
-    model: openrouter/meta-llama/llama-3.3-70b-instruct:free
+  or-gemma-4-31b:
+    model: openrouter/google/gemma-4-31b-it:free
     provider: openrouter
     rpm: 15
-  ollama-qwen-7b:
-    model: ollama_chat/qwen2.5:7b-instruct
-    provider: ollama
-    rpm: 0
-  ollama-llama-8b:
-    model: ollama_chat/llama3.1:8b
-    provider: ollama
-    rpm: 0
+
+  # --- Ollama Cloud (ollama.com; free plan: 1 concurrent request, session/weekly usage caps) ---
+  oc-gpt-oss-120b:
+    model: ollama_chat/gpt-oss:120b
+    provider: ollama_cloud
+    rpm: 20
+  oc-gemma4-31b:
+    model: ollama_chat/gemma4:31b
+    provider: ollama_cloud
+    rpm: 20
