@@ -6,7 +6,7 @@
 
 ## 0. One-time setup (≈15 min)
 
-1. **Get the code.** Pull the latest `main`, then install:
+1. **Get the code.** Pull the latest `main`, then install. If PR #11 isn't merged yet, use `git fetch origin && git checkout free-models` instead.
    ```bash
    git pull origin main
    uv sync --extra gpu
@@ -37,6 +37,12 @@
    ```
 
 ## Tasks
+
+**Suggested order:**
+1. T1 (needs the GPU).
+2. Start T3 in one terminal; it runs unattended.
+3. While it runs, start T2 in a second terminal and do T5 by hand.
+4. Then T4, then T6.
 
 ### T1 · GPU: benchmark document indexes (≈30 min)
 Unzip `loupe-gpu-chunks.zip` (from Ayush) in the repo root. It creates `data/processed/index/docs-financebench/chunks.jsonl` and `docs-finder/chunks.jsonl`. Then:
@@ -88,6 +94,16 @@ Open `data/gold/audit/audit_sample.csv`: 67 items, a seeded 5% sample of every g
 3. Fill `verdict` with `ok` or `wrong`, and add a short `note`.
 
 **Send back:** the filled CSV. Its error rate goes into the report as the check on our AI-built data.
+
+### T6 · India scouting, no code (≈2 h)
+This prepares phase P6. Pick **15 NSE-listed companies**: a mix of large caps and companies with known risk events (pledges, rating downgrades, auditor resignations, SEBI orders). For each, record in `india-scouting.csv`:
+- name, NSE symbol, ISIN
+- whether the FY23–25 annual report PDFs are text (selectable) or scanned
+- whether XBRL results exist on NSE
+- 2–3 notable announcements, with their NSE category and link
+- whether earnings-call transcripts are filed
+
+**Send back:** the CSV. It decides the India universe and how much OCR we need.
 
 ## Ground rules
 - **Never run with `--final`** (the test split) until the team has signed off `docs/hypotheses.md`.
