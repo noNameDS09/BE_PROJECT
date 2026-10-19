@@ -7,9 +7,11 @@ metrics:
   revenue:
     kind: duration
     unit: USD
-    concepts: [Revenues, RevenueFromContractWithCustomerExcludingAssessedTax,
-               RevenueFromContractWithCustomerIncludingAssessedTax, RevenuesNetOfInterestExpense,
-               SalesRevenueNet]
+    # RevenuesNetOfInterestExpense before the ASC 606 concepts: card issuers (AXP) also tag
+    # contract revenue, which is only part of total revenue ($37.2B vs $60.5B for AXP FY2023)
+    concepts: [Revenues, RevenuesNetOfInterestExpense,
+               RevenueFromContractWithCustomerExcludingAssessedTax,
+               RevenueFromContractWithCustomerIncludingAssessedTax, SalesRevenueNet]
   cost_of_revenue:
     kind: duration
     unit: USD

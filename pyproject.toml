@@ -20,6 +20,7 @@ dependencies = [
     "fastembed>=0.4",
     "bm25s>=0.2",
     "numpy>=1.26",
+    "pyarrow>=26.0.0",
 ]
 
 [project.scripts]
