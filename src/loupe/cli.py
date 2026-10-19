@@ -299,13 +299,19 @@ def index_build(
         Path | None, typer.Option(help="Embed an existing chunks.jsonl instead of re-chunking.")
     ] = None,
     default: Annotated[bool, typer.Option(help="Make this variant the default.")] = True,
+    out: Annotated[
+        Path | None, typer.Option(help="Output folder (default: data/processed/index/<variant>).")
+    ] = None,
 ) -> None:
     """Chunk every parsed document (section-aware), embed, build BM25.
 
     On a CPU this takes hours for the full corpus; use --device cuda on an NVIDIA GPU
     (see docs/GPU-INDEX-BUILD.md)."""
     variant = f"c{size}o{overlap}-{embedder}"
-    out = get_settings().data_dir / "processed" / "index" / variant
+    if out is None:
+        out = get_settings().data_dir / "processed" / "index" / variant
+    else:
+        default = False  # a custom folder (e.g. a benchmark's docs index) is never the default
     if from_chunks is not None:
         chunks = [Chunk.model_validate_json(x) for x in jsonl_lines(from_chunks)]
         console.print(f"Loaded {len(chunks):,} chunks from {from_chunks}")

@@ -117,7 +117,7 @@ class EventExtractor:
         self.scorer_model = scorer_model or model
         self.min_match = min_match
 
-    def _json(self, model: str, system: str, user: str, max_tokens: int = 900):
+    def _json(self, model: str, system: str, user: str, max_tokens: int = 3000):
         c = self.gateway.complete(
             model, [{"role": "system", "content": system}, {"role": "user", "content": user}],
             json_mode=True, max_tokens=max_tokens,
@@ -129,7 +129,7 @@ class EventExtractor:
         out = self._json(
             self.scorer_model, SCORE,
             f"Item {ev.item} ({ITEM_NAMES.get(ev.item, '?')})\nSummary: {ev.summary}\n"
-            f"Fields: {ev.fields}\nQuote: {ev.quote}", 120,
+            f"Fields: {ev.fields}\nQuote: {ev.quote}", 1500,
         )  # fmt: skip
         try:
             ev.score = max(1, min(5, int(out.get("score"))))

@@ -46,7 +46,7 @@ class Router:
     )
 
     def run(self, question: str, ctx: RunContext) -> Answer:
-        out = ctx.llm_json("route", ROUTER, question, 50)
+        out = ctx.llm_json("route", ROUTER, question, 1500)
         intent = out.get("intent") if isinstance(out, dict) else None
         if intent not in SPECIALISTS:
             intent = "open_analysis"

@@ -134,3 +134,31 @@ def test_runner_records_errors_without_stopping(tmp_path, monkeypatch):
     assert rows[0].error and "IndexError" in rows[0].error
     assert json.loads(store.rows()[0]["meta"])["kind"] == "numeric"
     assert Citation()  # schema import smoke
+
+
+def test_limited_runs_sample_across_companies_reproducibly():
+    items = [
+        item(item_id=f"t:{c}{i}", companies=[c], split="dev") for c in "ABCD" for i in range(5)
+    ]
+    spec = RunSpec(dataset="t", arms=["b0"], models=["m"], limit=8)
+    first = select(items, spec)
+    assert len(first) == 8 and {i.companies[0] for i in first} == set("ABCD")
+    assert [i.item_id for i in select(items, spec)] == [i.item_id for i in first]
+
+
+def test_docs_index_reads_html_inside_a_zip(tmp_path):
+    import zipfile
+
+    from loupe.eval.docs_index import collect_chunks
+
+    with zipfile.ZipFile(tmp_path / "docs.zip", "w") as zf:
+        zf.writestr(
+            "10k/ACME.html",
+            "<html><body><p>" + "Revenue rose because demand grew. " * 60 + "</p></body></html>",
+        )
+    it = item(
+        mode="docs", documents=[{"doc_id": "finder_10k:ACME", "path": "docs.zip#10k/ACME.html"}]
+    )
+    chunks = collect_chunks([it], tmp_path, size=400, overlap=50)
+    assert chunks and all(c.doc_id == "finder_10k:ACME" for c in chunks)
+    assert "Revenue rose" in chunks[0].text and "<p>" not in chunks[0].text

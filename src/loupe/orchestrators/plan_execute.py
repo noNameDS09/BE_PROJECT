@@ -84,7 +84,7 @@ class PlanExecute:
             "plan",
             PLANNER.format(max_steps=ctx.max_steps, tools=tool_catalogue(ctx)),
             question,
-            1200,
+            4000,
         )
         plan = out.get("plan", []) if isinstance(out, dict) else []
         plan = [s for s in plan if isinstance(s, dict)][: ctx.max_steps]

@@ -62,7 +62,8 @@ class RunContext:
     gateway: Gateway
     model: str
     tools: ToolBox
-    max_tokens: int = 1500
+    # reasoning models spend output tokens thinking before they answer: keep caps generous
+    max_tokens: int = 4000
     max_steps: int = 8
     tools_enabled: bool = True
     query_rewrite: bool = False
@@ -96,7 +97,7 @@ class RunContext:
         )
         return c
 
-    def llm_json(self, stage: str, system: str, user: str, max_tokens: int = 600) -> Any:
+    def llm_json(self, stage: str, system: str, user: str, max_tokens: int = 2000) -> Any:
         c = self.llm(
             stage,
             [{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -111,7 +112,7 @@ class RunContext:
             'You rewrite search queries for SEC filings. Return JSON {"queries": [3 strings]}: '
             "alternative phrasings using the terms filings use (e.g. 'net revenue', 'Item 1A').",
             query,
-            max_tokens=200,
+            max_tokens=1500,
         )
         queries = out.get("queries", []) if isinstance(out, dict) else []
         return [q for q in queries if isinstance(q, str) and q.strip()][:3]

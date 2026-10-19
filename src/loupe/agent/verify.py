@@ -14,7 +14,14 @@ from typing import NamedTuple
 from loupe.agent.evidence import Ledger
 from loupe.core.schemas import Citation, Claim
 
-CITE = re.compile(r"\[(E\d+)\]")
+# citation markers: [E1], [E1][E2], [E1, E2], and the full-width 【E1】 some models write
+CITE = re.compile(r"[\[【]\s*(E\d+(?:\s*[,;]\s*E\d+)*)\s*[\]】]")
+
+
+def cited_ids(text: str) -> list[str]:
+    return [eid for group in CITE.findall(text) for eid in re.findall(r"E\d+", group)]
+
+
 SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"“(])")
 NUMBER = re.compile(
     r"(?<![\w.])-?\$?\(?\d[\d,]*(?:\.\d+)?\)?\s*(?:%|percent|billion|million|thousand|bn|m\b|k\b)?",
@@ -75,7 +82,7 @@ def verify(answer: str, ledger: Ledger) -> list[Claim]:
     for sentence in _units(answer):
         if not sentence:
             continue
-        ids = CITE.findall(sentence)
+        ids = cited_ids(sentence)
         cited = [e for e in (ledger.get(i) for i in ids) if e is not None]
         numbers = parse_numbers(sentence)
         quotes = QUOTE.findall(sentence)

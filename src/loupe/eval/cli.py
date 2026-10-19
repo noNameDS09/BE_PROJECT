@@ -117,9 +117,19 @@ def report(
 
 
 @app.command("index-docs")
-def index_docs(dataset: str) -> None:
-    """Index the documents a benchmark ships with (e.g. FinanceBench PDFs) for docs-mode items."""
-    from loupe.eval.docs_index import build_docs_index
+def index_docs(
+    dataset: str,
+    chunks_only: Annotated[
+        bool, typer.Option(help="Only write chunks.jsonl (embed elsewhere, e.g. on a GPU).")
+    ] = False,
+) -> None:
+    """Index the documents a benchmark ships with (FinanceBench PDFs, FinDER 10-Ks).
+
+    With --chunks-only, writes data/processed/index/docs-<dataset>/chunks.jsonl for
+    `loupe index build --from-chunks ... --out ...` on a GPU machine (docs/GPU-INDEX-BUILD.md)."""
+    import hashlib
+
+    from loupe.eval.docs_index import build_docs_index, collect_chunks
     from loupe.index.embed import FastEmbedder
 
     data = get_settings().data_dir
@@ -128,5 +138,15 @@ def index_docs(dataset: str) -> None:
         raise typer.BadParameter(f"{dataset} has no docs-mode items")
     out = data / "processed" / "index" / f"docs-{dataset}"
     with console.status("indexing") as status:
+        if chunks_only:
+            chunks = collect_chunks(items, data, progress=status.update)
+            out.mkdir(parents=True, exist_ok=True)
+            path = out / "chunks.jsonl"
+            with path.open("w") as f:
+                for ch in chunks:
+                    f.write(ch.model_dump_json() + "\n")
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            console.print(f"[green]{len(chunks):,} chunks written to {path}[/]\nsha256 {digest}")
+            return
         n = build_docs_index(items, data, out, FastEmbedder(), progress=status.update)
     console.print(f"[green]{n:,} chunks from {dataset} documents indexed in {out}[/]")

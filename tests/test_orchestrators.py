@@ -147,3 +147,11 @@ def test_partial_answer_with_a_missing_value_is_not_an_abstention():
     partial = ctx.finish("Revenue was $25.8 billion [E1]. FY2023 was not reported.")
     refusal = ctx.finish("That information is not reported in the filings.")
     assert (partial.abstained, refusal.abstained) == (False, True)
+
+
+def test_citation_formats():
+    from loupe.agent.verify import cited_ids
+
+    assert cited_ids("x [E1] y [E2][E3] z") == ["E1", "E2", "E3"]
+    assert cited_ids("x [E1, E4] y 【E5】") == ["E1", "E4", "E5"]
+    assert cited_ids("see [note] and [1]") == []
