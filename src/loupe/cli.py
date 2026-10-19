@@ -11,6 +11,7 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
+from loupe.core.jsonl import jsonl_lines
 from loupe.core.schemas import Company, Document
 from loupe.core.settings import get_settings
 from loupe.datasets import public
@@ -293,7 +294,7 @@ def index_build(
     out = get_settings().data_dir / "processed" / "index" / variant
     chunks = []
     with console.status("chunking") as status:
-        for line in (data / "documents.jsonl").read_text().splitlines():
+        for line in jsonl_lines(data / "documents.jsonl"):
             doc = Document.model_validate_json(line)
             text = (data / "text" / f"{doc.doc_id}.txt").read_text()
             chunks += chunk_document(doc, text, size, overlap)

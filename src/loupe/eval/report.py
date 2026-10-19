@@ -71,6 +71,7 @@ def stages(rows: list[dict]) -> list[dict]:
         {
             "label": label,
             "arm": arm,
+            "kind": "ablation" if arm.startswith("loupe-no-") else "step",
             "accuracy": board[arm]["metrics"]["accuracy"],
             "hallucination_rate": board[arm]["metrics"]["hallucination_rate"],
             "n": board[arm]["n"],

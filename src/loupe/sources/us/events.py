@@ -9,6 +9,7 @@ from pathlib import Path
 
 import duckdb
 
+from loupe.core.jsonl import jsonl_lines
 from loupe.sources.us.fetch import FilingRecord
 
 # Form 8-K item names (SEC General Instructions for Form 8-K)
@@ -54,7 +55,7 @@ CREATE OR REPLACE TABLE filing_events (
 
 def load_events(db_path: Path, manifest: Path) -> int:
     rows = []
-    for line in manifest.read_text().splitlines():
+    for line in jsonl_lines(manifest):
         r = FilingRecord.model_validate_json(line)
         if r.form != "8-K":
             continue

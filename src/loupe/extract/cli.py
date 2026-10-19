@@ -11,6 +11,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from loupe.core.jsonl import jsonl_lines
 from loupe.core.schemas import Document
 from loupe.core.settings import get_settings
 from loupe.extract.events import EXTRACT_ITEMS, EventExtractor, to_event
@@ -30,7 +31,7 @@ CREATE TABLE IF NOT EXISTS events_extracted (
 def _docs(companies: list[str] | None) -> list[tuple[Document, str]]:
     root = get_settings().data_dir / "processed" / "sec"
     out = []
-    for line in (root / "documents.jsonl").read_text().splitlines():
+    for line in jsonl_lines(root / "documents.jsonl"):
         doc = Document.model_validate_json(line)
         if doc.form != "8-K" or (companies and doc.company_id not in companies):
             continue
@@ -93,7 +94,7 @@ def eval_blind(
     splits = {c["id"]: c["split"] for c in companies}
     manifest = get_settings().data_dir / "raw" / "sec" / "manifest.jsonl"
     gold = {}
-    for line in manifest.read_text().splitlines():
+    for line in jsonl_lines(manifest):
         r = json.loads(line)
         if r["form"] == "8-K" and (split == "all" or splits.get(r["company_id"]) == split):
             items = set(r["items"]) & set(EXTRACT_ITEMS)

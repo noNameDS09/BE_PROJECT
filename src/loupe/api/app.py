@@ -33,6 +33,7 @@ from loupe.api.models import (
     RunsResponse,
     StagesResponse,
 )
+from loupe.core.jsonl import jsonl_lines
 from loupe.core.schemas import Document
 from loupe.eval.report import leaderboard, stages
 from loupe.eval.runner import Runner, RunSpec, prepare, score
@@ -82,7 +83,7 @@ def _items(name: str) -> list[EvalItem]:
     path = _dataset_files().get(name)
     if path is None:
         raise HTTPException(404, f"unknown dataset {name}")
-    return [EvalItem.model_validate_json(x) for x in path.read_text().splitlines() if x.strip()]
+    return [EvalItem.model_validate_json(x) for x in jsonl_lines(path)]
 
 
 def _find_item(item_id: str) -> EvalItem:
@@ -96,7 +97,7 @@ def _find_item(item_id: str) -> EvalItem:
 @cache
 def _documents() -> dict[str, Document]:
     path = engine().settings.data_dir / "processed" / "sec" / "documents.jsonl"
-    docs = (Document.model_validate_json(x) for x in path.read_text().splitlines())
+    docs = (Document.model_validate_json(x) for x in jsonl_lines(path))
     return {d.doc_id: d for d in docs}
 
 
@@ -278,6 +279,9 @@ def results_runs(
     for r in rows[:limit]:
         r = dict(r)
         r["meta"] = json.loads(r["meta"]) if isinstance(r["meta"], str) else (r["meta"] or {})
+        answer = store().answer(r["run_id"])  # full answer for the Runs drill-down
+        if answer is not None:
+            r["meta"]["answer"] = answer.model_dump()
         out.append(ResultRow(**r))
     return RunsResponse(rows=out)
 
