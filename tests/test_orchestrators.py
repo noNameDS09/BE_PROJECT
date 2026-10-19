@@ -1,6 +1,6 @@
 from loupe.agent.evidence import Ledger
 from loupe.agent.verify import parse_numbers, verify
-from loupe.core.schemas import Citation
+from loupe.core.schemas import Citation, Company
 from loupe.llm.gateway import Completion, ToolCall
 from loupe.orchestrators import ARMS, RunContext
 
@@ -20,13 +20,25 @@ class ScriptedGateway:
 class FakeTools:
     def __init__(self):
         self.calls = []
+        self.companies = [Company(id="AMD", name="Advanced Micro Devices", country="US")]
+        self.metric_names = ["revenue"]
 
-    def specs(self):
-        return [{"type": "function", "function": {"name": "get_financial_metric"}}]
+    def specs(self, names=None):
+        all_specs = [
+            {"type": "function", "function": {"name": n, "description": n,
+             "parameters": {"type": "object", "properties": {}, "required": []}}}
+            for n in ("get_financial_metric", "search_filings", "calculate")
+        ]  # fmt: skip
+        return [x for x in all_specs if names is None or x["function"]["name"] in names]
 
     def call(self, name, args, ledger: Ledger):
         self.calls.append((name, args))
-        if name == "get_financial_metric":
+        if name == "calculate":
+            from loupe.tools.calc import calculate
+
+            value = calculate(args["expression"])
+            ev = ledger.add("calc", f"{args['expression']} = {value}", Citation(), value)
+        elif name == "get_financial_metric":
             ev = ledger.add(
                 "fact",
                 "AMD revenue FY2024: 25785000000 USD",

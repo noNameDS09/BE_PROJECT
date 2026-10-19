@@ -340,26 +340,38 @@ def search(
 def ask(
     question: str,
     arm: Annotated[
-        list[str] | None, typer.Option(help="b0 | rag | react (repeat to compare).")
+        list[str] | None, typer.Option(help="Arm name (repeat to compare). See `loupe arms`.")
     ] = None,
     model: Annotated[str, typer.Option(help="Alias from configs/models.yaml.")] = "groq-llama-70b",
+    rerank: Annotated[
+        str | None, typer.Option(help="Reranker: minilm-l12 | minilm-l6 | bge-base | none")
+    ] = "minilm-l12",
+    rewrite: Annotated[bool, typer.Option(help="Multi-query rewriting before search.")] = False,
+    tools: Annotated[bool, typer.Option(help="Number tools on (off = LLM does the maths).")] = True,
     trace: Annotated[bool, typer.Option(help="Show every step and tool call.")] = False,
 ) -> None:
     """Answer a question with one or more arms; every claim is checked against evidence."""
     from loupe.engine import Engine
+    from loupe.index.retriever import RetrievalConfig
 
     engine = Engine()
-    for name in arm or ["react"]:
+    retrieval = RetrievalConfig(
+        rerank=None if rerank in (None, "none") else rerank,
+        query_rewrite="multi" if rewrite else "none",
+    )
+    for name in arm or ["loupe"]:
         with console.status(f"{name} on {model}"):
-            answer = engine.ask(question, arm=name, model=model)
+            answer = engine.ask(
+                question, arm=name, model=model, retrieval=retrieval, tools_enabled=tools
+            )
         console.rule(f"[bold]{name}[/] · {model}")
         console.print(answer.text, highlight=False)
         checked = [c for c in answer.claims if c.supported is not None]
         ok = sum(bool(c.supported) for c in checked)
         console.print(
             f"[dim]claims verified {ok}/{len(checked)} · evidence {len(answer.evidence)} · "
-            f"tokens {answer.tokens:,} · {answer.latency_ms / 1000:.1f}s · "
-            f"abstained {answer.abstained}[/]"
+            f"charts {len(answer.charts)} · tokens {answer.tokens:,} · "
+            f"{answer.latency_ms / 1000:.1f}s · abstained {answer.abstained}[/]"
         )
         for c in answer.claims:
             if c.supported is False:
@@ -369,6 +381,27 @@ def ask(
                 console.print(
                     f"  [cyan]{step.stage}:{step.name}[/] {str(step.input)[:120]}", highlight=False
                 )
+
+
+@app.command("arms")
+def arms() -> None:
+    """List orchestration arms (main arms and Loupe ablations)."""
+    from loupe.orchestrators import ARMS
+
+    table = Table("name", "label", "description")
+    for a in ARMS.values():
+        table.add_row(a.name, a.label, a.description)
+    console.print(table)
+
+
+@sec_app.command("events")
+def sec_events() -> None:
+    """Build the 8-K events table (one row per item per filing) in the DuckDB store."""
+    from loupe.sources.us.events import load_events
+
+    data = get_settings().data_dir
+    n = load_events(data / "processed" / "loupe.duckdb", data / "raw" / "sec" / "manifest.jsonl")
+    console.print(f"[green]{n:,} 8-K item rows loaded into filing_events[/]")
 
 
 if __name__ == "__main__":
