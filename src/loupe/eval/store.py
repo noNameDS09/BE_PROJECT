@@ -59,3 +59,50 @@ class ResultStore:
             cur = con.execute(f"SELECT * FROM results {where}", params or [])
             names = [d[0] for d in cur.description]
             return [dict(zip(names, r, strict=True)) for r in cur.fetchall()]
+
+
+def export_results(
+    store: ResultStore, out: Path, where: str = "", params: list | None = None
+) -> int:
+    """Zip result rows (results.jsonl) and their stored answers (runs/<run_id>.json)."""
+    import zipfile
+    from datetime import date, datetime
+
+    rows = store.rows(where, params)
+
+    def default(o):
+        if isinstance(o, datetime | date):
+            return o.isoformat()
+        raise TypeError(type(o))
+
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("results.jsonl", "\n".join(json.dumps(r, default=default) for r in rows))
+        for r in rows:
+            path = store.runs_dir / f"{r['run_id']}.json"
+            if path.exists():
+                zf.write(path, f"runs/{path.name}")
+    return len(rows)
+
+
+def import_results(store: ResultStore, archive: Path) -> int:
+    """Merge an exported zip into this store (rows are keyed by run_id, so re-imports are safe)."""
+    import zipfile
+
+    n = 0
+    with zipfile.ZipFile(archive) as zf:
+        for line in zf.read("results.jsonl").decode().split("\n"):
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            row["meta"] = (
+                json.loads(row["meta"])
+                if isinstance(row.get("meta"), str)
+                else row.get("meta") or {}
+            )
+            name = f"runs/{row['run_id']}.json"
+            answer = None
+            if name in zf.namelist():
+                answer = Answer.model_validate_json(zf.read(name))
+            store.add(ResultRow(**row), answer)
+            n += 1
+    return n
