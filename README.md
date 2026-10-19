@@ -315,6 +315,15 @@ uv run loupe datasets download    # public benchmarks with provenance manifests
 
 Optional, for local models: install [Ollama](https://ollama.com) and run `ollama pull qwen2.5:7b-instruct`.
 
+Run the Bench web app (Node 22; details in [`web/README.md`](web/README.md)):
+
+```bash
+cd web && npm install
+npm run dev:mock     # UI on mock fixtures, no backend needed (http://localhost:5173)
+npm run dev          # against the API; proxies /api to http://localhost:8000
+npm test && npm run build
+```
+
 ## How we work
 
 - **Branches:** work on a feature branch and open a PR into `initialize`; `initialize` is merged into `main` at milestones.
