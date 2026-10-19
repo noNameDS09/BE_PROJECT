@@ -119,7 +119,7 @@ class Runner:
         self.log = log
         self._docs_index: dict[str, SearchIndex] = {}
 
-    def _toolbox(self, item: EvalItem, spec: RunSpec) -> ToolBox:
+    def toolbox_for(self, item: EvalItem, spec: RunSpec) -> ToolBox:
         if item.mode == "corpus":
             return self.engine.tools(spec.retrieval)
         if item.mode == "context":  # the answer must come from the given context
@@ -171,7 +171,7 @@ class Runner:
             ctx = RunContext(
                 gateway=self.engine.gateway,
                 model=model,
-                tools=self._toolbox(item, spec),
+                tools=self.toolbox_for(item, spec),
                 tools_enabled=spec.tools_enabled,
                 query_rewrite=spec.retrieval.query_rewrite == "multi",
                 max_steps=spec.max_steps,

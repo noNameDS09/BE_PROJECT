@@ -19,6 +19,7 @@ class Company(BaseModel):
     cik: str | None = None
     isin: str | None = None
     sector: str | None = None
+    group: str | None = None  # e.g. "financebench" or "event" (US universe)
     split: Literal["dev", "test"] | None = None
 
 
