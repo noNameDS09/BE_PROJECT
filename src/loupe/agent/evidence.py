@@ -17,6 +17,7 @@ class Evidence(BaseModel):
 
 class Ledger(BaseModel):
     items: dict[str, Evidence] = Field(default_factory=dict)
+    charts: list[dict] = Field(default_factory=list)  # {title, figure, evidence_ids}
 
     def add(self, kind: str, text: str, citation: Citation, value: float | None = None) -> Evidence:
         eid = f"E{len(self.items) + 1}"

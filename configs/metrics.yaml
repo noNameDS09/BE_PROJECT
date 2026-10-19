@@ -46,6 +46,12 @@ metrics:
     kind: duration
     unit: USD
     concepts: [InterestExpense, InterestExpenseNonoperating, InterestExpenseDebt]
+  pretax_income:
+    kind: duration
+    unit: USD
+    concepts: [IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest,
+               IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments,
+               IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic]
   income_tax:
     kind: duration
     unit: USD
@@ -103,6 +109,10 @@ metrics:
     kind: instant
     unit: USD
     concepts: [LongTermDebtNoncurrent, LongTermDebt, LongTermDebtAndCapitalLeaseObligations]
+  retained_earnings:
+    kind: instant
+    unit: USD
+    concepts: [RetainedEarningsAccumulatedDeficit]
   goodwill:
     kind: instant
     unit: USD
