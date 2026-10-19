@@ -121,6 +121,19 @@ class Answer(BaseModel):
     charts: list[dict[str, Any]] = Field(default_factory=list)  # Plotly specs
     abstained: bool = False
     trace: list[TraceStep] = Field(default_factory=list)
+    evidence: list[dict[str, Any]] = Field(default_factory=list)  # the run's ledger, for the UI
+
+    @property
+    def tokens(self) -> int:
+        return sum(s.tokens_in + s.tokens_out for s in self.trace)
+
+    @property
+    def latency_ms(self) -> int:
+        return sum(s.latency_ms for s in self.trace)
+
+    @property
+    def cost_usd(self) -> float:
+        return sum(s.cost_usd for s in self.trace)
 
 
 class RunConfig(BaseModel):

@@ -89,6 +89,31 @@ The 8 remaining misses are listed in `parse_report.json`:
 - PepsiCo: $91.854B
 - JPMorgan: $177.556B
 
+### Search index
+
+```bash
+uv run loupe index build                      # default: 1,200-char chunks, 150 overlap, bge-small
+uv run loupe search "cybersecurity incident impact" --company UNH --form 8-K
+```
+
+| What | Detail |
+|---|---|
+| Chunks | 123,889 section-aware chunks, each with exact character offsets into its document |
+| Dense | bge-small-en-v1.5 (384-d), run locally (ONNX), exact cosine search |
+| Sparse | BM25 (bm25s, English stopwords) |
+| Fusion | Reciprocal rank fusion (k = 60); filters by company, form, item and period are applied first |
+| Stored at | `data/processed/index/<variant>/` (`chunks.jsonl`, `dense.npy`, `bm25/`, `INFO.json`); `DEFAULT` names the variant tools use |
+
+### Financial numbers tool
+
+`configs/metrics.yaml` maps about 25 metric names (revenue, net_income, eps_diluted, total_assets, cash, operating_cash_flow and so on) to the XBRL concepts that can answer them.
+- The tool returns the exact value, the concept used, the period and the filing.
+- Fiscal-year labels follow each company's own convention (decision D15).
+- Q4 is derived as full year minus 9-month YTD when it isn't reported.
+- **Coverage, FY2023–25 × 25 companies × 7 core metrics:** 501/525 resolved. Every miss is genuinely unreported:
+  - Banks, pharma and agri companies don't report "operating income".
+  - Diebold's 2023 is split into predecessor and successor periods by fresh-start accounting.
+
 ## 3. Public evaluation datasets
 
 Defined in `configs/datasets.yaml`. Each one is downloaded to `data/raw/public/<name>/` with a `MANIFEST.json` recording the URL, size, sha256, licence and retrieval time.
