@@ -408,5 +408,24 @@ def sec_events() -> None:
     console.print(f"[green]{n:,} 8-K item rows loaded into filing_events[/]")
 
 
+@app.command("serve")
+def serve(
+    host: Annotated[str, typer.Option(help="Bind address.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="Port.")] = 8000,
+    reload: Annotated[bool, typer.Option(help="Auto-reload on code changes.")] = False,
+) -> None:
+    """Start the API (and the built web app from web/dist, if present)."""
+    import uvicorn
+
+    from loupe.api.app import app as api
+    from loupe.api.app import mount_web
+
+    mount_web()
+    if reload:
+        uvicorn.run("loupe.api.app:app", host=host, port=port, reload=True)
+    else:
+        uvicorn.run(api, host=host, port=port)
+
+
 if __name__ == "__main__":
     app()
