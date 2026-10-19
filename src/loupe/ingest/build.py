@@ -14,6 +14,7 @@ from pathlib import Path
 
 from bs4 import XMLParsedAsHTMLWarning
 
+from loupe.core.jsonl import jsonl_lines
 from loupe.core.schemas import Document, Section
 from loupe.ingest import sections
 from loupe.ingest.html_text import html_to_text
@@ -79,7 +80,7 @@ def build_corpus(
 ) -> dict:
     text_dir = out_dir / "text"
     text_dir.mkdir(parents=True, exist_ok=True)
-    records = [FilingRecord.model_validate_json(line) for line in manifest.read_text().splitlines()]
+    records = [FilingRecord.model_validate_json(line) for line in jsonl_lines(manifest)]
     found = defaultdict(
         lambda: {"filings": 0, "complete": 0, "items_expected": 0, "items_found": 0}
     )

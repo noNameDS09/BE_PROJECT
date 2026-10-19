@@ -17,6 +17,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from loupe.agent.tools import ToolBox
+from loupe.core.jsonl import jsonl_lines
 from loupe.core.schemas import Answer, Citation, RunConfig
 from loupe.eval.judge import judge
 from loupe.eval.metrics import numeric_correct, plan_scores, retrieval_recall, support_stats
@@ -51,9 +52,7 @@ def load_items(data_dir: Path, name: str) -> list[EvalItem]:
     path = dataset_path(data_dir, name)
     if not path.exists():
         raise FileNotFoundError(f"No dataset file for {name!r} (looked for {path})")
-    return [
-        EvalItem.model_validate_json(line) for line in path.read_text().splitlines() if line.strip()
-    ]
+    return [EvalItem.model_validate_json(line) for line in jsonl_lines(path)]
 
 
 def select(items: list[EvalItem], spec: RunSpec) -> list[EvalItem]:

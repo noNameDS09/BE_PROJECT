@@ -15,6 +15,7 @@ import bm25s
 import numpy as np
 from pydantic import BaseModel
 
+from loupe.core.jsonl import jsonl_lines
 from loupe.core.schemas import Chunk
 from loupe.index.chunk import context_header
 from loupe.index.embed import Embedder
@@ -87,9 +88,7 @@ class SearchIndex:
 
     @classmethod
     def load(cls, path: Path, embedder: Embedder) -> "SearchIndex":
-        chunks = [
-            Chunk.model_validate_json(x) for x in (path / "chunks.jsonl").read_text().splitlines()
-        ]
+        chunks = [Chunk.model_validate_json(x) for x in jsonl_lines(path / "chunks.jsonl")]
         dense = np.load(path / "dense.npy")
         bm25 = bm25s.BM25.load(str(path / "bm25"))
         return cls(chunks, dense, bm25, embedder)

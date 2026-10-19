@@ -15,6 +15,8 @@ import httpx
 import yaml
 from pydantic import BaseModel
 
+from loupe.core.jsonl import jsonl_lines
+
 
 class DatasetSpec(BaseModel):
     name: str
@@ -36,7 +38,7 @@ def load_specs(path: Path) -> dict[str, DatasetSpec]:
 def financebench_pdfs(root: Path) -> list[str]:
     """PDF paths for every document referenced by the open-sample questions."""
     questions = root / "data" / "financebench_open_source.jsonl"
-    docs = sorted({json.loads(line)["doc_name"] for line in questions.read_text().splitlines()})
+    docs = sorted({json.loads(line)["doc_name"] for line in jsonl_lines(questions)})
     return [f"pdfs/{doc}.pdf" for doc in docs]
 
 

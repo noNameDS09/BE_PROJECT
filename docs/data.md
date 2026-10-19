@@ -140,7 +140,35 @@ Non-commercial licences are fine for this research project. Never redistribute t
 
 Snapshot (2026-10-13): all 11 non-deferred sets downloaded, about 465 MB in total. FinanceBench includes the 84 source PDFs cited by its open questions.
 
-## 4. Not yet collected
+## 4. Evaluation sets (common format)
+
+Every question, public or our own, is an `EvalItem` (`src/loupe/eval/schema.py`).
+
+```bash
+uv run loupe evalsets convert          # 11 public sets -> data/processed/eval/<name>.jsonl
+uv run loupe evalsets gold build       # Loupe-Gold -> data/gold/*.jsonl (versioned in git)
+uv run loupe evalsets gold verify      # recomputes every gold answer; must report 0 mismatches
+uv run loupe evalsets stats
+```
+
+| Set | Items | Notes |
+|---|---|---|
+| financebench | 150 | docs mode (its PDFs); 52 numeric |
+| finder | 5,703 | retrieval with gold passages (10-Ks in its zip) |
+| failsafeqa | 1,540 | 440 refusal items |
+| secque | 565 | analyst-style text answers |
+| finqa / tatqa / convfinqa | 1,147 / 3,331 / 421 | numeric, context mode |
+| finance_agent_v1 / v2 | 50 / 27 | agent tool-use questions |
+| indfin_bench / indiafinbench | 100 / 406 | India pilots |
+| **gold_num** | 300 | exact XBRL values, FY and quarters, 12 per company |
+| **gold_calc** | 150 | margins, growth, ratios, free cash flow, CAGR computed in code |
+| **gold_trick** | 125 | future periods, unreported metrics, false premises, companies outside the universe |
+| **gold_event_labels** | 555 | 8-Ks with SEC item codes as labels |
+| **gold_plan** | 199 | expected intents and tools per question |
+
+Details and limitations: `data/gold/README.md`.
+
+## 5. Not yet collected
 
 - **Daily prices** (for the price-forecast experiment and the Scenario tool): source not chosen yet.
   - Stooq now shows a bot-verification page, which we must not bypass.
