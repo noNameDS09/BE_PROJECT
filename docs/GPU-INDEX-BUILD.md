@@ -21,8 +21,7 @@
 
 ```bash
 git clone https://github.com/noNameDS09/BE_PROJECT.git
-cd BE_PROJECT
-git checkout gpu-embedding-index
+cd BE_PROJECT          # the default branch, main, has everything needed
 uv sync --extra gpu
 ```
 
