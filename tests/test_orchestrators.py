@@ -188,3 +188,15 @@ def test_found_in_points_to_the_evidence_holding_the_number():
     sentence = "Long-term debt was $123.9 billion as of June 30 2025 [E1]."
     assert verify(sentence, ledger)[0].supported is False
     assert found_in(sentence, ledger) == ["E2"]
+
+
+def test_loupe_revision_feedback_names_the_right_evidence():
+    from loupe.orchestrators.loupe import _cite_hint
+
+    ctx = RunContext(gateway=ScriptedGateway(), model="m", tools=FakeTools())
+    ctx.ledger.add("chunk", "Net cash used in financing activities | ( 10,271 )", Citation())
+    ctx.ledger.add("chunk", "Long-term debt and finance lease obligations | 123,929", Citation())
+    assert _cite_hint("Debt was $123.9 billion [E1].", ctx) == (
+        " (these numbers are in [E2]; cite that instead)"
+    )
+    assert _cite_hint("Debt was $999 billion [E1].", ctx) == ""
