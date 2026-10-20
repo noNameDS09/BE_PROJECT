@@ -30,6 +30,17 @@ NUMBER = re.compile(
 QUOTE = re.compile(r"[\"“]([^\"”]{12,})[\"”]")
 SCALES = {"billion": 1e9, "bn": 1e9, "million": 1e6, "m": 1e6, "thousand": 1e3, "k": 1e3}
 YEARS = range(1990, 2040)
+MONTH_BEFORE = re.compile(
+    r"\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?"
+    r"|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s*$",
+    re.I,
+)
+# a negative value may be written as a positive amount of loss, outflow, decline, ...
+SIGN_WORDS = re.compile(
+    r"\b(?:loss|losses|deficit|negative|declin\w*|decreas\w*|outflows?|used in|drop\w*|fell)\b",
+    re.I,
+)
+BULLET = re.compile(r"^(?:[*•]+|-(?![\d$.]))\s*")
 
 
 class Num(NamedTuple):
@@ -39,8 +50,11 @@ class Num(NamedTuple):
 
 def parse_numbers(text: str) -> list[Num]:
     out = []
-    for m in NUMBER.finditer(CITE.sub("", text)):
+    text = CITE.sub("", text)
+    for m in NUMBER.finditer(text):
         raw = m.group(0).strip()
+        if re.search(r"\d(?:m|k|bn)$", raw, re.I) and "$" not in raw:
+            continue  # a name like 3M, not "3 million"
         neg = raw.startswith("-") or (raw.startswith("(") and raw.rstrip("%").endswith(")"))
         digits = re.search(r"\d[\d,]*(?:\.(\d+))?", raw)
         if not digits:
@@ -54,6 +68,8 @@ def parse_numbers(text: str) -> list[Num]:
             tol *= SCALES[unit.group(1).lower()]
         if value in YEARS and not unit and "$" not in raw and "%" not in raw:
             continue  # 2024 is a year, not a value to check
+        if value <= 31 and not unit and "%" not in raw and MONTH_BEFORE.search(text[: m.start()]):
+            continue  # the day in "June 30"
         out.append(Num(-value if neg else value, tol))
     return out
 
@@ -67,11 +83,35 @@ def _matches(claim: Num, evidence: float) -> bool:
     return False
 
 
+def _supported(n: Num, pool: list[float], sentence: str) -> bool:
+    if any(_matches(n, p) for p in pool):
+        return True
+    flipped = Num(-n.value, n.tol)
+    return bool(SIGN_WORDS.search(sentence)) and any(_matches(flipped, p) for p in pool)
+
+
+def _pool(evidence) -> list[float]:
+    pool = [e.value for e in evidence if e.value is not None]
+    return pool + [n.value for e in evidence for n in parse_numbers(e.text)]
+
+
+def found_in(sentence: str, ledger: Ledger) -> list[str]:
+    """Evidence ids that hold every number of a sentence (to repair a wrong citation)."""
+    numbers = [n for n in parse_numbers(sentence) if n.value != 0]
+    if not numbers:
+        return []
+    return [
+        e.id
+        for e in ledger.items.values()
+        if all(_supported(n, _pool([e]), sentence) for n in numbers)
+    ]
+
+
 def _units(answer: str) -> list[str]:
     """Claims to check: each line (bullets, table rows) and each sentence within a line."""
     out = []
     for line in answer.splitlines():
-        line = line.strip().lstrip("*-•").strip()
+        line = BULLET.sub("", line.strip()).strip()
         if line:
             out += [s.strip() for s in SENTENCE.split(line) if s.strip()]
     return out
@@ -91,9 +131,8 @@ def verify(answer: str, ledger: Ledger) -> list[Claim]:
         elif not cited:
             supported = False
         else:
-            pool = [e.value for e in cited if e.value is not None]
-            pool += [n.value for e in cited for n in parse_numbers(e.text)]
-            nums_ok = all(any(_matches(n, p) for p in pool) for n in numbers if n.value != 0)
+            pool = _pool(cited)
+            nums_ok = all(_supported(n, pool, sentence) for n in numbers if n.value != 0)
             texts = " ".join(e.text for e in cited).lower()
             quotes_ok = all(" ".join(q.lower().split()) in " ".join(texts.split()) for q in quotes)
             supported = nums_ok and quotes_ok

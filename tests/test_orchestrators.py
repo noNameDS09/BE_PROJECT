@@ -155,3 +155,36 @@ def test_citation_formats():
     assert cited_ids("x [E1] y [E2][E3] z") == ["E1", "E2", "E3"]
     assert cited_ids("x [E1, E4] y 【E5】") == ["E1", "E4", "E5"]
     assert cited_ids("see [note] and [1]") == []
+
+
+def test_names_and_dates_are_not_values_to_check():
+    # pilot 2 misses: "3M" read as 3 million, the day in "June 30" checked as a value
+    nums = [n.value for n in parse_numbers("3M equity at June 30, 2023 was $7,798 million")]
+    assert nums == [7.798e9]
+    assert [n.value for n in parse_numbers("a $5m charge")] == [5e6]
+
+
+def test_leading_minus_is_a_sign_not_a_bullet():
+    ledger = Ledger()
+    ledger.add("fact", "MMM operating_income FY2023: -1.0689e+10 USD", Citation(), -1.0689e10)
+    assert [c.supported for c in verify("-10,689 million USD [E1]", ledger)] == [True]
+    assert [c.supported for c in verify("- 10,689 million USD [E1]", ledger)] == [False]
+
+
+def test_negative_value_may_be_written_as_a_loss():
+    ledger = Ledger()
+    ledger.add("fact", "MMM operating_income FY2023: -1.0689e+10 USD", Citation(), -1.0689e10)
+    loss = verify("3M had an operating loss of $10.7 billion [E1].", ledger)
+    plain = verify("3M operating income was $10.7 billion [E1].", ledger)
+    assert (loss[0].supported, plain[0].supported) == (True, False)
+
+
+def test_found_in_points_to_the_evidence_holding_the_number():
+    from loupe.agent.verify import found_in
+
+    ledger = Ledger()
+    ledger.add("chunk", "Net cash used in financing activities | ( 10,271 )", Citation())
+    ledger.add("chunk", "Long-term debt and finance lease obligations | 123,929", Citation())
+    sentence = "Long-term debt was $123.9 billion as of June 30 2025 [E1]."
+    assert verify(sentence, ledger)[0].supported is False
+    assert found_in(sentence, ledger) == ["E2"]
