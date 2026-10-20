@@ -181,3 +181,44 @@ def show(item_id: str) -> None:
 
 if __name__ == "__main__":
     app()
+
+
+@gold_app.command("audit-sample")
+def gold_audit_sample(
+    share: float = typer.Option(0.05, help="Share of each gold set to audit."),
+    seed: int = typer.Option(20261013, help="Sampling seed."),
+) -> None:
+    """Write data/gold/audit/audit_sample.csv: a seeded 5% sample of every gold set for the
+    human check (fill `verdict` with ok / wrong and a note). The error rate goes in the report."""
+    import csv
+    import json
+    import random
+    from pathlib import Path
+
+    out = Path("data/gold/audit")
+    out.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for path in sorted(Path("data/gold").glob("gold_*.jsonl")):
+        items = [json.loads(x) for x in path.read_text().split("\n") if x.strip()]
+        rng = random.Random(f"{seed}:{path.stem}")
+        for it in rng.sample(items, max(1, round(len(items) * share))):
+            ev = (it.get("evidence") or [{}])[0]
+            source = ev.get("accession") or ev.get("doc_id") or ""
+            rows.append(
+                {
+                    "set": path.stem,
+                    "item_id": it["item_id"],
+                    "question": it["question"],
+                    "expected_answer": it.get("answer"),
+                    "source": source,
+                    "url": it.get("meta", {}).get("url", ""),
+                    "verdict": "",
+                    "note": "",
+                }
+            )
+    target = out / "audit_sample.csv"
+    with target.open("w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    console.print(f"[green]{len(rows)} items written to {target}[/]")

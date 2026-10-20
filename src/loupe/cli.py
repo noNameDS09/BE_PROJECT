@@ -80,6 +80,11 @@ def models_check(
     for spec in specs:
         with console.status(f"probing {spec.alias}"):
             r = probe(gateway, spec)
+        console.print(
+            f"{r.alias}: reachable {r.reachable}, tools {r.tools}, json {r.json_mode} "
+            f"{r.note[:60]}",
+            highlight=False,
+        )
         table.add_row(
             r.alias,
             STATUS_STYLE[r.reachable],
@@ -294,13 +299,19 @@ def index_build(
         Path | None, typer.Option(help="Embed an existing chunks.jsonl instead of re-chunking.")
     ] = None,
     default: Annotated[bool, typer.Option(help="Make this variant the default.")] = True,
+    out: Annotated[
+        Path | None, typer.Option(help="Output folder (default: data/processed/index/<variant>).")
+    ] = None,
 ) -> None:
     """Chunk every parsed document (section-aware), embed, build BM25.
 
     On a CPU this takes hours for the full corpus; use --device cuda on an NVIDIA GPU
     (see docs/GPU-INDEX-BUILD.md)."""
     variant = f"c{size}o{overlap}-{embedder}"
-    out = get_settings().data_dir / "processed" / "index" / variant
+    if out is None:
+        out = get_settings().data_dir / "processed" / "index" / variant
+    else:
+        default = False  # a custom folder (e.g. a benchmark's docs index) is never the default
     if from_chunks is not None:
         chunks = [Chunk.model_validate_json(x) for x in jsonl_lines(from_chunks)]
         console.print(f"Loaded {len(chunks):,} chunks from {from_chunks}")
@@ -405,7 +416,9 @@ def ask(
     arm: Annotated[
         list[str] | None, typer.Option(help="Arm name (repeat to compare). See `loupe arms`.")
     ] = None,
-    model: Annotated[str, typer.Option(help="Alias from configs/models.yaml.")] = "groq-llama-70b",
+    model: Annotated[
+        str, typer.Option(help="Model alias (configs/models.yaml).")
+    ] = "nim-nemotron-super",
     rerank: Annotated[
         str | None, typer.Option(help="Reranker: minilm-l12 | minilm-l6 | bge-base | none")
     ] = "minilm-l12",
@@ -423,11 +436,15 @@ def ask(
         query_rewrite="multi" if rewrite else "none",
     )
     for name in arm or ["loupe"]:
-        with console.status(f"{name} on {model}"):
-            answer = engine.ask(
-                question, arm=name, model=model, retrieval=retrieval, tools_enabled=tools
-            )
         console.rule(f"[bold]{name}[/] · {model}")
+        try:
+            with console.status(f"{name} on {model}"):
+                answer = engine.ask(
+                    question, arm=name, model=model, retrieval=retrieval, tools_enabled=tools
+                )
+        except Exception as exc:  # one failing arm must not hide the others
+            console.print(f"[red]{type(exc).__name__}:[/] {str(exc)[:400]}", highlight=False)
+            continue
         console.print(answer.text, highlight=False)
         checked = [c for c in answer.claims if c.supported is not None]
         ok = sum(bool(c.supported) for c in checked)

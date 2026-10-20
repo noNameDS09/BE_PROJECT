@@ -130,3 +130,28 @@ def test_quotes_must_appear_in_cited_passage():
     bad = verify('Management warns "supply chain is collapsing badly" [E1].', ledger)
     missing = verify("Revenue was $5 billion [E9].", ledger)
     assert [ok[0].supported, bad[0].supported, missing[0].supported] == [True, False, False]
+
+
+def test_bullet_lines_are_separate_claims():
+    ledger = Ledger()
+    ledger.add("fact", "DBD revenue FY2021: 3905000000 USD", Citation(), 3_905_000_000)
+    claims = verify(
+        "Revenue was:\n* FY2021: $3.905 billion [E1]\n* FY2022: $9.9 billion [E1]", ledger
+    )
+    assert [c.supported for c in claims] == [None, True, False]
+
+
+def test_partial_answer_with_a_missing_value_is_not_an_abstention():
+    ctx = RunContext(gateway=ScriptedGateway(), model="m", tools=FakeTools())
+    ctx.ledger.add("fact", "AMD revenue FY2024: 25785000000 USD", Citation(), 25_785_000_000)
+    partial = ctx.finish("Revenue was $25.8 billion [E1]. FY2023 was not reported.")
+    refusal = ctx.finish("That information is not reported in the filings.")
+    assert (partial.abstained, refusal.abstained) == (False, True)
+
+
+def test_citation_formats():
+    from loupe.agent.verify import cited_ids
+
+    assert cited_ids("x [E1] y [E2][E3] z") == ["E1", "E2", "E3"]
+    assert cited_ids("x [E1, E4] y 【E5】") == ["E1", "E4", "E5"]
+    assert cited_ids("see [note] and [1]") == []

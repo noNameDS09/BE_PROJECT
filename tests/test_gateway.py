@@ -111,3 +111,11 @@ def test_calls_are_throttled_to_the_provider_rpm(tmp_path, registry):
     gw.complete("slow", [{"role": "user", "content": "2"}])
 
     assert sleeps == [10.0]  # rpm 6 -> one call per 10 s
+
+
+def test_reasoning_blocks_are_stripped_from_answers():
+    from loupe.llm.gateway import strip_reasoning
+
+    assert strip_reasoning("<think>hmm, 2+2</think>\nThe answer is 4.") == "The answer is 4."
+    assert strip_reasoning("<think>still thinking when tokens ran out") == ""
+    assert strip_reasoning("No reasoning here.") == "No reasoning here."

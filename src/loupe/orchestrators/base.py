@@ -24,9 +24,12 @@ CITED_RULES = """Rules:
 - Analysis only: never recommend buying, selling or holding a security."""
 
 ABSTAIN = re.compile(
-    r"\b(not (?:reported|available|found|disclosed)|no (?:evidence|information|data)|"
-    r"(?:cannot|can't|could not|unable to) (?:find|determine|answer)|"
-    r"insufficient (?:evidence|information)|no record)\b",
+    r"\b(not (?:reported|available|found|disclosed|stated|mentioned)|"
+    r"no (?:evidence|information|data|record|indication|mention)|"
+    r"(?:does|do|did) not (?:contain|mention|indicate|show|include|report|support)|"
+    r"(?:has|have|had) not (?:filed|reported|disclosed|announced)|"
+    r"(?:cannot|can't|could not|unable to) (?:find|determine|answer|confirm|verify)|"
+    r"insufficient (?:evidence|information)|false premise|premise is (?:false|incorrect))\b",
     re.I,
 )
 
@@ -59,7 +62,8 @@ class RunContext:
     gateway: Gateway
     model: str
     tools: ToolBox
-    max_tokens: int = 1500
+    # reasoning models spend output tokens thinking before they answer: keep caps generous
+    max_tokens: int = 4000
     max_steps: int = 8
     tools_enabled: bool = True
     query_rewrite: bool = False
@@ -93,7 +97,7 @@ class RunContext:
         )
         return c
 
-    def llm_json(self, stage: str, system: str, user: str, max_tokens: int = 600) -> Any:
+    def llm_json(self, stage: str, system: str, user: str, max_tokens: int = 2000) -> Any:
         c = self.llm(
             stage,
             [{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -108,7 +112,7 @@ class RunContext:
             'You rewrite search queries for SEC filings. Return JSON {"queries": [3 strings]}: '
             "alternative phrasings using the terms filings use (e.g. 'net revenue', 'Item 1A').",
             query,
-            max_tokens=200,
+            max_tokens=1500,
         )
         queries = out.get("queries", []) if isinstance(out, dict) else []
         return [q for q in queries if isinstance(q, str) and q.strip()][:3]
@@ -124,10 +128,13 @@ class RunContext:
         return out
 
     def finish(self, text: str) -> Answer:
+        claims = verify(text, self.ledger)
+        # declining = the answer says the information is missing AND verifies no fact itself
+        abstained = bool(ABSTAIN.search(text)) and not any(c.supported for c in claims)
         return Answer(
             text=text,
-            claims=verify(text, self.ledger),
-            abstained=bool(ABSTAIN.search(text)),
+            claims=claims,
+            abstained=abstained,
             charts=list(self.ledger.charts),
             trace=self.trace,
             evidence=[e.model_dump() for e in self.ledger.items.values()],

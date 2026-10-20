@@ -42,7 +42,7 @@ def judge(gateway: Gateway, judge_model: str, item: EvalItem, answer: str) -> Ve
         judge_model,
         [{"role": "system", "content": rubric}, {"role": "user", "content": user}],
         json_mode=True,
-        max_tokens=200,
+        max_tokens=1500,
     )
     out = parse_json(c.text)
     if not isinstance(out, dict):

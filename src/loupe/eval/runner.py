@@ -9,6 +9,7 @@
 """
 
 import json
+import random
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -41,6 +42,7 @@ class RunSpec(BaseModel):
     tools_enabled: bool = True
     max_steps: int = 8
     final: bool = False
+    seed: int = 20261013  # for limited (sampled) runs
 
 
 def dataset_path(data_dir: Path, name: str) -> Path:
@@ -61,7 +63,23 @@ def select(items: list[EvalItem], spec: RunSpec) -> list[EvalItem]:
         out = [i for i in out if i.kind in spec.kinds]
     if spec.split == "test" and not spec.final:
         raise PermissionError("Test-split runs need final=True (--final); see docs/hypotheses.md")
-    return out[: spec.limit] if spec.limit else out
+    if not spec.limit or len(out) <= spec.limit:
+        return out
+    # a limited run samples across companies (seeded round-robin), not the first N in file order
+    rng = random.Random(spec.seed)
+    groups: dict[str, list[EvalItem]] = {}
+    for item in out:
+        groups.setdefault(item.companies[0] if item.companies else "_", []).append(item)
+    keys = sorted(groups)
+    rng.shuffle(keys)
+    for k in keys:
+        rng.shuffle(groups[k])
+    picked: list[EvalItem] = []
+    while len(picked) < spec.limit:
+        for k in keys:
+            if groups[k] and len(picked) < spec.limit:
+                picked.append(groups[k].pop())
+    return picked
 
 
 def config_for(spec: RunSpec, arm: str, model: str) -> RunConfig:

@@ -12,6 +12,8 @@ PROVIDER_KEYS = {
     "openrouter": "OPENROUTER_API_KEY",
     "groq": "GROQ_API_KEY",
     "nvidia_nim": "NVIDIA_NIM_API_KEY",
+    "mistral": "MISTRAL_API_KEY",
+    "ollama_cloud": "OLLAMA_API_KEY",
 }
 
 
@@ -25,6 +27,15 @@ class ModelSpec(BaseModel):
     def api_base(self) -> str | None:
         if self.provider == "ollama":
             return os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
+        if self.provider == "ollama_cloud":
+            return "https://ollama.com"
+        return None
+
+    @property
+    def api_key(self) -> str | None:
+        """Passed explicitly only where LiteLLM doesn't read the key from the environment."""
+        if self.provider == "ollama_cloud":
+            return os.environ.get("OLLAMA_API_KEY")
         return None
 
     def missing_key(self) -> str | None:

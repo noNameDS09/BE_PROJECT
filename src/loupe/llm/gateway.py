@@ -7,6 +7,7 @@ errors, and logged with tokens, latency and cost.
 
 import hashlib
 import json
+import re
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -19,7 +20,18 @@ from pydantic import BaseModel, Field
 from loupe.llm.registry import ModelRegistry, ModelSpec
 
 MAX_ATTEMPTS = 5
+REQUEST_TIMEOUT = 90  # seconds per model call
 BACKOFF_SECONDS = 2.0
+# Some reasoning models put their private reasoning in the answer text. It is removed so
+# answers are compared on what the model actually concludes; an unclosed block means the
+# model ran out of tokens while still thinking.
+THINK = re.compile(r"<think>.*?(</think>|$)", re.S)
+
+
+def strip_reasoning(text: str | None) -> str | None:
+    if text is None or "<think>" not in text:
+        return text
+    return THINK.sub("", text).strip()
 
 
 class ToolCall(BaseModel):
@@ -41,12 +53,13 @@ class Completion(BaseModel):
 
 
 def _is_transient(exc: Exception) -> bool:
+    """Worth retrying: rate limits and dropped connections. A timeout is not: a model that
+    took 90 s once will likely do it again, and retrying would stall a long run."""
     import litellm
 
     transient = (
         litellm.RateLimitError,
         litellm.ServiceUnavailableError,
-        litellm.Timeout,
         litellm.APIConnectionError,
         litellm.InternalServerError,
     )
@@ -132,6 +145,7 @@ class Gateway:
             "messages": request["messages"],
             "max_tokens": request["max_tokens"],
             "temperature": request["temperature"],
+            "timeout": REQUEST_TIMEOUT,  # a stalled connection must not hang a long run
         }
         if request["tools"]:
             kwargs["tools"] = request["tools"]
@@ -139,6 +153,8 @@ class Gateway:
             kwargs["response_format"] = {"type": "json_object"}
         if spec.api_base:
             kwargs["api_base"] = spec.api_base
+        if spec.api_key:
+            kwargs["api_key"] = spec.api_key
 
         fn = self._completion_fn or litellm.completion
         start = time.perf_counter()
@@ -163,7 +179,7 @@ class Gateway:
         return Completion(
             alias=spec.alias,
             model=getattr(resp, "model", None) or spec.model,
-            text=message.content,
+            text=strip_reasoning(message.content),
             tool_calls=tool_calls,
             tokens_in=getattr(usage, "prompt_tokens", 0) or 0,
             tokens_out=getattr(usage, "completion_tokens", 0) or 0,

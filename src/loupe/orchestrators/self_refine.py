@@ -30,7 +30,7 @@ class SelfRefine:
             "critique",
             CRITIC,
             f"Question: {question}\n\nDraft:\n{draft}\n\nEvidence:\n{evidence}",
-            500,
+            2000,
         )
         if not isinstance(review, dict) or review.get("ok", True) or not review.get("issues"):
             return ctx.finish(draft)

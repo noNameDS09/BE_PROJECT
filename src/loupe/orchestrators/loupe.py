@@ -61,7 +61,7 @@ class LoupeOrch:
     def _route(self, question: str, ctx: RunContext) -> dict:
         if not self.use_router:
             return {"intents": INTENTS, "companies": [], "fiscal_years": [], "multi_step": True}
-        out = ctx.llm_json("route", ROUTE, question, 200)
+        out = ctx.llm_json("route", ROUTE, question, 2000)
         out = out if isinstance(out, dict) else {}
         intents = [i for i in out.get("intents", []) if i in INTENTS] or ["open_analysis"]
         known = {c.id: c for c in ctx.tools.companies}
@@ -97,7 +97,7 @@ class LoupeOrch:
         if planned:
             out = ctx.llm_json(
                 "plan", PLANNER.format(max_steps=ctx.max_steps, tools=tool_catalogue(ctx, tools)),
-                question + hint, 1200,
+                question + hint, 4000,
             )  # fmt: skip
             plan = out.get("plan", []) if isinstance(out, dict) else []
             plan = [s for s in plan if isinstance(s, dict) and s.get("tool") in tools][
@@ -155,7 +155,7 @@ class LoupeOrch:
             numbered = "\n".join(f"{i}. {c.text}" for i, c in enumerate(claims, 1))
             cited = "\n".join(f"[{e.id}] {e.text[:500]}" for e in ctx.ledger.items.values())
             review = ctx.llm_json(
-                "critique", CRITIC, f"Claims:\n{numbered}\n\nEvidence:\n{cited}", 300
+                "critique", CRITIC, f"Claims:\n{numbered}\n\nEvidence:\n{cited}", 2000
             )
             if isinstance(review, dict):
                 for n in review.get("unsupported", []) or []:
