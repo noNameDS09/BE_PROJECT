@@ -62,8 +62,9 @@ def engine():
 
 @cache
 def store() -> ResultStore:
-    d = engine().settings.data_dir / "processed"
-    return ResultStore(d / "results.duckdb", d / "runs")
+    settings = engine().settings
+    d = settings.data_dir / "processed"
+    return ResultStore(d / settings.results_db, d / "runs")
 
 
 @cache

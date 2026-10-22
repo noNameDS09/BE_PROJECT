@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     sec_user_agent: str | None = None
     data_dir: Path = Path("data")
     models_config: Path = Path("configs/models.yaml")
+    # results database file name under data/processed/; set RESULTS_DB to keep a separate
+    # experiment round (or a parallel run on another provider) in its own file
+    results_db: str = "results.duckdb"
 
     @property
     def cache_dir(self) -> Path:
