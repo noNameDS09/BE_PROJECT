@@ -1,5 +1,21 @@
+import type { Toolset } from "../api/types";
+
 /** Display order and fallback labels for orchestration arms (the API's /config wins when loaded). */
-export const ARM_ORDER = ["b0", "rag", "react", "plan_execute", "router", "self_refine", "loupe"] as const;
+export const ARM_ORDER = [
+  "b0",
+  "rag",
+  "react",
+  "plan_execute",
+  "router",
+  "self_refine",
+  "loupe",
+  "loupe-generic-tools",
+  "loupe-no-router",
+  "loupe-no-planner",
+  "loupe-no-verifier",
+  "loupe-no-critic",
+  "loupe-no-abstain",
+] as const;
 
 export const ARM_SHORT: Record<string, string> = {
   b0: "B0",
@@ -9,11 +25,34 @@ export const ARM_SHORT: Record<string, string> = {
   router: "FARE router",
   self_refine: "Self-Refine",
   loupe: "Loupe",
+  "loupe-generic-tools": "Loupe − harness",
+  "loupe-no-router": "Loupe − router",
+  "loupe-no-planner": "Loupe − planner",
+  "loupe-no-verifier": "Loupe − verifier",
+  "loupe-no-critic": "Loupe − critic",
+  "loupe-no-abstain": "Loupe − abstain",
 };
 
 export function armShort(arm: string): string {
   return ARM_SHORT[arm] ?? arm;
 }
+
+/** Loupe itself or one of its ablations ("loupe-no-router", "loupe-generic-tools", …). */
+export function isLoupeArm(arm: string): boolean {
+  return arm === "loupe" || arm.startsWith("loupe-");
+}
+
+/** Short labels for ArmInfo.toolset. */
+export const TOOLSET_LABEL: Record<Toolset, string> = {
+  harness: "Loupe harness",
+  generic: "generic tools",
+  none: "no tools",
+};
+
+/** How the comparison is set up (decision D21); shown wherever results are compared. */
+export const METHODS_NOTE =
+  "Baselines run as published with generic tools (filing search, calculator). Loupe adds our financial tool harness. " +
+  "The 'Loupe minus harness' ablation isolates the harness's effect.";
 
 export function armRank(arm: string): number {
   const i = (ARM_ORDER as readonly string[]).indexOf(arm);

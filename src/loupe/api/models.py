@@ -12,12 +12,15 @@ class ArmInfo(BaseModel):
     name: str
     label: str
     description: str
+    toolset: str = "harness"  # "harness" (ours) | "generic" | "none" (decision D21)
+    tools: list[str] = []  # tool names this arm may call
 
 
 class ModelInfo(BaseModel):
     alias: str
     provider: str
     available: bool
+    model: str = ""  # provider's model id
 
 
 class DatasetInfo(BaseModel):

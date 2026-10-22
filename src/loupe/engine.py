@@ -14,7 +14,7 @@ from loupe.index.retriever import CrossEncoder, RetrievalConfig, Retriever
 from loupe.index.search import SearchIndex
 from loupe.llm import Gateway, ModelRegistry
 from loupe.orchestrators import ARMS, RunContext
-from loupe.tools.facts import FactsStore, load_metrics
+from loupe.tools.facts import FactsStore, load_metrics, primary_documents
 
 COMPANIES = Path("configs/companies_us.yaml")
 METRICS = Path("configs/metrics.yaml")
@@ -52,7 +52,9 @@ class Engine:
     @cached_property
     def facts(self) -> FactsStore:
         db = self.settings.data_dir / "processed" / "loupe.duckdb"
-        return FactsStore(db, load_metrics(METRICS), {c.id: c.cik for c in self.companies if c.cik})
+        docs = primary_documents(self.settings.data_dir / "raw" / "sec" / "manifest.jsonl")
+        ciks = {c.id: c.cik for c in self.companies if c.cik}
+        return FactsStore(db, load_metrics(METRICS), ciks, docs)
 
     def reranker(self, name: str | None) -> CrossEncoder | None:
         if not name:

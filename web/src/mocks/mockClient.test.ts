@@ -10,12 +10,26 @@ const api = createMockClient({ delayMs: 0 });
 const TICKERS = "PEP AMCR JNJ MMM AMD BBY BA AXP MGM PFE ULTA ADBE JPM VZ CVS ADM UNH DBD SHAK SAH ECHO KR RIG CMP BFH".split(" ");
 
 describe("mock config", () => {
-  it("lists the 25 companies, the seven arms and datasets", async () => {
+  it("lists the 25 companies, the seven arms plus Loupe ablations, and datasets", async () => {
     const c = await api.config();
     expect(c.companies.map((x) => x.id).sort()).toEqual([...TICKERS].sort());
-    expect(c.arms.map((a) => a.name)).toEqual(["b0", "rag", "react", "plan_execute", "router", "self_refine", "loupe"]);
+    expect(c.arms.slice(0, 7).map((a) => a.name)).toEqual(["b0", "rag", "react", "plan_execute", "router", "self_refine", "loupe"]);
+    expect(c.arms.slice(7).every((a) => a.name.startsWith("loupe-"))).toBe(true);
     expect(c.datasets.length).toBeGreaterThanOrEqual(3);
     for (const d of c.datasets) expect(d.items).toBeGreaterThan(0);
+    for (const m of c.models) expect(m.model).toContain("/");
+  });
+
+  it("gives baselines generic tools and Loupe the financial harness", async () => {
+    const c = await api.config();
+    const arm = (name: string) => c.arms.find((a) => a.name === name)!;
+    expect(arm("b0").toolset).toBe("none");
+    expect(arm("b0").tools).toEqual([]);
+    expect(arm("react").toolset).toBe("generic");
+    expect(arm("react").tools).not.toContain("get_financial_metric");
+    expect(arm("loupe").toolset).toBe("harness");
+    expect(arm("loupe").tools).toContain("get_financial_metric");
+    expect(arm("loupe-generic-tools").toolset).toBe("generic");
   });
 });
 
@@ -36,6 +50,15 @@ describe("mock compare", () => {
     expect(loupe?.answer.claims.every((c) => c.supported === true)).toBe(true);
     expect(loupe?.answer.charts.length).toBe(1);
     expect(loupe?.gold?.correct).toBe(1);
+    // Loupe's verifier removed a sentence; other arms never report removed claims.
+    expect(loupe?.answer.removed_claims?.length).toBeGreaterThan(0);
+    expect(b0?.answer.removed_claims ?? []).toEqual([]);
+    // Fact citations carry a verdict and point at SEC's inline XBRL viewer.
+    const fact = loupe!.answer.claims[0]!.citations[0]!;
+    expect(fact.verified).toBe(true);
+    expect(fact.url).toContain("/ix?doc=");
+    const passage = loupe!.answer.claims.flatMap((c) => c.citations).find((c) => c.chunk_id !== null);
+    expect(passage?.quote).toBeTruthy();
     // tokens / latency are the sums over the trace
     const t = loupe!.answer.trace.reduce((s, x) => s + x.tokens_in + x.tokens_out, 0);
     expect(loupe?.tokens).toBe(t);
@@ -101,8 +124,8 @@ describe("mock datasets", () => {
 
 describe("mock results and documents", () => {
   it("leaderboard rows carry bounded intervals", async () => {
-    const { rows } = await api.leaderboard({ dataset: "loupe-gold", model: "groq-llama-70b" });
-    expect(rows).toHaveLength(7);
+    const { rows } = await api.leaderboard({ dataset: "loupe-gold", model: "nim-nemotron-super" });
+    expect(rows).toHaveLength(8);
     for (const r of rows) {
       const m = r.metrics.accuracy!;
       expect(m.lo!).toBeLessThanOrEqual(m.mean!);

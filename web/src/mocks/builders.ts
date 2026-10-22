@@ -48,21 +48,29 @@ export function chunkCite(docId: string, start: number, text: string, url: strin
   });
 }
 
+/** The supporting line the verifier quotes: a passage's first sentence, or a fact's record. */
+function supportingQuote(e: Evidence): string | null {
+  if (e.citation.quote) return e.citation.quote;
+  if (e.kind === "calc") return null;
+  const first = e.kind === "chunk" ? (e.text.split(/(?<=[.;])\s+/)[0] ?? e.text) : e.text;
+  return first.slice(0, 300);
+}
+
 /**
- * Builds a claim; its citations are the cited ledger items, stamped with the verifier verdict
- * (`verified` mirrors `supported` for checkable claims).
+ * Builds a claim; its citations are the cited ledger items, stamped per citation with the
+ * verifier verdict (`verified` mirrors `supported`, as the backend does) and the supporting quote.
  */
 export function claim(text: string, supported: boolean | null, ledger: Evidence[]): Claim {
   const ids = citedIds(text);
   const citations = ids
     .map((id) => ledger.find((e) => e.id === id))
     .filter((e): e is Evidence => Boolean(e))
-    .map((e) => ({ ...e.citation, quote: e.kind === "chunk" ? e.text.slice(0, 160) : e.citation.quote, verified: supported }));
+    .map((e) => ({ ...e.citation, quote: supportingQuote(e), verified: supported }));
   return { text, citations, supported };
 }
 
 export function emptyAnswer(): Answer {
-  return { text: "", claims: [], charts: [], abstained: false, trace: [], evidence: [] };
+  return { text: "", claims: [], charts: [], abstained: false, trace: [], evidence: [], removed_claims: [] };
 }
 
 /** Joins claim texts (and optional extra sentences) into the answer text. */
@@ -79,6 +87,7 @@ interface ModelProfile {
 }
 
 export const MODEL_PROFILE: Record<string, ModelProfile> = {
+  "nim-nemotron-super": { speed: 0.9, inPrice: 0, outPrice: 0 },
   "groq-llama-70b": { speed: 0.45, inPrice: 0, outPrice: 0 },
   "gemini-flash": { speed: 1.0, inPrice: 0.3, outPrice: 2.5 },
   "gemini-flash-lite": { speed: 0.7, inPrice: 0.1, outPrice: 0.4 },

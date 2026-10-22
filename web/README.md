@@ -31,7 +31,8 @@ Environment variables (see `.env.example`): `VITE_API_BASE` (default `/api`), `V
 | Route | Page | Endpoints |
 |---|---|---|
 | `/` | **Compare**: a typed question or a dataset item × up to 4 (arm, model) configs, answers in columns. `/?item=<item_id>` preselects an item. | `/config`, `/datasets/{name}/items`, `/datasets/{name}/items/{id}`, `POST /compare`, `/documents/{doc_id}` |
-| `/leaderboard` | Sortable table of `mean [lo, hi]` metrics + grouped bar chart with CI error bars | `/results/leaderboard` |
+| `/leaderboard` | Sortable table of `mean [lo, hi]` metrics + grouped bar chart with CI error bars; click a row for its runs | `/results/leaderboard` |
+| `/models` | Per model: Loupe's scores per dataset next to the best baseline arm, with deltas, and a Loupe-by-model chart | `/config`, `/results/leaderboard` |
 | `/stages` | B0 → Loupe accuracy waterfall (hallucination rate as a line) + steps/ablations table | `/results/stages` |
 | `/datasets` | Dataset cards, paginated/filterable item table, item detail with "Run in Compare" | `/config`, `/datasets/{name}/items` |
 | `/runs` | Drill-down over stored ResultRows with filters; click a row for the answer | `/results/runs` |
@@ -72,7 +73,7 @@ web/
     │   ├── builders.ts            # constructors, deterministic hashing, per-arm trace shapes
     │   ├── fixtures/              # config (25 companies, arms, models), items, documents, results
     │   └── mockClient.test.ts
-    ├── pages/                     # ComparePage, LeaderboardPage, StagesPage, DatasetsPage, RunsPage, ChatPage
+    ├── pages/                     # ComparePage, LeaderboardPage, ModelsPage, StagesPage, DatasetsPage, RunsPage, ChatPage
     └── styles/global.css          # tokens (light/dark), layout, components
 ```
 

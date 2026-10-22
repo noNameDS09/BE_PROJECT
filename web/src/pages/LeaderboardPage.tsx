@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { api } from "../api/client";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { api, buildQuery } from "../api/client";
 import type { LeaderboardRow, PlotlyFigure } from "../api/types";
 import { EmptyState, ErrorBanner, SkeletonTable } from "../components/Feedback";
 import { FilterBar, FilterSelect, SortHeader } from "../components/Filters";
 import { MetricCell } from "../components/MetricCell";
 import { PlotlyChart } from "../components/PlotlyChart";
-import { armColor, armRank } from "../lib/arms";
+import { ToolsetBadge } from "../components/ToolsetBadge";
+import { METHODS_NOTE, armColor, armRank } from "../lib/arms";
 import { formatCost, formatLatency, formatTokens, lowerIsBetter } from "../lib/format";
 import { useAsync } from "../lib/useAsync";
 import { armLabel, useConfig } from "../lib/useConfig";
@@ -73,8 +74,14 @@ export function leaderboardFigure(rows: LeaderboardRow[], label: (arm: string) =
   };
 }
 
+/** The Runs page filtered to the runs behind one leaderboard row. */
+export function runsLink(row: Pick<LeaderboardRow, "dataset" | "arm" | "model">): string {
+  return `/runs${buildQuery({ dataset: row.dataset, arm: row.arm, model: row.model })}`;
+}
+
 export function LeaderboardPage() {
   const { config } = useConfig();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const filters = {
     dataset: params.get("dataset") ?? "",
@@ -134,6 +141,7 @@ export function LeaderboardPage() {
         <div>
           <h1>Leaderboard</h1>
           <p>Scores per arm and model with 95% cluster-bootstrap intervals, shown as mean [lo, hi].</p>
+          <p className="small">{METHODS_NOTE}</p>
         </div>
       </div>
 
@@ -187,7 +195,7 @@ export function LeaderboardPage() {
           <section className="card">
             <div className="card-head">
               <h2>All rows</h2>
-              <span className="small faint">{rows.length} rows · click a header to sort</span>
+              <span className="small faint">{rows.length} rows · click a header to sort, a row to read its runs</span>
             </div>
             {loading && !data ? (
               <SkeletonTable rows={8} cols={7} />
@@ -212,11 +220,21 @@ export function LeaderboardPage() {
                   </thead>
                   <tbody>
                     {rows.map((r) => (
-                      <tr key={`${r.arm}|${r.model}|${r.dataset}`}>
+                      <tr
+                        key={`${r.arm}|${r.model}|${r.dataset}`}
+                        className="clickable"
+                        tabIndex={0}
+                        title="Open the runs behind this row"
+                        onClick={() => navigate(runsLink(r))}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") navigate(runsLink(r));
+                        }}
+                      >
                         <td className="nowrap">
                           <span className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
                             <span className="arm-swatch" style={{ background: armColor(r.arm) }} />
                             {armLabel(config, r.arm)}
+                            <ToolsetBadge arm={r.arm} />
                           </span>
                         </td>
                         <td className="mono nowrap">{r.model}</td>

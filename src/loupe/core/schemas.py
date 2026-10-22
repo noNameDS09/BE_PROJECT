@@ -124,6 +124,7 @@ class Answer(BaseModel):
     abstained: bool = False
     trace: list[TraceStep] = Field(default_factory=list)
     evidence: list[dict[str, Any]] = Field(default_factory=list)  # the run's ledger, for the UI
+    removed_claims: list[str] = Field(default_factory=list)  # dropped by the code verifier
 
     @property
     def tokens(self) -> int:
@@ -142,6 +143,7 @@ class RunConfig(BaseModel):
     arm: str  # "b0", "o1".."o5", "loupe"
     model: str  # alias from configs/models.yaml
     tools_enabled: bool = True
+    toolset: str = "harness"  # "harness" | "generic" | "none" (decision D21)
     retrieval: dict[str, Any] = Field(default_factory=dict)
     max_tokens: int = 2048
 

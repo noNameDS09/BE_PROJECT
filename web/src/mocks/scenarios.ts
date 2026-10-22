@@ -45,7 +45,7 @@ interface Scenario {
 }
 
 function answer(text: string, claims: Claim[], ledger: Evidence[], extra: Partial<Answer> = {}): Answer {
-  return { text, claims, evidence: ledger, charts: [], abstained: false, trace: [], ...extra };
+  return { text, claims, evidence: ledger, charts: [], abstained: false, trace: [], removed_claims: [], ...extra };
 }
 
 function barChart(title: string, xs: string[], ys: number[], evidenceIds: string[], yTitle: string): Chart {
@@ -77,7 +77,8 @@ function barChart(title: string, xs: string[], ys: number[], evidenceIds: string
 // ---------------------------------------------------------------- AMD revenue
 
 function amdScenario(): Scenario {
-  const factUrl = "https://www.sec.gov/cgi-bin/viewer?action=view&cik=2488&accession_number=0000002488-25-000012";
+  // Fact citations open SEC's inline XBRL viewer on the 10-K.
+  const factUrl = "https://www.sec.gov/ix?doc=/Archives/edgar/data/2488/000000248825000012/amd-20241228.htm";
   const concept = "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax";
   const E1 = evidence("E1", "fact", `${concept} · AMD · FY2024 (period ended 2024-12-28) = 25,785,000,000 USD`, cite({ fact_id: `AMD:${concept}:2024-12-28`, url: factUrl }), 25785e6);
   const E2 = evidence("E2", "fact", `${concept} · AMD · FY2023 (period ended 2023-12-30) = 22,680,000,000 USD`, cite({ fact_id: `AMD:${concept}:2023-12-30`, url: factUrl }), 22680e6);
@@ -93,6 +94,8 @@ function amdScenario(): Scenario {
   ];
   const grounded = answer(joinText(groundedClaims), groundedClaims, ledger, {
     charts: [barChart("AMD net revenue, FY2022–FY2024", ["FY2022", "FY2023", "FY2024"], [23.601, 22.68, 25.785], ["E5", "E2", "E1"], "USD billions")],
+    // The draft also said this; no cited evidence holds 53% or 47%, so the code verifier dropped it.
+    removed_claims: ["Gross margin improved to 53% from 47% a year earlier [E4]."],
   });
 
   const b0Claims = [
@@ -401,8 +404,8 @@ export function buildRun({ question, itemId, arm, model, salt = "" }: MockRunInp
   } else {
     const explicit = scenario.answers[arm as Arm];
     const base = explicit ?? scenario.grounded;
-    // Only Loupe draws charts; other arms do not call make_chart.
-    const ans: Answer = arm === "loupe" ? base.answer : { ...base.answer, charts: [] };
+    // Only Loupe draws charts (make_chart is in its harness), and only its code verifier removes claims.
+    const ans: Answer = arm === "loupe" ? base.answer : { ...base.answer, charts: [], removed_claims: [] };
     chosen = degradeForSmallModel({ answer: ans, correct: base.correct }, arm, model, seed);
     tools = arm === "loupe" ? scenario.tools : scenario.tools.filter((t) => t.name !== "make_chart");
   }

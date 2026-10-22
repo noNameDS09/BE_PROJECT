@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import type { Citation } from "../api/types";
+import { sourceLinkLabel } from "../lib/citations";
 import { formatValue } from "../lib/format";
 import { useAsync } from "../lib/useAsync";
 import { CitationContext, type CitationTarget } from "./citationContext";
@@ -22,7 +23,8 @@ export function CitationProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function VerifiedBadge({ verified }: { verified: boolean | null | undefined }) {
+/** The verifier's verdict for a claim citation (undefined = no verdict to show). */
+export function VerifiedBadge({ verified }: { verified: boolean | null | undefined }) {
   if (verified === undefined) return null;
   if (verified === true) return <span className="badge good" title="The verifier matched the claim to this evidence">claim supported</span>;
   if (verified === false) return <span className="badge bad" title="The claim does not match this evidence">claim unsupported</span>;
@@ -65,7 +67,7 @@ function DocumentPassage({ citation }: { citation: Citation }) {
       </div>
       <Highlighted text={data.text} highlight={data.highlight} />
       <a className="btn sm" href={data.url} target="_blank" rel="noreferrer" style={{ alignSelf: "flex-start" }}>
-        Open filing on SEC.gov <Icon name="external" size={13} />
+        {sourceLinkLabel(data.url)} <Icon name="external" size={13} />
       </a>
     </div>
   );
@@ -73,7 +75,8 @@ function DocumentPassage({ citation }: { citation: Citation }) {
 
 export function CitationDrawer({ target, onClose }: { target: CitationTarget; onClose: () => void }) {
   const { evidence } = target;
-  const citation = evidence?.citation ?? target.citation;
+  // The claim's own citation (carrying its verdict and supporting quote) wins over the ledger copy.
+  const citation = target.citation ?? evidence?.citation;
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -157,7 +160,7 @@ export function CitationDrawer({ target, onClose }: { target: CitationTarget; on
               )}
               {citation.quote && (
                 <>
-                  <dt>quote</dt>
+                  <dt>supporting quote</dt>
                   <dd>“{citation.quote}”</dd>
                 </>
               )}
@@ -171,7 +174,7 @@ export function CitationDrawer({ target, onClose }: { target: CitationTarget; on
           )}
           {citation?.url && !canFetch && (
             <a className="btn sm" href={citation.url} target="_blank" rel="noreferrer" style={{ alignSelf: "flex-start" }}>
-              Open source on SEC.gov <Icon name="external" size={13} />
+              {sourceLinkLabel(citation.url)} <Icon name="external" size={13} />
             </a>
           )}
           {evidence?.kind === "calc" && !citation?.url && (

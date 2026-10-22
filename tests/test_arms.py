@@ -35,11 +35,11 @@ def test_substitute_replaces_step_references_with_numbers():
 
 def test_plan_execute_runs_plan_without_the_model_and_substitutes_numbers():
     plan = {"plan": [
-        {"step": 1, "tool": "get_financial_metric", "args": {"company": "AMD"}},
+        {"step": 1, "tool": "calculate", "args": {"expression": "25785000000"}},
         {"step": 2, "tool": "calculate", "args": {"expression": "#1 / 1e9"}},
     ]}  # fmt: skip
     answer, ctx, gw = run("plan_execute", j(plan), reply("Revenue was $25.785 billion [E1][E2]."))
-    assert [c[0] for c in ctx.tools.calls] == ["get_financial_metric", "calculate"]
+    assert [c[0] for c in ctx.tools.calls] == ["calculate", "calculate"]
     assert ctx.tools.calls[1][1] == {"expression": "25785000000.0 / 1e9"}
     assert len(gw.requests) == 2  # planner + solver only
     assert answer.claims[0].supported is True
@@ -138,7 +138,7 @@ def test_tools_off_ablation_hides_number_tools():
     gw = ScriptedGateway(reply("x"))
     ctx = RunContext(gateway=gw, model="m", tools=FakeTools(), tools_enabled=False)
     assert [s["function"]["name"] for s in ctx.specs()] == ["search_filings"]
-    assert "disabled" in ctx.tool("calculate", {"expression": "1+1"})
+    assert "not available" in ctx.tool("calculate", {"expression": "1+1"})
 
 
 def test_query_rewrite_adds_extra_queries_to_search():
@@ -155,3 +155,49 @@ def test_tool_calls_reach_the_trace():
         reply("Four [E1]."),
     )
     assert [s.name for s in answer.trace if s.stage == "tool"] == ["calculate"]
+
+
+def test_plan_execute_cannot_plan_harness_tools():
+    plan = {"plan": [{"step": 1, "tool": "get_financial_metric", "args": {"company": "AMD"}}]}
+    _, ctx, gw = run("plan_execute", j(plan), reply("Not found."))
+    catalogue = gw.requests[0]["messages"][0]["content"]
+    assert "get_financial_metric" not in catalogue and "Metrics:" not in catalogue
+    assert ctx.tools.calls == []
+
+
+def test_loupe_keeps_the_harness_and_its_generic_ablation_does_not():
+    from loupe.orchestrators.base import GENERIC_TOOLS
+
+    full = RunContext(gateway=ScriptedGateway(), model="m", tools=FakeTools())
+    full.use_toolset(ARMS["loupe"].toolset)
+    assert full.allows("get_financial_metric")
+    generic = RunContext(gateway=ScriptedGateway(), model="m", tools=FakeTools())
+    generic.use_toolset(ARMS["loupe-generic-tools"].toolset)
+    assert not generic.allows("get_financial_metric") and generic.allowed_tools == GENERIC_TOOLS
+    assert {ARMS[a].toolset for a in ("react", "plan_execute", "router", "self_refine")} == {
+        "generic"
+    }
+
+
+def test_toolset_is_part_of_the_config_hash():
+    from loupe.eval.runner import RunSpec, config_for
+
+    spec = RunSpec(dataset="gold_num", arms=["react", "loupe"], models=["m"])
+    react, loupe = config_for(spec, "react", "m"), config_for(spec, "loupe", "m")
+    assert (react.toolset, loupe.toolset) == ("generic", "harness")
+    assert react.model_copy(update={"toolset": "harness"}).config_hash() != react.config_hash()
+
+
+def test_loupe_reports_claims_the_verifier_removed():
+    route = {"intents": ["lookup"], "companies": ["AMD"], "fiscal_years": [2024]}
+    answer, *_ = run(
+        "loupe",
+        j(route),
+        reply(None, ToolCall(id="a", name="calculate", arguments={"expression": "25.785e9"})),
+        reply("DONE"),
+        reply("Revenue was $25.8 billion [E1]. Margin was 99% [E1]."),
+        j({"unsupported": [], "missing": ""}),
+        reply("Revenue was $25.8 billion [E1]. Margin was 99% [E1]."),
+    )
+    assert answer.text == "Revenue was $25.8 billion [E1]."
+    assert answer.removed_claims == ["Margin was 99% [E1]."]

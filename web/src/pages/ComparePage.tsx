@@ -6,6 +6,7 @@ import { ConfigPicker } from "../components/ConfigPicker";
 import { EmptyState, ErrorBanner, Skeleton, SkeletonLines, Spinner } from "../components/Feedback";
 import { Icon } from "../components/Icon";
 import { RunCard } from "../components/RunCard";
+import { ToolsetBadge } from "../components/ToolsetBadge";
 import { armColor } from "../lib/arms";
 import { EXAMPLE_QUESTIONS, datasetOf } from "../lib/examples";
 import { truncate } from "../lib/format";
@@ -292,6 +293,7 @@ export function ComparePage() {
                 <div className="run-title">
                   <span className="arm-swatch" style={{ background: armColor(c.arm) }} />
                   <strong>{armLabel(config, c.arm)}</strong>
+                  <ToolsetBadge arm={c.arm} />
                   <span className="tag">{c.model}</span>
                 </div>
                 <div className="stats-strip">

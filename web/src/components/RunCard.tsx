@@ -5,6 +5,7 @@ import { correctness, formatCost, formatLatency, formatTokens } from "../lib/for
 import { armLabel, useConfig } from "../lib/useConfig";
 import { AnswerView } from "./AnswerView";
 import { Icon } from "./Icon";
+import { ToolsetBadge } from "./ToolsetBadge";
 
 export function CorrectBadge({ correct }: { correct: number | null | undefined }) {
   const c = correctness(correct);
@@ -25,6 +26,7 @@ export function RunCard({ result }: { result: RunResult }) {
         <div className="run-title">
           <span className="arm-swatch" style={{ background: armColor(result.arm) }} />
           <strong>{armLabel(config, result.arm)}</strong>
+          <ToolsetBadge arm={result.arm} />
           <span className="tag">{result.model}</span>
           <span className="spacer" />
           {result.answer.abstained && <span className="badge warn">abstained</span>}

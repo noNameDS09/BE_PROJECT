@@ -15,12 +15,13 @@ const ARM_BASE: Record<string, { acc: number; hall: number; abst: number; tokens
   router: { acc: 0.6, hall: 0.17, abst: 0.04, tokens: 4200, latency: 4300 },
   self_refine: { acc: 0.66, hall: 0.12, abst: 0.07, tokens: 11800, latency: 11200 },
   loupe: { acc: 0.74, hall: 0.05, abst: 0.11, tokens: 6100, latency: 6600 },
+  // Loupe's orchestration with the baselines' generic tools: isolates the harness's effect.
+  "loupe-generic-tools": { acc: 0.66, hall: 0.08, abst: 0.12, tokens: 8400, latency: 8100 },
 };
 
 const MODEL_SHIFT: Record<string, { acc: number; hall: number; speed: number; price: number }> = {
-  "groq-llama-70b": { acc: 0, hall: 0, speed: 0.45, price: 0 },
+  "nim-nemotron-super": { acc: 0, hall: 0, speed: 0.9, price: 0 },
   "gemini-flash": { acc: 0.04, hall: -0.02, speed: 1.0, price: 0.0000009 },
-  "or-qwen-72b": { acc: -0.03, hall: 0.02, speed: 1.7, price: 0 },
   "ollama-qwen-7b": { acc: -0.17, hall: 0.12, speed: 2.6, price: 0 },
 };
 
@@ -61,10 +62,10 @@ export function leaderboardRows(q: LeaderboardQuery = {}): LeaderboardRow[] {
         const seed = `${dataset}|${model}|${arm}|${q.split ?? ""}`;
         const noise = (k: string) => (hash01(seed, k) - 0.5) * 0.04;
         // Loupe's verifier blunts a weak model's hallucinations more than other arms do.
-        const hallShift = arm === "loupe" ? ms.hall * 0.3 : ms.hall;
+        const hallShift = arm.startsWith("loupe") ? ms.hall * 0.3 : ms.hall;
         const acc = clamp(base.acc + ms.acc + ds.acc + noise("acc"));
         const hall = clamp(base.hall + hallShift + ds.hall + noise("hall"));
-        const abst = clamp(base.abst + (model.startsWith("ollama") && arm === "loupe" ? 0.08 : 0) + noise("abst") / 2);
+        const abst = clamp(base.abst + (model.startsWith("ollama") && arm.startsWith("loupe") ? 0.08 : 0) + noise("abst") / 2);
         const n = splitN(ds.n, q.split);
         rows.push({
           arm,
@@ -94,15 +95,15 @@ const STAGE_DEFS: { label: string; arm: string; acc: number; hall: number; kind:
   { label: "+ Router & selective planner", arm: "loupe_no_verify", acc: 0.67, hall: 0.13, kind: "step" },
   { label: "+ Code verifier", arm: "loupe_no_abstain", acc: 0.72, hall: 0.07, kind: "step" },
   { label: "+ Abstain policy = Loupe", arm: "loupe", acc: 0.74, hall: 0.05, kind: "step" },
-  { label: "Loupe − router", arm: "loupe_no_router", acc: 0.7, hall: 0.06, kind: "ablation" },
-  { label: "Loupe − planner", arm: "loupe_no_planner", acc: 0.69, hall: 0.06, kind: "ablation" },
-  { label: "Loupe − verifier", arm: "loupe_no_verify_only", acc: 0.68, hall: 0.12, kind: "ablation" },
-  { label: "Loupe, tools off (LLM arithmetic)", arm: "loupe_tools_off", acc: 0.58, hall: 0.17, kind: "ablation" },
+  { label: "Loupe minus router", arm: "loupe-no-router", acc: 0.7, hall: 0.06, kind: "ablation" },
+  { label: "Loupe minus planner", arm: "loupe-no-planner", acc: 0.69, hall: 0.06, kind: "ablation" },
+  { label: "Loupe minus code verifier", arm: "loupe-no-verifier", acc: 0.68, hall: 0.12, kind: "ablation" },
+  { label: "Loupe minus harness (generic tools)", arm: "loupe-generic-tools", acc: 0.66, hall: 0.08, kind: "ablation" },
 ];
 
 export function stageSteps(q: StagesQuery = {}): StageStep[] {
   const ds = DATASET_SHIFT[q.dataset ?? "loupe-gold"] ?? DATASET_SHIFT["loupe-gold"]!;
-  const ms = MODEL_SHIFT[q.model ?? "groq-llama-70b"] ?? MODEL_SHIFT["groq-llama-70b"]!;
+  const ms = MODEL_SHIFT[q.model ?? "nim-nemotron-super"] ?? MODEL_SHIFT["nim-nemotron-super"]!;
   return STAGE_DEFS.map((s) => {
     const seed = `${q.dataset}|${q.model}|${s.arm}`;
     const acc = clamp(s.acc + ds.acc + ms.acc + (hash01(seed, "a") - 0.5) * 0.02);
@@ -113,7 +114,7 @@ export function stageSteps(q: StagesQuery = {}): StageStep[] {
 
 // ---------------------------------------------------------------- runs (drill-down)
 
-const RUN_MODELS = ["groq-llama-70b", "gemini-flash", "ollama-qwen-7b"];
+const RUN_MODELS = LEADERBOARD_MODELS;
 const RUN_ARMS = Object.keys(ARM_BASE);
 
 let RUN_ROWS: ResultRow[] | null = null;

@@ -9,12 +9,14 @@ import { ChatPage } from "./pages/ChatPage";
 import { ComparePage } from "./pages/ComparePage";
 import { DatasetsPage } from "./pages/DatasetsPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
+import { ModelsPage } from "./pages/ModelsPage";
 import { RunsPage } from "./pages/RunsPage";
 import { StagesPage } from "./pages/StagesPage";
 
 const NAV: { to: string; label: string; icon: IconName }[] = [
   { to: "/", label: "Compare", icon: "compare" },
   { to: "/leaderboard", label: "Leaderboard", icon: "trophy" },
+  { to: "/models", label: "Models", icon: "cpu" },
   { to: "/stages", label: "Stages", icon: "stages" },
   { to: "/datasets", label: "Datasets", icon: "database" },
   { to: "/runs", label: "Runs", icon: "list" },
@@ -79,6 +81,7 @@ export function App() {
               <Routes>
                 <Route path="/" element={<ComparePage />} />
                 <Route path="/leaderboard" element={<LeaderboardPage />} />
+                <Route path="/models" element={<ModelsPage />} />
                 <Route path="/stages" element={<StagesPage />} />
                 <Route path="/datasets" element={<DatasetsPage />} />
                 <Route path="/runs" element={<RunsPage />} />

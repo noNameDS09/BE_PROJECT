@@ -54,16 +54,19 @@ def tool_loop(
 class ReAct:
     name = "react"
     label = "O2 · ReAct"
+    toolset = "generic"
     description = (
-        "Think → call a tool → read the result, repeated until the model answers (Yao et al. 2023)."
+        "Think → call a tool → read the result, repeated until the model answers (Yao et al. "
+        "2023). Generic tools: filing search and a calculator."
     )
     SYSTEM = (
-        "You are a financial analyst with tools over SEC filings and exact XBRL numbers for "
-        "these companies. Think about what you need, call tools, read the results, and repeat "
+        "You are a financial analyst with a search tool over these companies' SEC filings and "
+        "a calculator. Think about what you need, call tools, read the results, and repeat "
         "until you can answer.\n" + CITED_RULES
     )
 
     def run(self, question: str, ctx: RunContext) -> Answer:
+        ctx.use_toolset(self.toolset)
         messages = [
             {"role": "system", "content": self.SYSTEM},
             {"role": "user", "content": question},

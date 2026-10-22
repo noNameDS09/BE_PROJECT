@@ -1,6 +1,7 @@
 import type { ArmInfo, ModelInfo, RunConfigPick } from "../api/types";
 import { MAX_COMPARE_CONFIGS } from "../api/types";
 import { Icon } from "./Icon";
+import { ToolsetBadge } from "./ToolsetBadge";
 
 export function ModelSelect({
   models,
@@ -19,7 +20,7 @@ export function ModelSelect({
     <select className="select" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
       {allowEmpty !== undefined && <option value="">{allowEmpty}</option>}
       {models.map((m) => (
-        <option key={m.alias} value={m.alias}>
+        <option key={m.alias} value={m.alias} title={m.model ? `${m.provider} · ${m.model}` : m.provider}>
           {m.alias}
           {m.available ? "" : " (no key)"}
         </option>
@@ -70,6 +71,9 @@ export function ConfigPicker({
               </option>
             ))}
           </select>
+          <span className="config-toolset">
+            <ToolsetBadge arm={c.arm} />
+          </span>
           <ModelSelect models={models} value={c.model} onChange={(m) => set(i, { model: m })} label={`Model for config ${i + 1}`} />
           <button className="btn ghost icon" onClick={() => remove(i)} disabled={value.length <= 1} aria-label={`Remove config ${i + 1}`}>
             <Icon name="close" size={14} />

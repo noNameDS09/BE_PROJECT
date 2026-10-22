@@ -97,7 +97,13 @@ def test_health_and_config(client):
         "self_refine",
         "loupe",
     }
-    assert cfg["models"] == [{"alias": "m", "provider": "ollama", "available": True}]
+    assert cfg["models"] == [
+        {"alias": "m", "provider": "ollama", "available": True, "model": "ollama_chat/x"}
+    ]
+    arms = {a["name"]: a for a in cfg["arms"]}
+    assert (arms["react"]["toolset"], arms["loupe"]["toolset"]) == ("generic", "harness")
+    assert "get_financial_metric" in arms["loupe"]["tools"]
+    assert "get_financial_metric" not in arms["react"]["tools"]
     assert cfg["datasets"] == [{"name": "demo", "items": 1, "kinds": ["numeric"]}]
     assert cfg["companies"][0]["group"] == "financebench"
 

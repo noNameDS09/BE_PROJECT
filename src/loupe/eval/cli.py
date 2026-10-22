@@ -20,8 +20,9 @@ console = Console()
 
 
 def store() -> ResultStore:
-    d = get_settings().data_dir / "processed"
-    return ResultStore(d / "results.duckdb", d / "runs")
+    settings = get_settings()
+    d = settings.data_dir / "processed"
+    return ResultStore(d / settings.results_db, d / "runs")
 
 
 def _fmt(m: dict) -> str:

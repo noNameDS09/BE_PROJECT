@@ -28,9 +28,10 @@ def tool_catalogue(ctx: RunContext, names: list[str] | None = None) -> str:
             for k in f["parameters"]["properties"]
         )
         lines.append(f"- {f['name']}({params}): {f['description']}")
-    metrics = ", ".join(ctx.tools.metric_names)
+    if ctx.allows("get_financial_metric"):
+        lines.append(f"Metrics: {', '.join(ctx.tools.metric_names)}")
     companies = ", ".join(c.id for c in ctx.tools.companies)
-    return "\n".join(lines) + f"\nMetrics: {metrics}\nCompanies: {companies}"
+    return "\n".join(lines) + f"\nCompanies: {companies}"
 
 
 PLANNER = """You plan tool calls to answer a question about SEC filings. You will NOT see the
@@ -75,11 +76,14 @@ def execute_plan(ctx: RunContext, plan: list[dict[str, Any]]) -> list[str]:
 class PlanExecute:
     name = "plan_execute"
     label = "O3 · Plan-and-Execute (ReWOO)"
+    toolset = "generic"
     description = (
-        "Plan every tool call up front, run them without the model, then solve from the results."
+        "Plan every tool call up front, run them without the model, then solve from the "
+        "results. Generic tools only."
     )
 
     def run(self, question: str, ctx: RunContext) -> Answer:
+        ctx.use_toolset(self.toolset)
         out = ctx.llm_json(
             "plan",
             PLANNER.format(max_steps=ctx.max_steps, tools=tool_catalogue(ctx)),

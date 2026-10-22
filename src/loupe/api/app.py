@@ -15,6 +15,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from loupe.agent.tools import TOOL_SPECS
 from loupe.api.models import (
     ArmInfo,
     ChatRequest,
@@ -40,6 +41,7 @@ from loupe.eval.runner import Runner, RunSpec, prepare, score
 from loupe.eval.schema import EvalItem, ResultRow
 from loupe.eval.store import ResultStore
 from loupe.orchestrators import ARMS, RunContext
+from loupe.orchestrators.base import TOOLSETS
 
 app = FastAPI(title="Loupe API", version="0.2.0")
 app.add_middleware(
@@ -60,8 +62,9 @@ def engine():
 
 @cache
 def store() -> ResultStore:
-    d = engine().settings.data_dir / "processed"
-    return ResultStore(d / "results.duckdb", d / "runs")
+    settings = engine().settings
+    d = settings.data_dir / "processed"
+    return ResultStore(d / settings.results_db, d / "runs")
 
 
 @cache
@@ -119,6 +122,11 @@ def health() -> dict:
     }
 
 
+def arm_tools(toolset: str) -> list[str]:
+    allowed = TOOLSETS[toolset]
+    return [t["function"]["name"] for t in TOOL_SPECS] if allowed is None else list(allowed)
+
+
 @app.get("/api/config", response_model=ConfigResponse)
 def config() -> ConfigResponse:
     e = engine()
@@ -130,10 +138,19 @@ def config() -> ConfigResponse:
         )
     return ConfigResponse(
         arms=[
-            ArmInfo(name=a.name, label=a.label, description=a.description) for a in ARMS.values()
+            ArmInfo(
+                name=a.name,
+                label=a.label,
+                description=a.description,
+                toolset=a.toolset,
+                tools=arm_tools(a.toolset),
+            )
+            for a in ARMS.values()
         ],
         models=[
-            ModelInfo(alias=m.alias, provider=m.provider, available=m.missing_key() is None)
+            ModelInfo(
+                alias=m.alias, provider=m.provider, model=m.model, available=m.missing_key() is None
+            )
             for m in e.gateway.registry.all()
         ],
         datasets=datasets,

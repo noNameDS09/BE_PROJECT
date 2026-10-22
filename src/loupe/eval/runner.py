@@ -87,6 +87,7 @@ def config_for(spec: RunSpec, arm: str, model: str) -> RunConfig:
         arm=arm,
         model=model,
         tools_enabled=spec.tools_enabled,
+        toolset=getattr(ARMS[arm], "toolset", "harness"),
         retrieval={**spec.retrieval.model_dump(), "max_steps": spec.max_steps},
     )
 
