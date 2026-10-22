@@ -8,16 +8,17 @@ from loupe.eval.stats import Estimate, cluster_bootstrap
 STAGE_ORDER = [
     ("b0", "B0 · model alone"),
     ("rag", "O1 · + retrieval (single-shot RAG)"),
-    ("react", "O2 · + tools in a loop (ReAct)"),
+    ("react", "O2 · + generic tools in a loop (ReAct)"),
     ("plan_execute", "O3 · planning (ReWOO)"),
     ("router", "O4 · routing to one specialist (FARE)"),
     ("self_refine", "O5 · + self-critique"),
-    ("loupe", "Loupe-Orch v1"),
+    ("loupe", "Loupe-Orch v1 + financial harness"),
     ("loupe-no-router", "Loupe minus router"),
     ("loupe-no-planner", "Loupe minus planner"),
     ("loupe-no-verifier", "Loupe minus code verifier"),
     ("loupe-no-critic", "Loupe minus critic"),
     ("loupe-no-abstain", "Loupe minus abstain"),
+    ("loupe-generic-tools", "Loupe minus harness (generic tools)"),
 ]
 
 
@@ -71,7 +72,7 @@ def stages(rows: list[dict]) -> list[dict]:
         {
             "label": label,
             "arm": arm,
-            "kind": "ablation" if arm.startswith("loupe-no-") else "step",
+            "kind": "ablation" if arm.startswith("loupe-") else "step",
             "accuracy": board[arm]["metrics"]["accuracy"],
             "hallucination_rate": board[arm]["metrics"]["hallucination_rate"],
             "n": board[arm]["n"],
