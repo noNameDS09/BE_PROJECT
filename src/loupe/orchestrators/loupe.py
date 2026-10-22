@@ -15,7 +15,7 @@ Each component can be switched off for the ablation study (RQ3).
 
 from dataclasses import dataclass
 
-from loupe.agent.verify import verify
+from loupe.agent.verify import cited_ids, found_in, verify
 from loupe.core.schemas import Answer
 from loupe.orchestrators.base import CITED_RULES, RunContext
 from loupe.orchestrators.plan_execute import PLANNER, execute_plan, tool_catalogue
@@ -151,6 +151,7 @@ class LoupeOrch:
 
         claims = verify(answer, ctx.ledger)
         bad = [c.text for c in claims if c.supported is False] if self.use_code_verifier else []
+        hints = {b: _cite_hint(b, ctx) for b in bad}
         if self.use_critic:
             numbered = "\n".join(f"{i}. {c.text}" for i, c in enumerate(claims, 1))
             cited = "\n".join(f"[{e.id}] {e.text[:500]}" for e in ctx.ledger.items.values())
@@ -168,13 +169,22 @@ class LoupeOrch:
                 if review.get("missing"):
                     bad.append(f"Missing: {review['missing']}")
         if bad:
-            answer = self._compose(question, ctx, "\n".join(f"- {b}" for b in bad))
+            feedback = "\n".join(f"- {b}{hints.get(b, '')}" for b in bad)
+            answer = self._compose(question, ctx, feedback)
             if self.use_code_verifier:
                 kept = [c.text for c in verify(answer, ctx.ledger) if c.supported is not False]
                 answer = " ".join(kept)
         if self.use_abstain and not answer.strip():
             answer = self._abstain_text(question, route)
         return ctx.finish(answer)
+
+
+def _cite_hint(sentence: str, ctx: RunContext) -> str:
+    """Point a failed claim at the evidence that does hold its numbers, if any."""
+    ids = [i for i in found_in(sentence, ctx.ledger) if i not in cited_ids(sentence)]
+    if not ids:
+        return ""
+    return f" (these numbers are in {', '.join(f'[{i}]' for i in ids[:3])}; cite that instead)"
 
 
 ABLATIONS = {
