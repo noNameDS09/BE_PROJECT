@@ -1,0 +1,13 @@
+alias,model,calls,live_calls,cached_calls,tokens_in,tokens_out,median_latency_ms,first_call,last_call
+groq-gpt-oss-120b,openai/gpt-oss-120b,5,5,0,529,251,767,2026-10-19T12:19:24,2026-10-19T13:07:39
+groq-qwen-27b,qwen/qwen3.8-27b,15,14,1,17006,2662,2032,2026-10-19T12:19:31,2026-10-19T12:46:50
+ministral-14b,ministral-14b-2512,3,3,0,110,28,828,2026-10-19T13:07:26,2026-10-19T13:07:33
+nim-deepseek-v4-flash,nvidia_nim/deepseek-ai/deepseek-v4.1-flash,4,4,0,426,120,443002,2026-10-19T11:42:03,2026-10-19T12:33:07
+nim-gemma-4-31b,nvidia_nim/google/gemma-4-31b-it,3,3,0,128,24,297655,2026-10-19T12:01:48,2026-10-19T12:13:04
+nim-glm-5.3-flash,nvidia_nim/z-ai/glm-5.3-flash,3,3,0,220,101,80211,2026-10-19T11:57:59,2026-10-19T12:00:57
+nim-gpt-oss-20b,nvidia_nim/openai/gpt-oss-20b,6,6,0,566,242,6116,2026-10-19T12:13:41,2026-10-19T13:06:16
+nim-nemotron-super,nvidia_nim/nvidia/nemotron-3-super-120b-a12b,696,455,241,874422,161228,5649,2026-10-19T11:31:41,2026-10-20T13:55:49
+oc-gemma4-31b,ollama_chat/gemma4:31b,18,18,0,26589,1710,1477,2026-10-19T12:21:31,2026-10-19T12:50:41
+oc-gpt-oss-120b,ollama_chat/gpt-oss:120b,6,6,0,578,313,800,2026-10-19T12:21:13,2026-10-19T13:08:44
+or-gemma-4-31b,google/gemma-4-31b-it:free,1,1,0,8,1,1307,2026-10-19T12:19:58,2026-10-19T12:19:58
+or-nemotron-super,nvidia/nemotron-3-super-120b-a12b:free,6,6,0,702,268,3195,2026-10-19T12:19:37,2026-10-19T13:08:03
