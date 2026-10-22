@@ -1,5 +1,7 @@
 """`loupe eval ...`: run experiments, report results, index benchmark documents."""
 
+import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -31,6 +33,13 @@ def _fmt(m: dict) -> str:
     if m.get("lo") is None:
         return f"{m['mean']:.2f}"
     return f"{m['mean']:.2f} [{m['lo']:.2f}, {m['hi']:.2f}]"
+
+
+def _log_row(r) -> None:
+    ok = f"correct={r.correct} halluc={r.hallucinated}"
+    outcome = f"ERROR {r.error[:120]}" if r.error else ok
+    stamp = datetime.now().strftime("%H:%M:%S")
+    print(f"{stamp} {r.dataset} {r.arm} {r.model} {r.item_id} {outcome}", flush=True)
 
 
 @app.command("run")
@@ -74,8 +83,11 @@ def run(
     if judge and any(judge.split("-")[0] == m.split("-")[0] for m in model):
         console.print("[yellow]Warning: judge and a judged model share a provider family.[/]")
     runner = Runner(Engine(), store())
-    with console.status("running") as status:
-        rows = runner.run(spec, progress=status.update)
+    if sys.stdout.isatty():
+        with console.status("running") as status:
+            rows = runner.run(spec, progress=status.update)
+    else:  # detached run: one plain line per result, for the log file
+        rows = runner.run(spec, on_row=_log_row)
     errors = [r for r in rows if r.error]
     console.print(f"[green]{len(rows)} new results[/] ({len(errors)} errors)")
     for r in errors[:5]:

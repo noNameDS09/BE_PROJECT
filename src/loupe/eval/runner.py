@@ -156,7 +156,10 @@ class Runner:
         return ToolBox(retriever, self.engine.facts, self.engine.companies, scope=scope)
 
     def run(
-        self, spec: RunSpec, progress: Callable[[str], None] = lambda _: None
+        self,
+        spec: RunSpec,
+        progress: Callable[[str], None] = lambda _: None,
+        on_row: Callable[[ResultRow], None] = lambda _: None,
     ) -> list[ResultRow]:
         items = select(load_items(self.engine.settings.data_dir, spec.dataset), spec)
         judge_fn = None
@@ -177,6 +180,7 @@ class Runner:
                         continue
                     progress(f"{arm} · {model} · {n}/{len(items)} {item.item_id}")
                     rows.append(self._one(item, arm, model, h, spec, judge_fn))
+                    on_row(rows[-1])
         if spec.final:
             self._log_final(spec, len(rows))
         return rows
