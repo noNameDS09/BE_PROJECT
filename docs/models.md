@@ -18,6 +18,8 @@ Run `uv run loupe models check` to re-test. It sends three calls to each model: 
 | `or-gemma-4-31b` | OpenRouter | busy | | | Free provider at capacity |
 | Gemini (4 aliases) | Google AI Studio | not tested | | | No `GEMINI_API_KEY` yet (free, no card: aistudio.google.com) |
 
+**Update 2026-10-20, 19:24 IST:** `nim-nemotron-super` started returning `404 Function not found for account` partway through pilot 3, although the model is still listed in NIM's catalogue. Re-test with `loupe models check --only nim-nemotron-super` before long runs. Fall back to `oc-gemma4-31b`. Per-model usage so far: [`experiments/llm-usage-by-model.csv`](../experiments/llm-usage-by-model.csv).
+
 **Removed after testing:**
 - Llama-Nemotron 70B and Kimi K2.6 on NIM: 404, not available to the account.
 - Groq Llama 3.1 8B: no longer offered.
