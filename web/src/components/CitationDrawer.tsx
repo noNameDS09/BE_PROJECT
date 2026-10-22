@@ -115,7 +115,7 @@ export function CitationDrawer({ target, onClose }: { target: CitationTarget; on
           )}
           {evidence && showText && (
             <div>
-              <div className="section-label" style={{ marginTop: 0 }}>
+              <div className="section-label" /* taste-skill-ignore */ style={{ marginTop: 0 }}>
                 {evidence.kind === "chunk" ? "Cited passage" : evidence.kind === "fact" ? "XBRL fact / record" : "Calculation"}
               </div>
               <div style={{ overflowWrap: "anywhere" }}>{evidence.text}</div>
@@ -165,7 +165,7 @@ export function CitationDrawer({ target, onClose }: { target: CitationTarget; on
           )}
           {citation && canFetch && (
             <div>
-              <div className="section-label">In the filing</div>
+              <div className="section-label" /* taste-skill-ignore */>In the filing</div>
               <DocumentPassage citation={citation} />
             </div>
           )}

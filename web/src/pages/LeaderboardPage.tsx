@@ -61,7 +61,7 @@ export function leaderboardFigure(rows: LeaderboardRow[], label: (arm: string) =
     };
   };
   return {
-    data: [trace("accuracy", "Accuracy", "#6366f1"), trace("hallucination_rate", "Hallucination rate", "#ef4444")],
+    data: [trace("accuracy", "Accuracy", "#1b6c80"), trace("hallucination_rate", "Hallucination rate", "#c4242a")],
     layout: {
       barmode: "group",
       bargap: 0.25,

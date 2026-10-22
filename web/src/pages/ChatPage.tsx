@@ -3,7 +3,7 @@ import { api } from "../api/client";
 import type { ChatMessage, RunResult } from "../api/types";
 import { AnswerView } from "../components/AnswerView";
 import { ModelSelect } from "../components/ConfigPicker";
-import { EmptyState, ErrorBanner, SkeletonLines, Spinner } from "../components/Feedback";
+import { ErrorBanner, SkeletonLines, Spinner } from "../components/Feedback";
 import { Icon } from "../components/Icon";
 import { EXAMPLE_QUESTIONS } from "../lib/examples";
 import { formatCost, formatLatency, formatTokens } from "../lib/format";
@@ -74,12 +74,12 @@ export function ChatPage() {
 
   return (
     <div className="chat">
-      <div className="page-head" style={{ marginBottom: 10 }}>
+      <div className="row" style={{ justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
         <div>
-          <h1>Chat</h1>
-          <p>Cited answers from the Loupe orchestration. Every claim links to the filing or fact it came from.</p>
+          <h1 style={{ fontSize: "var(--fs-section)", fontWeight: 600 }}>Chat</h1>
+          <p className="small muted" style={{ margin: "2px 0 0" }}>Cited answers from the Loupe orchestration</p>
         </div>
-        <div className="row">
+        <div className="row" style={{ gap: 8 }}>
           {config && <ModelSelect models={config.models} value={model} onChange={setModel} />}
           <button className="btn sm ghost" onClick={() => setTurns([])} disabled={!turns.length || busy}>
             New chat
@@ -89,17 +89,17 @@ export function ChatPage() {
 
       <div className="chat-log" ref={logRef} aria-live="polite">
         {turns.length === 0 && (
-          <EmptyState icon="chat" title="Ask about any of the 25 companies">
-            Revenue, growth, risk events from 8-Ks, comparisons. Try one of these:
-          </EmptyState>
-        )}
-        {turns.length === 0 && (
-          <div className="examples" style={{ justifyContent: "center" }}>
-            {EXAMPLE_QUESTIONS.map((q) => (
-              <button key={q} className="example" onClick={() => submit(q)}>
-                {q}
-              </button>
-            ))}
+          <div className="chat-empty">
+            <Icon name="chat" size={32} />
+            <h3>Ask about any of the 25 companies</h3>
+            <p>Revenue, growth, risk events from 8-Ks, comparisons. Every claim links to its source.</p>
+            <div className="chat-examples">
+              {EXAMPLE_QUESTIONS.map((q) => (
+                <button key={q} className="chat-example" onClick={() => submit(q)}>
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {turns.map((t, i) => {
@@ -118,7 +118,7 @@ export function ChatPage() {
           const r = t.result;
           return (
             <div key={i} className="msg assistant">
-              <div className="card bubble">
+              <div className="bubble">
                 {r.error ? <ErrorBanner title="Model call failed" error={new Error(r.error)} /> : <AnswerView answer={r.answer} />}
               </div>
               <div className="msg-meta num">
@@ -129,7 +129,7 @@ export function ChatPage() {
         })}
         {busy && (
           <div className="msg assistant">
-            <div className="card bubble" style={{ paddingBottom: 12 }}>
+            <div className="bubble" style={{ paddingBottom: 12 }}>
               <SkeletonLines lines={3} />
             </div>
           </div>

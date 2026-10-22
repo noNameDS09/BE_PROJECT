@@ -26,12 +26,12 @@ export function armRank(arm: string): number {
  */
 export const ARM_COLORS: Record<string, string> = {
   b0: "#9ca3af",
-  rag: "#60a5fa",
-  react: "#38bdf8",
-  plan_execute: "#2dd4bf",
-  router: "#a78bfa",
-  self_refine: "#f59e0b",
-  loupe: "#6366f1",
+  rag: "#5b9bd5",
+  react: "#2f70bb",
+  plan_execute: "#1b6c80",
+  router: "#a86f0c",
+  self_refine: "#c4242a",
+  loupe: "#1b6c80",
 };
 
 export function armColor(arm: string): string {

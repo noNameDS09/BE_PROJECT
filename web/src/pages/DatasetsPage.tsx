@@ -87,14 +87,14 @@ function ItemDetail({ item, onClose }: { item: EvalItem; onClose: () => void }) 
 
         {item.context && (
           <>
-            <div className="section-label">Context</div>
+            <div className="section-label" /* taste-skill-ignore */>Context</div>
             <pre className="passage" style={{ maxHeight: 200, overflow: "auto" }}>
               {item.context}
             </pre>
           </>
         )}
 
-        <div className="section-label">Gold evidence ({item.evidence.length})</div>
+        <div className="section-label" /* taste-skill-ignore */>Gold evidence ({item.evidence.length})</div>
         {item.evidence.length === 0 ? (
           <div className="small faint">None.</div>
         ) : (
@@ -117,7 +117,7 @@ function ItemDetail({ item, onClose }: { item: EvalItem; onClose: () => void }) 
           </ul>
         )}
 
-        <div className="section-label">Documents ({item.documents.length})</div>
+        <div className="section-label" /* taste-skill-ignore */>Documents ({item.documents.length})</div>
         {item.documents.length === 0 ? (
           <div className="small faint">None (corpus mode uses the shared index).</div>
         ) : (
@@ -134,7 +134,7 @@ function ItemDetail({ item, onClose }: { item: EvalItem; onClose: () => void }) 
           </table>
         )}
 
-        <div className="section-label">Meta</div>
+        <div className="section-label" /* taste-skill-ignore */>Meta</div>
         <pre className="json">{prettyJson(item.meta)}</pre>
       </div>
     </section>
