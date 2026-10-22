@@ -90,7 +90,17 @@ def test_transient_errors_are_retried_with_backoff(tmp_path, registry):
     gw = make_gateway(tmp_path, registry, llm, sleeps=sleeps)
 
     assert gw.complete("fast", [{"role": "user", "content": "hi"}]).text == "OK"
-    assert sleeps == [2.0, 4.0]
+    assert sleeps == [15.0, 30.0]  # rate limits back off for longer than dropped connections
+
+
+def test_connection_errors_back_off_briefly(tmp_path, registry):
+    import litellm
+
+    err = litellm.APIConnectionError(message="reset", llm_provider="groq", model="x")
+    sleeps = []
+    gw = make_gateway(tmp_path, registry, FakeLLM([err, fake_response("OK")]), sleeps=sleeps)
+    assert gw.complete("fast", [{"role": "user", "content": "hi"}]).text == "OK"
+    assert sleeps == [2.0]
 
 
 def test_non_transient_errors_are_raised_immediately(tmp_path, registry):
@@ -119,3 +129,33 @@ def test_reasoning_blocks_are_stripped_from_answers():
     assert strip_reasoning("<think>hmm, 2+2</think>\nThe answer is 4.") == "The answer is 4."
     assert strip_reasoning("<think>still thinking when tokens ran out") == ""
     assert strip_reasoning("No reasoning here.") == "No reasoning here."
+
+
+def test_failing_provider_falls_back_to_the_same_model_elsewhere(tmp_path):
+    import litellm
+
+    reg = ModelRegistry({
+        "nim-x": ModelSpec(alias="nim-x", model="nvidia_nim/x", provider="nvidia_nim",
+                           fallback="or-x"),
+        "or-x": ModelSpec(alias="or-x", model="openrouter/x:free", provider="openrouter"),
+    })  # fmt: skip
+    down = litellm.InternalServerError(message="500", llm_provider="nvidia_nim", model="x")
+    llm = FakeLLM([down] * 5 + [fake_response("OK")])
+    gw = make_gateway(tmp_path, reg, llm)
+    result = gw.complete("nim-x", [{"role": "user", "content": "hi"}])
+    assert result.text == "OK" and result.alias == "nim-x"
+    assert [c["model"] for c in llm.calls] == ["nvidia_nim/x"] * 5 + ["openrouter/x:free"]
+
+
+def test_a_provider_that_keeps_failing_is_paused(tmp_path):
+    reg = ModelRegistry({"a": ModelSpec(alias="a", model="p/a", provider="p")})
+    t = [0.0]
+    sleeps = []
+    gw = Gateway(reg, cache_dir=tmp_path / "c", log_path=tmp_path / "l.jsonl",
+                 completion_fn=FakeLLM([ValueError("x")] * 3 + [fake_response("OK")]),
+                 sleep=sleeps.append, clock=lambda: t[0])  # fmt: skip
+    for i in range(3):
+        with pytest.raises(ValueError):
+            gw.complete("a", [{"role": "user", "content": str(i)}])
+    assert gw.complete("a", [{"role": "user", "content": "next"}]).text == "OK"
+    assert sleeps == [300.0]  # cool-down before the next call to that provider

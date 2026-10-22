@@ -3,6 +3,13 @@
 Every call is cached on disk (so reruns and repeated experiments cost nothing),
 throttled per provider (to stay inside free-tier limits), retried on transient
 errors, and logged with tokens, latency and cost.
+
+Free tiers fail in bursts (rate limits, weekly caps, provider outages), so:
+- rate limits back off for minutes, other transient errors for seconds;
+- a provider that keeps failing is paused (cool-down) instead of failing every
+  remaining question of a long run instantly;
+- an alias may name a `fallback` alias serving the same model weights through another
+  provider; the completion records which model string actually answered.
 """
 
 import hashlib
@@ -21,7 +28,10 @@ from loupe.llm.registry import ModelRegistry, ModelSpec
 
 MAX_ATTEMPTS = 5
 REQUEST_TIMEOUT = 90  # seconds per model call
-BACKOFF_SECONDS = 2.0
+BACKOFF_SECONDS = 2.0  # connection drops and 5xx: 2, 4, 8, 16 s
+RATE_LIMIT_BACKOFF = 15.0  # 429s: 15, 30, 60, 120 s
+FAILS_BEFORE_COOLDOWN = 3  # consecutive failed calls (after retries) per provider
+COOLDOWN_SECONDS = 300.0
 # Some reasoning models put their private reasoning in the answer text. It is removed so
 # answers are compared on what the model actually concludes; an unclosed block means the
 # model ran out of tokens while still thinking.
@@ -83,6 +93,8 @@ class Gateway:
         self._sleep = sleep
         self._clock = clock
         self._last_call: dict[str, float] = {}
+        self._fails: dict[str, int] = {}
+        self._cool_until: dict[str, float] = {}
 
     def complete(
         self,
@@ -111,23 +123,46 @@ class Gateway:
             self._log(key, result)
             return result
 
-        result = self._call_with_retry(spec, request)
+        try:
+            result = self._call_with_retry(spec, request)
+        except Exception:
+            if not spec.fallback:
+                raise
+            backup = self.registry.get(spec.fallback)
+            result = self._call_with_retry(backup, {**request, "model": backup.model})
+            result = result.model_copy(update={"alias": alias})
         self.cache.set(key, result.model_dump())
         self._log(key, result)
         return result
 
     def _call_with_retry(self, spec: ModelSpec, request: dict[str, Any]) -> Completion:
+        import litellm
+
         for attempt in range(1, MAX_ATTEMPTS + 1):
             self._throttle(spec)
             try:
-                return self._call(spec, request)
+                result = self._call(spec, request)
+                self._fails[spec.provider] = 0
+                return result
             except Exception as exc:
                 if attempt == MAX_ATTEMPTS or not _is_transient(exc):
+                    self._record_failure(spec.provider)
                     raise
-                self._sleep(BACKOFF_SECONDS * 2 ** (attempt - 1))
+                limited = isinstance(exc, litellm.RateLimitError)
+                base = RATE_LIMIT_BACKOFF if limited else BACKOFF_SECONDS
+                self._sleep(base * 2 ** (attempt - 1))
         raise AssertionError("unreachable")
 
+    def _record_failure(self, provider: str) -> None:
+        self._fails[provider] = self._fails.get(provider, 0) + 1
+        if self._fails[provider] >= FAILS_BEFORE_COOLDOWN:
+            self._cool_until[provider] = self._clock() + COOLDOWN_SECONDS
+            self._fails[provider] = 0
+
     def _throttle(self, spec: ModelSpec) -> None:
+        until = self._cool_until.pop(spec.provider, None)
+        if until is not None and (wait := until - self._clock()) > 0:
+            self._sleep(wait)
         if spec.rpm <= 0:
             return
         interval = 60.0 / spec.rpm

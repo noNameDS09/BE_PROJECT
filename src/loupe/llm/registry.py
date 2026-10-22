@@ -22,6 +22,7 @@ class ModelSpec(BaseModel):
     model: str  # LiteLLM model string
     provider: str
     rpm: int = 0
+    fallback: str | None = None  # alias serving the same weights through another provider
 
     @property
     def api_base(self) -> str | None:
