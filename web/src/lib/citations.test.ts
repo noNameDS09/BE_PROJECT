@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Claim } from "../api/types";
-import { citedIds, claimStatus, claimSummary, parseCitations, segmentAnswer } from "./citations";
+import { citedIds, claimStatus, claimSummary, parseCitations, segmentAnswer, sourceLinkLabel } from "./citations";
 
 const claim = (text: string, supported: boolean | null = true): Claim => ({ text, citations: [], supported });
 
@@ -68,5 +68,12 @@ describe("claim status", () => {
       unsupported: 1,
       unchecked: 1,
     });
+  });
+});
+
+describe("sourceLinkLabel", () => {
+  it("names SEC's inline XBRL viewer for /ix?doc= links and the filing otherwise", () => {
+    expect(sourceLinkLabel("https://www.sec.gov/ix?doc=/Archives/edgar/data/2488/x/amd-20241228.htm")).toBe("Open in SEC inline XBRL viewer");
+    expect(sourceLinkLabel("https://www.sec.gov/Archives/edgar/data/2488/000000248825000012/")).toBe("Open filing");
   });
 });

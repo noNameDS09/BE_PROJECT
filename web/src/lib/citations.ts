@@ -1,4 +1,4 @@
-import type { Claim } from "../api/types";
+import type { Citation, Claim, Evidence } from "../api/types";
 
 /** A piece of answer text: plain text, or a citation marker such as [E3]. */
 export type Token = { type: "text"; value: string } | { type: "cite"; id: string };
@@ -88,4 +88,19 @@ export function claimSummary(claims: Claim[]): Record<ClaimStatus, number> {
   const out: Record<ClaimStatus, number> = { supported: 0, unsupported: 0, unchecked: 0 };
   for (const c of claims) out[claimStatus(c)] += 1;
   return out;
+}
+
+/** True when two citations point at the same chunk or XBRL fact. */
+export function sameSource(a: Citation, b: Citation): boolean {
+  return (a.chunk_id !== null && a.chunk_id === b.chunk_id) || (a.fact_id !== null && a.fact_id === b.fact_id);
+}
+
+/** The ledger item a claim citation refers to, if any. */
+export function evidenceFor(citation: Citation, evidence: Evidence[]): Evidence | undefined {
+  return evidence.find((e) => sameSource(e.citation, citation));
+}
+
+/** Link text for a citation URL: fact citations usually open SEC's inline XBRL viewer. */
+export function sourceLinkLabel(url: string): string {
+  return url.includes("/ix?doc=") ? "Open in SEC inline XBRL viewer" : "Open filing";
 }

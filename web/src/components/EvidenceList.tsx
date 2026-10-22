@@ -1,4 +1,5 @@
 import type { Evidence, EvidenceKind } from "../api/types";
+import { sourceLinkLabel } from "../lib/citations";
 import { useCitation } from "./citationContext";
 import { Icon, type IconName } from "./Icon";
 
@@ -42,8 +43,8 @@ export function EvidenceList({ evidence }: { evidence: Evidence[] }) {
               <span>{KIND_LABEL[e.kind] ?? e.kind}</span>
               {e.citation.doc_id && <span className="mono">{e.citation.doc_id}</span>}
               {e.citation.url && (
-                <a href={e.citation.url} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()} title="Open on SEC.gov">
-                  SEC <Icon name="external" size={11} />
+                <a href={e.citation.url} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()} title={e.citation.url}>
+                  {sourceLinkLabel(e.citation.url)} <Icon name="external" size={11} />
                 </a>
               )}
             </div>

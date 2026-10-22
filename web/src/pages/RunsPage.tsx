@@ -7,6 +7,7 @@ import { EmptyState, ErrorBanner, SkeletonTable } from "../components/Feedback";
 import { FilterBar, FilterSelect } from "../components/Filters";
 import { Icon } from "../components/Icon";
 import { CorrectBadge } from "../components/RunCard";
+import { ToolsetBadge } from "../components/ToolsetBadge";
 import { armColor } from "../lib/arms";
 import { DASH, formatCost, formatDate, formatLatency, formatPct, formatTokens, prettyJson, truncate } from "../lib/format";
 import { useAsync } from "../lib/useAsync";
@@ -25,6 +26,7 @@ export function storedAnswer(row: ResultRow): Answer | null {
     abstained: Boolean(o.abstained),
     trace: Array.isArray(o.trace) ? o.trace : [],
     evidence: Array.isArray(o.evidence) ? o.evidence : [],
+    removed_claims: Array.isArray(o.removed_claims) ? o.removed_claims : [],
   };
 }
 
@@ -41,6 +43,7 @@ function RunDetail({ row, onClose }: { row: ResultRow; onClose: () => void }) {
         <div className="run-title">
           <span className="arm-swatch" style={{ background: armColor(row.arm) }} />
           <strong>{armLabel(config, row.arm)}</strong>
+          <ToolsetBadge arm={row.arm} />
           <span className="tag">{row.model}</span>
           <CorrectBadge correct={row.correct} />
           {row.abstained && <span className="badge warn">abstained</span>}
@@ -167,6 +170,7 @@ export function RunsPage() {
                           <span className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
                             <span className="arm-swatch" style={{ background: armColor(r.arm) }} />
                             {armLabel(config, r.arm)}
+                            <ToolsetBadge arm={r.arm} />
                           </span>
                         </td>
                         <td className="mono small nowrap">{r.model}</td>
