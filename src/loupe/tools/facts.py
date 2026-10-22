@@ -7,6 +7,7 @@ from its 10-K period ends, labelled with the offset its latest 10-K uses, and
 quarters are numbered by position inside the fiscal year.
 """
 
+import json
 from collections import Counter
 from datetime import date, timedelta
 from pathlib import Path
@@ -18,6 +19,31 @@ from pydantic import BaseModel
 
 Period = Literal["FY", "Q1", "Q2", "Q3", "Q4"]
 ARCHIVE = "https://www.sec.gov/Archives/edgar/data/{cik}/{folder}/"
+SEC = "https://www.sec.gov"
+
+
+def primary_documents(manifest: Path) -> dict[str, str]:
+    """accession -> the filing's main document URL, from the download manifest."""
+    if not manifest.exists():
+        return {}
+    out = {}
+    for line in manifest.read_text().splitlines():
+        if line.strip():
+            row = json.loads(line)
+            if row.get("url"):
+                out[row["accession"]] = row["url"]
+    return out
+
+
+def fact_url(accession: str, cik: str, documents: dict[str, str]) -> str:
+    """Open the filing in SEC's inline XBRL viewer when we know its main document (tagged
+    facts are highlighted there); otherwise the filing's folder."""
+    doc = documents.get(accession)
+    if doc and doc.startswith(SEC) and doc.endswith((".htm", ".html")):
+        return f"{SEC}/ix?doc={doc[len(SEC) :]}"
+    return ARCHIVE.format(cik=int(cik), folder=accession.replace("-", ""))
+
+
 # quarters up to 16 weeks (Kroger Q1); nine months from 36 weeks (PepsiCo) to 40 weeks (Kroger)
 DAYS = {"FY": (350, 380), "Q": (80, 115), "9M": (245, 290)}
 TOLERANCE = timedelta(days=7)
@@ -109,10 +135,17 @@ class FiscalCalendar:
 
 
 class FactsStore:
-    def __init__(self, db_path: Path, metrics: dict[str, MetricSpec], ciks: dict[str, str]):
+    def __init__(
+        self,
+        db_path: Path,
+        metrics: dict[str, MetricSpec],
+        ciks: dict[str, str],
+        documents: dict[str, str] | None = None,
+    ):
         self.con = duckdb.connect(str(db_path), read_only=True)
         self.metrics = metrics
         self.ciks = ciks
+        self.documents = documents or {}
         self._calendars: dict[str, FiscalCalendar] = {}
 
     def calendar(self, company_id: str) -> FiscalCalendar:
@@ -189,7 +222,7 @@ class FactsStore:
             accession=accession,
             form=form,
             filed=filed,
-            url=ARCHIVE.format(cik=int(self.ciks[company_id]), folder=accession.replace("-", "")),
+            url=fact_url(accession, self.ciks[company_id], self.documents),
             derived=derived,
         )
 

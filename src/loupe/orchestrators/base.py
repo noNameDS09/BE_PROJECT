@@ -1,7 +1,11 @@
 """Shared pieces for every orchestration arm.
 
-All arms get the same model, tools and token cap per question, so differences in the
-results come from the orchestration alone (docs/hypotheses.md, section 1).
+All arms get the same model, retriever and token cap per question. Tools differ on
+purpose (decision D21): published baselines get only the generic tools any agent
+framework ships (filing search, a calculator, the company list), while Loupe gets the
+financial harness we built (XBRL facts, comparisons, charts, forecasts, distress score,
+8-K events). The `loupe-generic-tools` ablation runs Loupe's orchestration with the
+generic tools, separating the harness's effect from the orchestration's.
 """
 
 import json
@@ -36,6 +40,10 @@ ABSTAIN = re.compile(
 # "tools off" ablation: the model may read filings but must do every number itself
 TEXT_ONLY_TOOLS = ["search_filings", "list_companies", "list_events"]
 
+# what a standard agent framework provides; everything else in the ToolBox is our harness
+GENERIC_TOOLS = ["search_filings", "calculate", "list_companies"]
+TOOLSETS: dict[str, list[str] | None] = {"harness": None, "generic": GENERIC_TOOLS, "none": []}
+
 
 def parse_json(text: str | None) -> Any:
     """First JSON object or array in a model reply (tolerates code fences and chatter)."""
@@ -67,8 +75,17 @@ class RunContext:
     max_steps: int = 8
     tools_enabled: bool = True
     query_rewrite: bool = False
+    allowed_tools: list[str] | None = None  # None = the full harness
     ledger: Ledger = field(default_factory=Ledger)
     trace: list[TraceStep] = field(default_factory=list)
+
+    def use_toolset(self, toolset: str) -> None:
+        self.allowed_tools = TOOLSETS[toolset]
+
+    def allows(self, name: str) -> bool:
+        if not self.tools_enabled and name not in TEXT_ONLY_TOOLS:
+            return False
+        return self.allowed_tools is None or name in self.allowed_tools
 
     def specs(self, names: list[str] | None = None) -> list[dict[str, Any]]:
         allowed = (
@@ -76,6 +93,10 @@ class RunContext:
             if self.tools_enabled
             else [n for n in (names or TEXT_ONLY_TOOLS) if n in TEXT_ONLY_TOOLS]
         )
+        if self.allowed_tools is not None:
+            wanted = allowed if allowed is not None else self.allowed_tools
+            # a specialist whose harness tools are all unavailable falls back to the generic set
+            allowed = [n for n in wanted if n in self.allowed_tools] or list(self.allowed_tools)
         return self.tools.specs(allowed)
 
     def llm(self, stage: str, messages: list[dict[str, Any]], **kw: Any) -> Completion:
@@ -118,8 +139,8 @@ class RunContext:
         return [q for q in queries if isinstance(q, str) and q.strip()][:3]
 
     def tool(self, name: str, args: dict[str, Any]) -> str:
-        if not self.tools_enabled and name not in TEXT_ONLY_TOOLS:
-            out = f"ERROR: tool {name} is disabled in this configuration."
+        if not self.allows(name):
+            out = f"ERROR: tool {name} is not available in this configuration."
         else:
             if name == "search_filings" and self.query_rewrite and "query" in args:
                 args = {**args, "extra_queries": self.rewrite(args["query"])}
@@ -127,7 +148,7 @@ class RunContext:
         self.trace.append(TraceStep(stage="tool", name=name, input=args, output=out[:2000]))
         return out
 
-    def finish(self, text: str) -> Answer:
+    def finish(self, text: str, removed: list[str] | None = None) -> Answer:
         claims = verify(text, self.ledger)
         # declining = the answer says the information is missing AND verifies no fact itself
         abstained = bool(ABSTAIN.search(text)) and not any(c.supported for c in claims)
@@ -138,6 +159,7 @@ class RunContext:
             charts=list(self.ledger.charts),
             trace=self.trace,
             evidence=[e.model_dump() for e in self.ledger.items.values()],
+            removed_claims=removed or [],
         )
 
 
@@ -145,5 +167,6 @@ class Orchestrator(Protocol):
     name: str
     label: str
     description: str
+    toolset: str  # "harness" | "generic" | "none"
 
     def run(self, question: str, ctx: RunContext) -> Answer: ...

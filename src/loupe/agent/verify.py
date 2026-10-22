@@ -107,6 +107,23 @@ def found_in(sentence: str, ledger: Ledger) -> list[str]:
     ]
 
 
+SEGMENT = re.compile(r"(?<=[.!?])\s+|\n+")
+
+
+def supporting_text(evidence, numbers: list[Num], quotes: list[str], sentence: str) -> str | None:
+    """The line or sentence of a cited passage that holds the claim's number or quote."""
+    if evidence.kind != "chunk":
+        return None
+    for q in quotes:
+        if " ".join(q.lower().split()) in " ".join(evidence.text.lower().split()):
+            return q
+    for seg in SEGMENT.split(evidence.text):
+        found = parse_numbers(seg)
+        if any(n.value and _supported(n, [f.value for f in found], sentence) for n in numbers):
+            return " ".join(seg.split())[:300]
+    return None
+
+
 def _units(answer: str) -> list[str]:
     """Claims to check: each line (bullets, table rows) and each sentence within a line."""
     out = []
@@ -136,10 +153,19 @@ def verify(answer: str, ledger: Ledger) -> list[Claim]:
             texts = " ".join(e.text for e in cited).lower()
             quotes_ok = all(" ".join(q.lower().split()) in " ".join(texts.split()) for q in quotes)
             supported = nums_ok and quotes_ok
+        citations = [
+            e.citation.model_copy(
+                update={
+                    "verified": supported,
+                    "quote": e.citation.quote or supporting_text(e, numbers, quotes, sentence),
+                }
+            )
+            for e in cited
+        ]
         claims.append(
             Claim(
                 text=sentence,
-                citations=[e.citation for e in cited] or [Citation() for _ in ids],
+                citations=citations or [Citation(verified=False) for _ in ids],
                 supported=supported,
             )
         )

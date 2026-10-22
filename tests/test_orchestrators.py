@@ -66,25 +66,38 @@ ARGS = {"company": "AMD", "metric": "revenue", "fiscal_year": 2024}
 
 
 def test_react_calls_tools_then_answers_with_verified_citations():
+    calc = {"expression": "25.785e9"}
     gw = ScriptedGateway(
-        reply(None, ToolCall(id="t1", name="get_financial_metric", arguments=ARGS)),
+        reply(None, ToolCall(id="t1", name="calculate", arguments=calc)),
         reply("AMD revenue in fiscal 2024 was $25.8 billion [E1]."),
     )  # fmt: skip
     c = ctx(gw)
     answer = ARMS["react"].run("What was AMD's FY2024 revenue?", c)
 
-    assert c.tools.calls == [
-        ("get_financial_metric", {"company": "AMD", "metric": "revenue", "fiscal_year": 2024})
-    ]
+    assert c.tools.calls == [("calculate", calc)]
     tool_msg = gw.requests[1]["messages"][-1]
     assert tool_msg["role"] == "tool" and tool_msg["tool_call_id"] == "t1"
     assert [cl.supported for cl in answer.claims] == [True]
     assert answer.tokens == 30 and [s.stage for s in answer.trace] == ["step", "tool", "step"]
 
 
+def test_baselines_get_generic_tools_not_the_harness():
+    # decision D21: XBRL facts, charts, forecasts, events are Loupe's harness
+    gw = ScriptedGateway(
+        reply(None, ToolCall(id="t1", name="get_financial_metric", arguments=ARGS)),
+        reply("AMD revenue was $25.8 billion [E1]."),
+    )
+    c = ctx(gw)
+    answer = ARMS["react"].run("q", c)
+    offered = [t["function"]["name"] for t in gw.requests[0]["tools"]]
+    assert offered == ["search_filings", "calculate"]  # FakeTools has no list_companies
+    assert c.tools.calls == [] and "not available" in answer.trace[1].output
+    assert [cl.supported for cl in answer.claims] == [False]
+
+
 def test_wrong_number_with_citation_is_flagged():
     gw = ScriptedGateway(
-        reply(None, ToolCall(id="t1", name="get_financial_metric", arguments={})),
+        reply(None, ToolCall(id="t1", name="calculate", arguments={"expression": "25.785e9"})),
         reply("AMD revenue was $27 billion [E1]."),
     )
     answer = ARMS["react"].run("q", ctx(gw))
@@ -200,3 +213,36 @@ def test_loupe_revision_feedback_names_the_right_evidence():
         " (these numbers are in [E2]; cite that instead)"
     )
     assert _cite_hint("Debt was $999 billion [E1].", ctx) == ""
+
+
+def test_citations_carry_the_verdict_and_the_supporting_line():
+    ledger = Ledger()
+    ledger.add(
+        "chunk",
+        "Cash flows from financing.\nLong-term debt and finance lease obligations | 123,929\n"
+        "Other liabilities | 9,402",
+        Citation(doc_id="VZ_10-Q", start_char=10, end_char=200),
+    )
+    ledger.add("fact", "AMD revenue FY2024: 25785000000 USD", Citation(fact_id="x"), 25_785_000_000)
+    ok, fact, bad = verify(
+        "Debt was $123.9 billion [E1]. AMD revenue was $25.8 billion [E2]. "
+        "Debt was $5 billion [E1].",
+        ledger,
+    )
+    assert ok.citations[0].verified is True
+    assert ok.citations[0].quote == "Long-term debt and finance lease obligations | 123,929"
+    assert (fact.citations[0].verified, fact.citations[0].quote) == (True, None)
+    assert (bad.citations[0].verified, bad.citations[0].quote) == (False, None)
+    assert ledger.get("E1").citation.verified is None  # the ledger itself is not mutated
+
+
+def test_fact_links_open_the_inline_xbrl_viewer_when_the_document_is_known():
+    from loupe.tools.facts import fact_url
+
+    doc = "https://www.sec.gov/Archives/edgar/data/66740/000006674025000063/mmm-20250630.htm"
+    assert fact_url("0000066740-25-000063", "0000066740", {"0000066740-25-000063": doc}) == (
+        "https://www.sec.gov/ix?doc=/Archives/edgar/data/66740/000006674025000063/mmm-20250630.htm"
+    )
+    assert fact_url("0000066740-19-000001", "0000066740", {}) == (
+        "https://www.sec.gov/Archives/edgar/data/66740/000006674019000001/"
+    )

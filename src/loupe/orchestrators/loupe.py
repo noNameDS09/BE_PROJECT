@@ -57,6 +57,7 @@ class LoupeOrch:
     use_code_verifier: bool = True
     use_critic: bool = True
     use_abstain: bool = True
+    toolset: str = "harness"  # "generic" = Loupe's orchestration without our financial tools
 
     def _route(self, question: str, ctx: RunContext) -> dict:
         if not self.use_router:
@@ -140,6 +141,7 @@ class LoupeOrch:
         )
 
     def run(self, question: str, ctx: RunContext) -> Answer:
+        ctx.use_toolset(self.toolset)
         route = self._route(question, ctx)
         if self.use_abstain and route.get("unknown") and not route["companies"]:
             return ctx.finish(
@@ -168,15 +170,17 @@ class LoupeOrch:
                         bad.append(claims[n - 1].text)
                 if review.get("missing"):
                     bad.append(f"Missing: {review['missing']}")
+        removed: list[str] = []
         if bad:
             feedback = "\n".join(f"- {b}{hints.get(b, '')}" for b in bad)
             answer = self._compose(question, ctx, feedback)
             if self.use_code_verifier:
-                kept = [c.text for c in verify(answer, ctx.ledger) if c.supported is not False]
-                answer = " ".join(kept)
+                revised = verify(answer, ctx.ledger)
+                removed = [c.text for c in revised if c.supported is False]
+                answer = " ".join(c.text for c in revised if c.supported is not False)
         if self.use_abstain and not answer.strip():
             answer = self._abstain_text(question, route)
-        return ctx.finish(answer)
+        return ctx.finish(answer, removed=removed)
 
 
 def _cite_hint(sentence: str, ctx: RunContext) -> str:
@@ -202,5 +206,11 @@ ABLATIONS = {
     ),
     "loupe-no-abstain": LoupeOrch(
         name="loupe-no-abstain", label="Loupe minus abstain", use_abstain=False
+    ),
+    "loupe-generic-tools": LoupeOrch(
+        name="loupe-generic-tools",
+        label="Loupe minus harness (generic tools)",
+        description="Loupe's orchestration with only the baselines' generic tools.",
+        toolset="generic",
     ),
 }
