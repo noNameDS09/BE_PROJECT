@@ -37,7 +37,7 @@ def _fmt(m: dict) -> str:
 def run(
     dataset: str,
     arm: Annotated[list[str], typer.Option(help="Arm(s); see `loupe arms`.")] = ["b0", "loupe"],  # noqa: B006
-    model: Annotated[list[str], typer.Option(help="Model alias(es).")] = ["nim-nemotron-super"],  # noqa: B006
+    model: Annotated[list[str], typer.Option(help="Model alias(es).")] = ["nim-nemotron-ultra"],  # noqa: B006
     split: Annotated[str, typer.Option(help="dev | test | all")] = "dev",
     limit: Annotated[int | None, typer.Option(help="Max items.")] = None,
     kind: Annotated[list[str] | None, typer.Option(help="Only these item kinds.")] = None,

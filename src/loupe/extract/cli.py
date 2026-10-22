@@ -47,7 +47,7 @@ def _extractor(model: str, scorer: str | None) -> EventExtractor:
 
 @app.command("events")
 def events(
-    model: Annotated[str, typer.Option(help="Extraction model alias.")] = "nim-nemotron-super",
+    model: Annotated[str, typer.Option(help="Extraction model alias.")] = "nim-nemotron-ultra",
     scorer: Annotated[str | None, typer.Option(help="Second-pass scoring model.")] = None,
     company: Annotated[list[str] | None, typer.Option(help="Only these tickers.")] = None,
     limit: Annotated[int | None, typer.Option(help="Max 8-K sections.")] = None,
@@ -79,7 +79,7 @@ def events(
 
 @app.command("eval-blind")
 def eval_blind(
-    model: Annotated[str, typer.Option(help="Extraction model alias.")] = "nim-nemotron-super",
+    model: Annotated[str, typer.Option(help="Extraction model alias.")] = "nim-nemotron-ultra",
     scorer: Annotated[str | None, typer.Option(help="Second-pass scoring model.")] = None,
     split: Annotated[str, typer.Option(help="dev | test | all")] = "dev",
     limit: Annotated[int, typer.Option(help="8-Ks to sample (seeded).")] = 60,
