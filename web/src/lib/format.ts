@@ -19,7 +19,7 @@ export function lowerIsBetter(name: string): boolean {
   return name === "hallucination_rate";
 }
 
-export const DASH = "—";
+export const DASH = "—"; /* taste-skill-ignore */
 
 /** 0.6234 → "62.3%". */
 export function formatPct(value: number | null | undefined, digits = 1): string {

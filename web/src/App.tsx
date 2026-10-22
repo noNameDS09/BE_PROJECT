@@ -70,17 +70,24 @@ export function App() {
             <ThemeToggle />
           </div>
         </aside>
-        <main className="main">
-          <Routes>
-            <Route path="/" element={<ComparePage />} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/stages" element={<StagesPage />} />
-            <Route path="/datasets" element={<DatasetsPage />} />
-            <Route path="/runs" element={<RunsPage />} />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="*" element={<EmptyState icon="search" title="Page not found">Use the sidebar to pick a page.</EmptyState>} />
-          </Routes>
-        </main>
+        <div className="sheet-wrap">
+          <div className="sheet">
+            <div className="topbar">
+              <span className="muted small" style={{ fontWeight: 500 }}>Loupe Bench</span>
+            </div>
+            <main className="sheet-main">
+              <Routes>
+                <Route path="/" element={<ComparePage />} />
+                <Route path="/leaderboard" element={<LeaderboardPage />} />
+                <Route path="/stages" element={<StagesPage />} />
+                <Route path="/datasets" element={<DatasetsPage />} />
+                <Route path="/runs" element={<RunsPage />} />
+                <Route path="/chat" element={<ChatPage />} />
+                <Route path="*" element={<EmptyState icon="search" title="Page not found">Use the sidebar to pick a page.</EmptyState>} />
+              </Routes>
+            </main>
+          </div>
+        </div>
       </div>
     </CitationProvider>
   );

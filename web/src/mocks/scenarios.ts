@@ -60,7 +60,7 @@ function barChart(title: string, xs: string[], ys: number[], evidenceIds: string
           y: ys,
           text: ys.map((y) => `$${y.toFixed(1)}B`),
           textposition: "outside",
-          marker: { color: "#6366f1" },
+          marker: { color: "#1b6c80" },
           hovertemplate: "%{x}: $%{y:.2f}B<extra></extra>",
         },
       ],
