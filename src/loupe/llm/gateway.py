@@ -85,6 +85,7 @@ class Gateway:
         completion_fn: Callable[..., Any] | None = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
+        patient: bool = True,
     ):
         self.registry = registry
         self.cache = diskcache.Cache(str(cache_dir / "llm"))
@@ -95,6 +96,9 @@ class Gateway:
         self._last_call: dict[str, float] = {}
         self._fails: dict[str, int] = {}
         self._cool_until: dict[str, float] = {}
+        # patient (experiment runs): long backoff and provider cool-downs.
+        # impatient (the live Bench): 3 quick tries, then a visible error within seconds.
+        self.patient = patient
 
     def complete(
         self,
@@ -138,22 +142,26 @@ class Gateway:
     def _call_with_retry(self, spec: ModelSpec, request: dict[str, Any]) -> Completion:
         import litellm
 
-        for attempt in range(1, MAX_ATTEMPTS + 1):
+        attempts = MAX_ATTEMPTS if self.patient else 3
+        for attempt in range(1, attempts + 1):
             self._throttle(spec)
             try:
                 result = self._call(spec, request)
                 self._fails[spec.provider] = 0
                 return result
             except Exception as exc:
-                if attempt == MAX_ATTEMPTS or not _is_transient(exc):
+                self._log_error(spec, exc)
+                if attempt == attempts or not _is_transient(exc):
                     self._record_failure(spec.provider)
                     raise
                 limited = isinstance(exc, litellm.RateLimitError)
-                base = RATE_LIMIT_BACKOFF if limited else BACKOFF_SECONDS
+                base = RATE_LIMIT_BACKOFF if limited and self.patient else BACKOFF_SECONDS
                 self._sleep(base * 2 ** (attempt - 1))
         raise AssertionError("unreachable")
 
     def _record_failure(self, provider: str) -> None:
+        if not self.patient:
+            return
         self._fails[provider] = self._fails.get(provider, 0) + 1
         if self._fails[provider] >= FAILS_BEFORE_COOLDOWN:
             self._cool_until[provider] = self._clock() + COOLDOWN_SECONDS
@@ -221,6 +229,13 @@ class Gateway:
             cost_usd=cost,
             latency_ms=latency_ms,
         )
+
+    def _log_error(self, spec: ModelSpec, exc: Exception) -> None:
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        row = {"ts": datetime.now(UTC).isoformat(), "alias": spec.alias, "model": spec.model,
+               "error": f"{type(exc).__name__}: {str(exc)[:200]}"}  # fmt: skip
+        with self.log_path.open("a") as f:
+            f.write(json.dumps(row) + "\n")
 
     def _log(self, key: str, result: Completion) -> None:
         self.log_path.parent.mkdir(parents=True, exist_ok=True)

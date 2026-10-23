@@ -59,7 +59,7 @@ _lock = threading.Lock()
 def engine():
     from loupe.engine import Engine
 
-    return Engine()
+    return Engine(patient=False)  # live requests: quick retries, then a visible error
 
 
 @cache

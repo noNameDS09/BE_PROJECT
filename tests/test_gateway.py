@@ -170,3 +170,19 @@ def test_any_openrouter_model_id_resolves_without_config():
         reg.get("openrouter/")
     with pytest.raises(KeyError):
         reg.get("not-a-model")
+
+
+def test_live_mode_fails_fast_without_long_waits_or_cooldown(tmp_path, registry):
+    import litellm
+
+    err = litellm.RateLimitError(message="429", llm_provider="groq", model="x")
+    sleeps = []
+    gw = Gateway(registry, cache_dir=tmp_path / "c", log_path=tmp_path / "l.jsonl",
+                 completion_fn=FakeLLM([err] * 3 + [err] * 3), sleep=sleeps.append,
+                 clock=lambda: 0.0, patient=False)  # fmt: skip
+    for q in ("a", "b"):
+        with pytest.raises(litellm.RateLimitError):
+            gw.complete("fast", [{"role": "user", "content": q}])
+    assert sleeps == [2.0, 4.0, 2.0, 4.0]  # no 15-120 s backoff, no 5-minute cool-down
+    errors = [json.loads(x) for x in (tmp_path / "l.jsonl").read_text().splitlines()]
+    assert len(errors) == 6 and errors[0]["error"].startswith("RateLimitError")

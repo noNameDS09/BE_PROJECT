@@ -21,9 +21,10 @@ METRICS = Path("configs/metrics.yaml")
 
 
 class Engine:
-    def __init__(self, index_variant: str | None = None):
+    def __init__(self, index_variant: str | None = None, patient: bool = True):
         self.settings = get_settings()
         self._variant = index_variant
+        self._patient = patient  # False for the live Bench API: fail fast instead of waiting
         self._rerankers: dict[str, CrossEncoder] = {}
 
     @cached_property
@@ -37,6 +38,7 @@ class Engine:
             ModelRegistry.from_yaml(s.models_config),
             cache_dir=s.cache_dir,
             log_path=s.logs_dir / "llm_calls.jsonl",
+            patient=self._patient,
         )
 
     @cached_property
