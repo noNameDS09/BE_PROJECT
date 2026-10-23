@@ -16,8 +16,8 @@ import { armLabel, useConfig } from "../lib/useConfig";
 type Mode = "question" | "item";
 
 const DEFAULT_CONFIGS: RunConfigPick[] = [
-  { arm: "b0", model: "nim-nemotron-super" },
-  { arm: "loupe", model: "nim-nemotron-super" },
+  { arm: "b0", model: "nim-nemotron-ultra" },
+  { arm: "loupe", model: "nim-nemotron-ultra" },
 ];
 
 /** Keeps the default configs valid against what /config actually offers. */

@@ -26,7 +26,7 @@ export function toMessages(turns: Turn[]): ChatMessage[] {
 
 export function ChatPage() {
   const { config } = useConfig();
-  const [model, setModel] = useState("nim-nemotron-super");
+  const [model, setModel] = useState("nim-nemotron-ultra");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
