@@ -62,6 +62,10 @@ class Completion(BaseModel):
     cached: bool = False
 
 
+class EmptyResponseError(RuntimeError):
+    """The provider answered without any completion."""
+
+
 def _is_transient(exc: Exception) -> bool:
     """Worth retrying: rate limits and dropped connections. A timeout is not: a model that
     took 90 s once will likely do it again, and retrying would stall a long run."""
@@ -73,7 +77,7 @@ def _is_transient(exc: Exception) -> bool:
         litellm.APIConnectionError,
         litellm.InternalServerError,
     )
-    return isinstance(exc, transient)
+    return isinstance(exc, (*transient, EmptyResponseError))
 
 
 class Gateway:
@@ -204,6 +208,10 @@ class Gateway:
         resp = fn(**kwargs)
         latency_ms = int((time.perf_counter() - start) * 1000)
 
+        if not getattr(resp, "choices", None):
+            # some providers (seen on OpenRouter free models) answer 200 with no choices when
+            # they fail mid-request; treat it as a provider outage so it is retried
+            raise EmptyResponseError(f"{spec.model} returned no choices")
         message = resp.choices[0].message
         tool_calls = [
             ToolCall(

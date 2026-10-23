@@ -186,3 +186,13 @@ def test_live_mode_fails_fast_without_long_waits_or_cooldown(tmp_path, registry)
     assert sleeps == [2.0, 4.0, 2.0, 4.0]  # no 15-120 s backoff, no 5-minute cool-down
     errors = [json.loads(x) for x in (tmp_path / "l.jsonl").read_text().splitlines()]
     assert len(errors) == 6 and errors[0]["error"].startswith("RateLimitError")
+
+
+def test_a_reply_without_choices_is_retried_not_crashed(tmp_path, registry):
+    from types import SimpleNamespace
+
+    empty = SimpleNamespace(choices=[], usage=None, model="m")
+    sleeps = []
+    gw = make_gateway(tmp_path, registry, FakeLLM([empty, fake_response("OK")]), sleeps=sleeps)
+    assert gw.complete("fast", [{"role": "user", "content": "hi"}]).text == "OK"
+    assert sleeps == [2.0]

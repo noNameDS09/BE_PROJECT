@@ -29,3 +29,14 @@ and after one revision nothing verified, so Loupe abstained.
 `loupe eval run {gold_num,gold_calc,gold_trick} --split dev --limit 24 --arm b0 --arm rag --arm react --arm loupe --model nim-nemotron-super --judge ministral-14b`
 
 Results: see `docs/pilot-notes.md`.
+
+## 2026-10-23 · Ayush (with Claude) · dev tuning round 2 (Loupe) + gateway fix
+
+- **Loupe routing:** the distress-score tool was only offered for `open_analysis` questions. On the
+  demo "How did Diebold Nixdorf's Altman Z'' distress score change from fiscal 2022 to 2024, and
+  which 8-K events explain it?" Loupe routed to trend + event, never got the tool, and abstained.
+  `distress_score` is now also offered for `calc` and `trend` intents. Baselines are unaffected
+  (they only get generic tools, D21). This is Loupe's second dev tuning round. Every other method
+  gets the same number of rounds before the test split.
+- **Gateway:** OpenRouter free providers sometimes answer HTTP 200 with no choices; this crashed
+  ReAct with `IndexError`. It is now treated as a provider outage and retried.
