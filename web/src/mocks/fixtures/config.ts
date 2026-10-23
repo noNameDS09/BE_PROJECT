@@ -1,4 +1,4 @@
-import type { ArmInfo, CompanyInfo, ModelInfo, Toolset } from "../../api/types";
+import type { ArmInfo, CompanyInfo, ModelInfo, OpenRouterModel, Toolset } from "../../api/types";
 
 /** Tool names per toolset, as /api/config reports them (decision D21). */
 const GENERIC_TOOLS = ["search_filings", "calculate", "list_companies"];
@@ -49,6 +49,20 @@ export const MODELS: ModelInfo[] = [
   { alias: "nim-llama-70b", provider: "nvidia_nim", model: "nvidia_nim/meta/llama-3.3-70b-instruct", available: false },
   { alias: "ollama-qwen-7b", provider: "ollama", model: "ollama_chat/qwen2.5:7b-instruct", available: true },
   { alias: "ollama-llama-8b", provider: "ollama", model: "ollama_chat/llama3.1:8b", available: false },
+];
+
+function openrouter(id: string, name: string, context_length: number | null, tools: boolean): OpenRouterModel {
+  return { alias: `openrouter/${id}`, id, name, context_length, tools, free: true };
+}
+
+/** GET /api/openrouter/models: OpenRouter's free models, tool-calling models first. */
+export const OPENROUTER_MODELS: OpenRouterModel[] = [
+  openrouter("google/gemma-4-31b-it:free", "Google: Gemma 4 31B (free)", 262144, true),
+  openrouter("nvidia/nemotron-3-super-120b-a12b:free", "NVIDIA: Nemotron 3 Super (free)", 262144, true),
+  openrouter("qwen/qwen3-235b-a22b:free", "Qwen: Qwen3 235B A22B (free)", 131072, true),
+  openrouter("meta-llama/llama-3.3-70b-instruct:free", "Meta: Llama 3.3 70B Instruct (free)", 131072, true),
+  openrouter("deepseek/deepseek-r1-0528:free", "DeepSeek: R1 0528 (free)", 163840, false),
+  openrouter("cognitivecomputations/dolphin-mistral-24b-venice-edition:free", "Venice: Uncensored (free)", 32768, false),
 ];
 
 /** The 25-company US universe (configs/companies_us.yaml). */

@@ -159,6 +159,8 @@ export interface ChatMessage {
 export interface ChatRequest {
   messages: ChatMessage[];
   model: string;
+  /** Orchestration arm that answers; the backend defaults to "loupe". */
+  arm?: string;
 }
 
 // ---------------------------------------------------------------- docs/api.md: config
@@ -190,6 +192,26 @@ export interface ModelInfo {
   /** The provider's model id, e.g. "nvidia_nim/nvidia/nemotron-3-super-120b-a12b". */
   model: string;
   available: boolean;
+}
+
+/** One of OpenRouter's current free models (GET /api/openrouter/models). */
+export interface OpenRouterModel {
+  /** "openrouter/<id>"; usable anywhere a model alias is accepted. */
+  alias: string;
+  /** OpenRouter's model id, e.g. "google/gemma-4-31b-it:free". */
+  id: string;
+  name: string;
+  context_length: number | null;
+  /** Supports tool calling (needed by every arm except B0 and RAG). */
+  tools: boolean;
+  free: boolean;
+}
+
+export interface OpenRouterModelsResponse {
+  /** Tool-calling models first. */
+  models: OpenRouterModel[];
+  /** Unix seconds when the backend fetched the list from OpenRouter. */
+  fetched_at: number;
 }
 
 export interface DatasetInfo {

@@ -2,12 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { ChatMessage, RunResult } from "../api/types";
 import { AnswerView } from "../components/AnswerView";
-import { ModelSelect } from "../components/ConfigPicker";
+import { DemoGrid } from "../components/DemoQuestions";
 import { ErrorBanner, SkeletonLines, Spinner } from "../components/Feedback";
 import { Icon } from "../components/Icon";
-import { EXAMPLE_QUESTIONS } from "../lib/examples";
+import { ModelPicker } from "../components/ModelPicker";
+import { ToolsetBadge } from "../components/ToolsetBadge";
 import { formatCost, formatLatency, formatTokens } from "../lib/format";
-import { useConfig } from "../lib/useConfig";
+import { NO_TOOLS_HINT, isOpenRouterAlias, lacksToolCalling } from "../lib/modelPicker";
+import { armLabel, useConfig } from "../lib/useConfig";
+import { useOpenRouterModels } from "../lib/useOpenRouterModels";
 
 type Turn =
   | { role: "user"; content: string }
@@ -26,6 +29,8 @@ export function toMessages(turns: Turn[]): ChatMessage[] {
 
 export function ChatPage() {
   const { config } = useConfig();
+  const { models: live } = useOpenRouterModels();
+  const [arm, setArm] = useState("loupe");
   const [model, setModel] = useState("nim-nemotron-ultra");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
@@ -33,7 +38,12 @@ export function ChatPage() {
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (config && !config.models.some((m) => m.alias === model)) {
+    if (config && !config.arms.some((a) => a.name === arm)) setArm(config.arms[0]?.name ?? arm);
+  }, [config, arm]);
+
+  // OpenRouter aliases are accepted even when /api/config does not list them.
+  useEffect(() => {
+    if (config && !isOpenRouterAlias(model) && !config.models.some((m) => m.alias === model)) {
       setModel(config.models.find((m) => m.available)?.alias ?? config.models[0]?.alias ?? model);
     }
   }, [config, model]);
@@ -46,7 +56,7 @@ export function ChatPage() {
   async function send(messages: ChatMessage[], base: Turn[]) {
     setBusy(true);
     try {
-      const result = await api.chat({ messages, model });
+      const result = await api.chat({ messages, model, arm });
       setTurns([...base, { role: "assistant", result }]);
     } catch (error) {
       setTurns([...base, { role: "error", error, retry: messages }]);
@@ -72,34 +82,60 @@ export function ChatPage() {
     void send(t.retry, base);
   }
 
+  const isAblation = (name: string) => name.startsWith("loupe-");
+  const mainArms = config?.arms.filter((a) => !isAblation(a.name)) ?? [];
+  const ablations = config?.arms.filter((a) => isAblation(a.name)) ?? [];
+  const selectedArm = config?.arms.find((a) => a.name === arm);
+  const noTools = selectedArm !== undefined && selectedArm.toolset !== "none" && lacksToolCalling(model, live);
+
   return (
     <div className="chat">
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
         <div>
           <h1 style={{ fontSize: "var(--fs-section)", fontWeight: 600 }}>Chat</h1>
-          <p className="small muted" style={{ margin: "2px 0 0" }}>Cited answers from the Loupe orchestration</p>
+          <p className="small muted" style={{ margin: "2px 0 0" }}>Cited answers from {armLabel(config, arm)}</p>
         </div>
         <div className="row" style={{ gap: 8 }}>
-          {config && <ModelSelect models={config.models} value={model} onChange={setModel} />}
+          {config && (
+            <>
+              <select className="select" aria-label="Method" value={arm} onChange={(e) => setArm(e.target.value)} title={selectedArm?.description}>
+                {mainArms.map((a) => (
+                  <option key={a.name} value={a.name} title={a.description}>
+                    {a.label}
+                  </option>
+                ))}
+                {ablations.length > 0 && (
+                  <optgroup label="Ablations">
+                    {ablations.map((a) => (
+                      <option key={a.name} value={a.name} title={a.description}>
+                        {a.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+              <ToolsetBadge arm={arm} />
+              <ModelPicker models={config.models} value={model} onChange={setModel} />
+            </>
+          )}
           <button className="btn sm ghost" onClick={() => setTurns([])} disabled={!turns.length || busy}>
             New chat
           </button>
         </div>
       </div>
+      {noTools && (
+        <p className="small" style={{ color: "var(--warn)", margin: "-4px 0 8px" }} title={NO_TOOLS_HINT}>
+          This model has no tool calling, which {armLabel(config, arm)} needs. Pick another model, or B0 / RAG.
+        </p>
+      )}
 
       <div className="chat-log" ref={logRef} aria-live="polite">
         {turns.length === 0 && (
           <div className="chat-empty">
             <Icon name="chat" size={32} />
             <h3>Ask about any of the 25 companies</h3>
-            <p>Revenue, growth, risk events from 8-Ks, comparisons. Every claim links to its source.</p>
-            <div className="chat-examples">
-              {EXAMPLE_QUESTIONS.map((q) => (
-                <button key={q} className="chat-example" onClick={() => submit(q)}>
-                  {q}
-                </button>
-              ))}
-            </div>
+            <p>Revenue, growth, risk events from 8-Ks, comparisons. Every claim links to its source. Or pick a demo to send it now.</p>
+            <DemoGrid onPick={(d) => submit(d.question)} disabled={busy} />
           </div>
         )}
         {turns.map((t, i) => {

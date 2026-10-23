@@ -32,6 +32,17 @@ describe("http client", () => {
     expect(calls[2]?.url).toBe("/api/datasets/financebench/items/financebench%3Afb%201");
   });
 
+  it("gets the live OpenRouter list and sends the chat arm", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const client = createHttpClient("/api", fakeFetch(200, { models: [], fetched_at: 1 }, calls));
+    await client.openrouterModels();
+    await client.chat({ messages: [{ role: "user", content: "hi" }], model: "openrouter/google/gemma-4-31b-it:free", arm: "react" });
+    expect(calls[0]?.url).toBe("/api/openrouter/models");
+    expect(calls[0]?.init?.method).toBe("GET");
+    expect(calls[1]?.url).toBe("/api/chat");
+    expect(JSON.parse(String(calls[1]?.init?.body))).toMatchObject({ arm: "react", model: "openrouter/google/gemma-4-31b-it:free" });
+  });
+
   it("turns {detail} error bodies into ApiError", async () => {
     const client = createHttpClient("/api", fakeFetch(404, { detail: "Unknown dataset: nope" }));
     await expect(client.datasetItems("nope")).rejects.toMatchObject({ status: 404, detail: "Unknown dataset: nope" });

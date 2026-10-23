@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "../api/client";
-import { EXAMPLE_QUESTIONS } from "../lib/examples";
+import { DEMO_QUESTIONS, EXAMPLE_QUESTIONS } from "../lib/examples";
 import { parseCitations } from "../lib/citations";
 import { createMockClient } from ".";
 import { findScenario } from "./scenarios";
@@ -74,7 +74,8 @@ describe("mock compare", () => {
   });
 
   it("abstains on the false-premise question", async () => {
-    const { results } = await api.compare({ question: EXAMPLE_QUESTIONS[1]!, item_id: null, configs: [{ arm: "loupe", model: "groq-llama-70b" }] });
+    const falsePremise = DEMO_QUESTIONS.find((d) => d.id === "false-premise")!.question;
+    const { results } = await api.compare({ question: falsePremise, item_id: null, configs: [{ arm: "loupe", model: "groq-llama-70b" }] });
     expect(results[0]?.answer.abstained).toBe(true);
     expect(results[0]?.gold).toBeNull(); // free-text question: no gold
   });
@@ -101,6 +102,31 @@ describe("mock compare", () => {
 
   it("generates answers for numeric dataset items", () => {
     expect(findScenario(null, "loupe-gold:num-JPM-NetIncomeLoss-FY2024")).not.toBeNull();
+  });
+});
+
+describe("mock OpenRouter models and chat", () => {
+  it("lists free OpenRouter models, tool-calling ones first, including one without tools", async () => {
+    const { models, fetched_at } = await api.openrouterModels();
+    expect(fetched_at).toBeGreaterThan(0);
+    expect(models.length).toBeGreaterThanOrEqual(3);
+    for (const m of models) {
+      expect(m.alias).toBe(`openrouter/${m.id}`);
+      expect(m.free).toBe(true);
+    }
+    expect(models.some((m) => !m.tools)).toBe(true);
+    const firstNoTools = models.findIndex((m) => !m.tools);
+    expect(models.slice(firstNoTools).every((m) => !m.tools)).toBe(true);
+  });
+
+  it("answers chat with the requested arm (Loupe by default) and accepts custom OpenRouter aliases", async () => {
+    const messages = [{ role: "user" as const, content: EXAMPLE_QUESTIONS[0]! }];
+    expect((await api.chat({ messages, model: "gemini-flash" })).arm).toBe("loupe");
+    const r = await api.chat({ messages, model: "openrouter/qwen/qwen3-235b-a22b:free", arm: "react" });
+    expect(r.arm).toBe("react");
+    expect(r.model).toBe("openrouter/qwen/qwen3-235b-a22b:free");
+    expect(r.error).toBeNull();
+    await expect(api.chat({ messages, model: "gemini-flash", arm: "nope" })).rejects.toMatchObject({ status: 422 });
   });
 });
 
