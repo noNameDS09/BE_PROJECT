@@ -29,6 +29,8 @@ from loupe.api.models import (
     ItemsResponse,
     LeaderboardResponse,
     ModelInfo,
+    OpenRouterModel,
+    OpenRouterModelsResponse,
     RunRequest,
     RunResult,
     RunsResponse,
@@ -218,7 +220,46 @@ def chat(req: ChatRequest) -> RunResult:
     if history:
         convo = "\n".join(f"{m.role}: {m.content[:800]}" for m in history)
         question = f"Conversation so far:\n{convo}\n\nCurrent question: {question}"
-    return _run(question, "loupe", req.model, None)
+    return _run(question, req.arm, req.model, None)
+
+
+_openrouter_cache: dict[str, OpenRouterModelsResponse] = {}
+
+
+@app.get("/api/openrouter/models", response_model=OpenRouterModelsResponse)
+def openrouter_models(free_only: bool = True, refresh: bool = False) -> OpenRouterModelsResponse:
+    """OpenRouter's live model list (cached for an hour), for the Bench's model picker."""
+    import time
+
+    import httpx
+
+    key = f"free={free_only}"
+    cached = _openrouter_cache.get(key)
+    if cached and not refresh and time.time() - cached.fetched_at < 3600:
+        return cached
+    try:
+        data = httpx.get("https://openrouter.ai/api/v1/models", timeout=20).json()["data"]
+    except Exception as exc:
+        if cached:
+            return cached
+        raise HTTPException(502, f"could not reach OpenRouter: {type(exc).__name__}") from exc
+    models = []
+    for m in data:
+        pricing = m.get("pricing") or {}
+        free = m["id"].endswith(":free") or (
+            str(pricing.get("prompt")) == "0" and str(pricing.get("completion")) == "0"
+        )
+        if free_only and not free:
+            continue
+        models.append(OpenRouterModel(
+            alias=f"openrouter/{m['id']}", id=m["id"], name=m.get("name") or m["id"],
+            context_length=m.get("context_length"),
+            tools="tools" in (m.get("supported_parameters") or []), free=free,
+        ))  # fmt: skip
+    models.sort(key=lambda m: (not m.tools, m.name.lower()))
+    result = OpenRouterModelsResponse(models=models, fetched_at=time.time())
+    _openrouter_cache[key] = result
+    return result
 
 
 @app.get("/api/datasets/{name}/items", response_model=ItemsResponse)

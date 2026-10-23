@@ -159,3 +159,14 @@ def test_a_provider_that_keeps_failing_is_paused(tmp_path):
             gw.complete("a", [{"role": "user", "content": str(i)}])
     assert gw.complete("a", [{"role": "user", "content": "next"}]).text == "OK"
     assert sleeps == [300.0]  # cool-down before the next call to that provider
+
+
+def test_any_openrouter_model_id_resolves_without_config():
+    reg = ModelRegistry({})
+    alias = "openrouter/google/gemma-4-26b-a4b-it:free"
+    spec = reg.get(alias)
+    assert (spec.provider, spec.model) == ("openrouter", alias)
+    with pytest.raises(KeyError):
+        reg.get("openrouter/")
+    with pytest.raises(KeyError):
+        reg.get("not-a-model")

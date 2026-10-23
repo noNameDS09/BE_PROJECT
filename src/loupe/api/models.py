@@ -97,6 +97,21 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     model: str
+    arm: str = "loupe"
+
+
+class OpenRouterModel(BaseModel):
+    alias: str  # "openrouter/<id>", usable anywhere a model alias is
+    id: str
+    name: str
+    context_length: int | None = None
+    tools: bool = False  # supports tool calling (needed by agent methods)
+    free: bool = True
+
+
+class OpenRouterModelsResponse(BaseModel):
+    models: list[OpenRouterModel]
+    fetched_at: float
 
 
 class DocumentResponse(BaseModel):

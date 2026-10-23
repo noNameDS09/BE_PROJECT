@@ -80,3 +80,18 @@ def test_retriever_fuses_query_variants_and_reranks():
     assert [h.chunk.chunk_id for h in plain.retrieve("q", extra_queries=["q2"])] == ["c", "a"]
     reranked = Retriever(index, RetrievalConfig(k=2, rerank="minilm-l12"), ReverseReranker())
     assert [h.chunk.chunk_id for h in reranked.retrieve("q")] == ["c", "b"]
+
+
+def test_distress_reports_missing_income_instead_of_failing():
+    # Diebold FY2023 (its bankruptcy year) reports neither operating nor pre-tax income in XBRL
+    from loupe.tools.distress import altman_z2
+    from loupe.tools.facts import FactResult
+
+    class Facts:
+        def get(self, company, metric, year, period="FY"):
+            known = {"current_assets": 2.0, "current_liabilities": 1.0, "total_assets": 5.0,
+                     "retained_earnings": 1.0, "total_liabilities": 3.0, "equity": 2.0}  # fmt: skip
+            return FactResult.model_construct(value=known[metric]) if metric in known else None
+
+    res = altman_z2(Facts(), "DBD", 2023, "Technology")
+    assert res.z_score is None and "operating_income" in res.missing
