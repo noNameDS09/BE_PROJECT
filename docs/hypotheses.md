@@ -7,17 +7,22 @@ Full project plan: `docs/PLAN.md`.
 
 ## 1. Systems compared
 
-Every arm uses the same model, retriever (index, embeddings, top-k), toolset and token cap per question.
+Every arm uses the same model, retriever (index, embeddings, top-k) and token cap per question.
+
+**Tools (decision D21).**
+- The published baselines (O2–O5) get only the **generic tools** a standard agent framework provides: filing search (`search_filings`), a calculator (`calculate`) and the company list (`list_companies`).
+- Loupe gets the **financial harness** we built on top of those: exact XBRL facts with fiscal calendars, multi-company comparison, charts, forecasts, the distress score and the 8-K event table.
+- The claim under test is the whole system: orchestration plus harness. The `loupe-generic-tools` ablation runs Loupe's orchestration with the generic tools only, which separates the harness's contribution from the orchestration's.
 
 | Arm | Method | Reference |
 |---|---|---|
 | B0 | Model alone, no retrieval, no tools | Baseline |
 | O1 | Single-shot RAG: retrieve top-k, answer once | Standard RAG |
-| O2 | ReAct: thought → tool → observation loop | Yao et al., ICLR 2023 |
-| O3 | Plan-and-Execute (ReWOO style): plan all tool calls, execute, solve | Wang et al., ACL 2023; Xu et al. 2023 |
-| O4 | Router → one specialist agent (single intent) | Chakraborty et al. (FARE), IEEE Access 14, 2026 |
-| O5 | ReAct + Self-Refine critic (generate → critique → revise once) | Madaan et al., NeurIPS 2023 |
-| Loupe | Loupe-Orch v1 (section 2) | This project |
+| O2 | ReAct: thought → tool → observation loop (generic tools) | Yao et al., ICLR 2023 |
+| O3 | Plan-and-Execute (ReWOO style): plan all tool calls, execute, solve (generic tools) | Wang et al., ACL 2023; Xu et al. 2023 |
+| O4 | Router → one specialist agent (single intent; generic tools) | Chakraborty et al. (FARE), IEEE Access 14, 2026 |
+| O5 | ReAct + Self-Refine critic (generate → critique → revise once; generic tools) | Madaan et al., NeurIPS 2023 |
+| Loupe | Loupe-Orch v1 (section 2) with the financial harness | This project |
 
 **Crossed factor:** tools on (numbers come from code: XBRL lookup, calculator) vs tools off (the LLM reads and computes).
 
@@ -35,7 +40,7 @@ Every arm uses the same model, retriever (index, embeddings, top-k), toolset and
    - Unsupported claims trigger one revision. Anything still unsupported is removed.
 6. **Abstain.** If no claim survives, or the router finds no matching company or period in the corpus, the system says what is missing instead of answering.
 
-Ablations (RQ3) remove one component at a time: router (always plan), planner (single step), tools, code verifier, critic, abstain rule.
+Ablations (RQ3) remove one component at a time: router (always plan), planner (single step), tools, **harness (generic tools only)**, code verifier, critic, abstain rule.
 
 ## 3. Metrics
 

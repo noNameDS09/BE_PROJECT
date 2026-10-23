@@ -1,24 +1,68 @@
-import type { ArmInfo, CompanyInfo, ModelInfo } from "../../api/types";
+import type { ArmInfo, CompanyInfo, ModelInfo, OpenRouterModel, Toolset } from "../../api/types";
+
+/** Tool names per toolset, as /api/config reports them (decision D21). */
+const GENERIC_TOOLS = ["search_filings", "calculate", "list_companies"];
+const HARNESS_TOOLS = [
+  "search_filings",
+  "get_financial_metric",
+  "compare_companies",
+  "make_chart",
+  "forecast_metric",
+  "distress_score",
+  "list_events",
+  "calculate",
+  "list_companies",
+];
+
+function toolset(name: Toolset): Pick<ArmInfo, "toolset" | "tools"> {
+  return { toolset: name, tools: name === "none" ? [] : name === "generic" ? [...GENERIC_TOOLS] : [...HARNESS_TOOLS] };
+}
 
 export const ARMS: ArmInfo[] = [
-  { name: "b0", label: "B0 · Closed book", description: "The model alone: no retrieval, no tools. Baseline that shows hallucination." },
-  { name: "rag", label: "O1 · Single-shot RAG", description: "Retrieve the top-k passages once, answer in one call." },
-  { name: "react", label: "O2 · ReAct", description: "Think → act → observe loop over the shared tool set (Yao et al., ICLR 2023)." },
-  { name: "plan_execute", label: "O3 · Plan-and-Execute", description: "Plan every tool call up front, then execute (Wang et al., ACL 2023; ReWOO)." },
-  { name: "router", label: "O4 · FARE router", description: "Route the question to one specialist agent (FARE, IEEE Access 2026)." },
-  { name: "self_refine", label: "O5 · Self-Refine", description: "ReAct plus a critic pass that revises the answer once (Madaan et al., NeurIPS 2023)." },
-  { name: "loupe", label: "Loupe", description: "Router + selective planner + tools + code verifier + abstain. This project." },
+  { name: "b0", label: "B0 · Closed book", description: "The model alone: no retrieval, no tools. Baseline that shows hallucination.", ...toolset("none") },
+  { name: "rag", label: "O1 · Single-shot RAG", description: "Retrieve the top-k passages once, answer in one call.", ...toolset("none") },
+  { name: "react", label: "O2 · ReAct", description: "Think → act → observe loop over the generic tools (Yao et al., ICLR 2023).", ...toolset("generic") },
+  { name: "plan_execute", label: "O3 · Plan-and-Execute", description: "Plan every tool call up front, then execute (Wang et al., ACL 2023; ReWOO).", ...toolset("generic") },
+  { name: "router", label: "O4 · FARE router", description: "Route the question to one specialist agent (FARE, IEEE Access 2026).", ...toolset("generic") },
+  { name: "self_refine", label: "O5 · Self-Refine", description: "ReAct plus a critic pass that revises the answer once (Madaan et al., NeurIPS 2023).", ...toolset("generic") },
+  { name: "loupe", label: "Loupe", description: "Router + selective planner + financial tool harness + code verifier + abstain. This project.", ...toolset("harness") },
+  { name: "loupe-no-router", label: "Loupe minus router", description: "Loupe without the intent router.", ...toolset("harness") },
+  { name: "loupe-no-planner", label: "Loupe minus planner", description: "Loupe without the selective planner.", ...toolset("harness") },
+  { name: "loupe-no-verifier", label: "Loupe minus code verifier", description: "Loupe without the code verifier.", ...toolset("harness") },
+  { name: "loupe-no-critic", label: "Loupe minus critic", description: "Loupe without the critic pass.", ...toolset("harness") },
+  { name: "loupe-no-abstain", label: "Loupe minus abstain", description: "Loupe without the abstain policy.", ...toolset("harness") },
+  {
+    name: "loupe-generic-tools",
+    label: "Loupe minus harness (generic tools)",
+    description: "Loupe's orchestration with only the baselines' generic tools.",
+    ...toolset("generic"),
+  },
 ];
 
 export const MODELS: ModelInfo[] = [
-  { alias: "groq-llama-70b", provider: "groq", available: true },
-  { alias: "gemini-flash", provider: "gemini", available: true },
-  { alias: "gemini-flash-lite", provider: "gemini", available: true },
-  { alias: "or-qwen-72b", provider: "openrouter", available: true },
-  { alias: "or-llama-70b", provider: "openrouter", available: true },
-  { alias: "nim-llama-70b", provider: "nvidia_nim", available: false },
-  { alias: "ollama-qwen-7b", provider: "ollama", available: true },
-  { alias: "ollama-llama-8b", provider: "ollama", available: false },
+  { alias: "nim-nemotron-super", provider: "nvidia_nim", model: "nvidia_nim/nvidia/nemotron-3-super-120b-a12b", available: true },
+  { alias: "groq-llama-70b", provider: "groq", model: "groq/llama-3.3-70b-versatile", available: true },
+  { alias: "gemini-flash", provider: "gemini", model: "gemini/gemini-2.5-flash", available: true },
+  { alias: "gemini-flash-lite", provider: "gemini", model: "gemini/gemini-2.5-flash-lite", available: true },
+  { alias: "or-qwen-72b", provider: "openrouter", model: "openrouter/qwen/qwen-2.5-72b-instruct:free", available: true },
+  { alias: "or-llama-70b", provider: "openrouter", model: "openrouter/meta-llama/llama-3.3-70b-instruct:free", available: true },
+  { alias: "nim-llama-70b", provider: "nvidia_nim", model: "nvidia_nim/meta/llama-3.3-70b-instruct", available: false },
+  { alias: "ollama-qwen-7b", provider: "ollama", model: "ollama_chat/qwen2.5:7b-instruct", available: true },
+  { alias: "ollama-llama-8b", provider: "ollama", model: "ollama_chat/llama3.1:8b", available: false },
+];
+
+function openrouter(id: string, name: string, context_length: number | null, tools: boolean): OpenRouterModel {
+  return { alias: `openrouter/${id}`, id, name, context_length, tools, free: true };
+}
+
+/** GET /api/openrouter/models: OpenRouter's free models, tool-calling models first. */
+export const OPENROUTER_MODELS: OpenRouterModel[] = [
+  openrouter("google/gemma-4-31b-it:free", "Google: Gemma 4 31B (free)", 262144, true),
+  openrouter("nvidia/nemotron-3-super-120b-a12b:free", "NVIDIA: Nemotron 3 Super (free)", 262144, true),
+  openrouter("qwen/qwen3-235b-a22b:free", "Qwen: Qwen3 235B A22B (free)", 131072, true),
+  openrouter("meta-llama/llama-3.3-70b-instruct:free", "Meta: Llama 3.3 70B Instruct (free)", 131072, true),
+  openrouter("deepseek/deepseek-r1-0528:free", "DeepSeek: R1 0528 (free)", 163840, false),
+  openrouter("cognitivecomputations/dolphin-mistral-24b-venice-edition:free", "Venice: Uncensored (free)", 32768, false),
 ];
 
 /** The 25-company US universe (configs/companies_us.yaml). */

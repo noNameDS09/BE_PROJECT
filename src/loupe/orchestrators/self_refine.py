@@ -17,9 +17,11 @@ Return JSON {"ok": true|false, "issues": ["..."]}."""
 class SelfRefine:
     name = "self_refine"
     label = "O5 · ReAct + Self-Refine"
-    description = "Draft with tools, critique the draft against its evidence, revise once."
+    toolset = "generic"
+    description = "Draft with generic tools, critique the draft against its evidence, revise once."
 
     def run(self, question: str, ctx: RunContext) -> Answer:
+        ctx.use_toolset(self.toolset)
         messages = [
             {"role": "system", "content": ReAct.SYSTEM},
             {"role": "user", "content": question},

@@ -53,6 +53,8 @@ def altman_z2(
         )
         if pre is not None:
             got["pretax_income"], got["interest_expense"] = pre, interest
+        else:  # neither EBIT nor pre-tax income is reported: say so instead of failing
+            got["operating_income"] = None
     else:
         got["operating_income"] = ebit
     missing = [n for n, v in got.items() if v is None and n != "interest_expense"]

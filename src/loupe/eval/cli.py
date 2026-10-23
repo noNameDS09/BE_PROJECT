@@ -1,5 +1,7 @@
 """`loupe eval ...`: run experiments, report results, index benchmark documents."""
 
+import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -20,8 +22,9 @@ console = Console()
 
 
 def store() -> ResultStore:
-    d = get_settings().data_dir / "processed"
-    return ResultStore(d / "results.duckdb", d / "runs")
+    settings = get_settings()
+    d = settings.data_dir / "processed"
+    return ResultStore(d / settings.results_db, d / "runs")
 
 
 def _fmt(m: dict) -> str:
@@ -32,11 +35,18 @@ def _fmt(m: dict) -> str:
     return f"{m['mean']:.2f} [{m['lo']:.2f}, {m['hi']:.2f}]"
 
 
+def _log_row(r) -> None:
+    ok = f"correct={r.correct} halluc={r.hallucinated}"
+    outcome = f"ERROR {r.error[:120]}" if r.error else ok
+    stamp = datetime.now().strftime("%H:%M:%S")
+    print(f"{stamp} {r.dataset} {r.arm} {r.model} {r.item_id} {outcome}", flush=True)
+
+
 @app.command("run")
 def run(
     dataset: str,
     arm: Annotated[list[str], typer.Option(help="Arm(s); see `loupe arms`.")] = ["b0", "loupe"],  # noqa: B006
-    model: Annotated[list[str], typer.Option(help="Model alias(es).")] = ["nim-nemotron-super"],  # noqa: B006
+    model: Annotated[list[str], typer.Option(help="Model alias(es).")] = ["nim-nemotron-ultra"],  # noqa: B006
     split: Annotated[str, typer.Option(help="dev | test | all")] = "dev",
     limit: Annotated[int | None, typer.Option(help="Max items.")] = None,
     kind: Annotated[list[str] | None, typer.Option(help="Only these item kinds.")] = None,
@@ -73,8 +83,11 @@ def run(
     if judge and any(judge.split("-")[0] == m.split("-")[0] for m in model):
         console.print("[yellow]Warning: judge and a judged model share a provider family.[/]")
     runner = Runner(Engine(), store())
-    with console.status("running") as status:
-        rows = runner.run(spec, progress=status.update)
+    if sys.stdout.isatty():
+        with console.status("running") as status:
+            rows = runner.run(spec, progress=status.update)
+    else:  # detached run: one plain line per result, for the log file
+        rows = runner.run(spec, on_row=_log_row)
     errors = [r for r in rows if r.error]
     console.print(f"[green]{len(rows)} new results[/] ({len(errors)} errors)")
     for r in errors[:5]:

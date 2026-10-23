@@ -5,7 +5,7 @@
 import { ApiError, type ApiClient } from "../api/client";
 import { MAX_COMPARE_CONFIGS, type ConfigResponse, type DatasetInfo, type Kind } from "../api/types";
 import { sleep } from "./builders";
-import { ARMS, COMPANIES, MODELS } from "./fixtures/config";
+import { ARMS, COMPANIES, MODELS, OPENROUTER_MODELS } from "./fixtures/config";
 import { DOC_BY_ID } from "./fixtures/documents";
 import { ITEMS, ITEM_BY_ID, datasetNames } from "./fixtures/items";
 import { leaderboardRows, runRows, stageSteps } from "./fixtures/results";
@@ -40,6 +40,11 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
     async config(): Promise<ConfigResponse> {
       await wait(0.5);
       return { arms: ARMS, models: MODELS, datasets: datasets(), companies: COMPANIES };
+    },
+
+    async openrouterModels() {
+      await wait(1.5);
+      return { models: OPENROUTER_MODELS.map((m) => ({ ...m })), fetched_at: Math.floor(Date.now() / 1000) };
     },
 
     async run(body) {
@@ -133,8 +138,10 @@ export function createMockClient(opts: MockOptions = {}): ApiClient {
     async chat(body) {
       const last = [...body.messages].reverse().find((m) => m.role === "user");
       if (!last?.content.trim()) throw new ApiError(422, "messages must end with a user message");
+      const arm = body.arm ?? "loupe";
+      if (!ARMS.some((a) => a.name === arm)) throw new ApiError(422, `Unknown arm: ${arm}`);
       await wait(3);
-      return buildRun({ question: last.content, itemId: null, arm: "loupe", model: body.model, salt: String(++counter) });
+      return buildRun({ question: last.content, itemId: null, arm, model: body.model, salt: String(++counter) });
     },
   };
 }

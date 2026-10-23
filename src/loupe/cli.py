@@ -418,7 +418,7 @@ def ask(
     ] = None,
     model: Annotated[
         str, typer.Option(help="Model alias (configs/models.yaml).")
-    ] = "nim-nemotron-super",
+    ] = "nim-nemotron-ultra",
     rerank: Annotated[
         str | None, typer.Option(help="Reranker: minilm-l12 | minilm-l6 | bge-base | none")
     ] = "minilm-l12",

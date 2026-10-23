@@ -1,32 +1,10 @@
 import type { ArmInfo, ModelInfo, RunConfigPick } from "../api/types";
 import { MAX_COMPARE_CONFIGS } from "../api/types";
+import { NO_TOOLS_HINT, lacksToolCalling } from "../lib/modelPicker";
+import { useOpenRouterModels } from "../lib/useOpenRouterModels";
 import { Icon } from "./Icon";
-
-export function ModelSelect({
-  models,
-  value,
-  onChange,
-  label = "Model",
-  allowEmpty,
-}: {
-  models: ModelInfo[];
-  value: string;
-  onChange: (v: string) => void;
-  label?: string;
-  allowEmpty?: string;
-}) {
-  return (
-    <select className="select" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
-      {allowEmpty !== undefined && <option value="">{allowEmpty}</option>}
-      {models.map((m) => (
-        <option key={m.alias} value={m.alias}>
-          {m.alias}
-          {m.available ? "" : " (no key)"}
-        </option>
-      ))}
-    </select>
-  );
-}
+import { ModelPicker } from "./ModelPicker";
+import { ToolsetBadge } from "./ToolsetBadge";
 
 /** Pick up to four (arm × model) configurations to compare. */
 export function ConfigPicker({
@@ -50,6 +28,11 @@ export function ConfigPicker({
     const arm = arms.find((a) => !used.has(`${a.name}|${model}`))?.name ?? arms[0]?.name ?? "";
     onChange([...value, { arm, model }]);
   };
+  const { models: live } = useOpenRouterModels();
+  // Rows pairing a tool-using method with a model that cannot call tools.
+  const noTools = value.flatMap((c, i) =>
+    arms.find((a) => a.name === c.arm)?.toolset !== "none" && lacksToolCalling(c.model, live) ? [i + 1] : [],
+  );
   const dupes = new Set<string>();
   const seen = new Set<string>();
   for (const c of value) {
@@ -70,7 +53,10 @@ export function ConfigPicker({
               </option>
             ))}
           </select>
-          <ModelSelect models={models} value={c.model} onChange={(m) => set(i, { model: m })} label={`Model for config ${i + 1}`} />
+          <span className="config-toolset">
+            <ToolsetBadge arm={c.arm} />
+          </span>
+          <ModelPicker models={models} value={c.model} onChange={(m) => set(i, { model: m })} label={`Model for config ${i + 1}`} />
           <button className="btn ghost icon" onClick={() => remove(i)} disabled={value.length <= 1} aria-label={`Remove config ${i + 1}`}>
             <Icon name="close" size={14} />
           </button>
@@ -84,6 +70,11 @@ export function ConfigPicker({
           {value.length}/{max}
         </span>
         {dupes.size > 0 && <span className="small" style={{ color: "var(--warn)" }}>Duplicate configs will run twice.</span>}
+        {noTools.length > 0 && (
+          <span className="small" style={{ color: "var(--warn)" }} title={NO_TOOLS_HINT}>
+            {noTools.length > 1 ? "Configs" : "Config"} {noTools.join(", ")}: the model has no tool calling, which the method needs.
+          </span>
+        )}
       </div>
     </div>
   );

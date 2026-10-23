@@ -11,6 +11,7 @@ import type {
   ItemsResponse,
   LeaderboardQuery,
   LeaderboardResponse,
+  OpenRouterModelsResponse,
   RunRequest,
   RunResult,
   RunsQuery,
@@ -23,6 +24,8 @@ import type {
 export interface ApiClient {
   health(): Promise<HealthResponse>;
   config(): Promise<ConfigResponse>;
+  /** OpenRouter's current free models; HTTP 502 when OpenRouter is unreachable. */
+  openrouterModels(): Promise<OpenRouterModelsResponse>;
   run(body: RunRequest): Promise<RunResult>;
   compare(body: CompareRequest): Promise<CompareResponse>;
   datasetItems(name: string, query?: ItemsQuery): Promise<ItemsResponse>;
@@ -103,6 +106,7 @@ export function createHttpClient(base: string, fetchImpl: typeof fetch = fetch):
   return {
     health: () => request("GET", "/health"),
     config: () => request("GET", "/config"),
+    openrouterModels: () => request("GET", "/openrouter/models"),
     run: (body) => request("POST", "/runs", body),
     compare: (body) => request("POST", "/compare", body),
     datasetItems: (name, query) => request("GET", `/datasets/${enc(name)}/items${buildQuery(query)}`),
@@ -123,6 +127,7 @@ function deferred(load: Promise<ApiClient>): ApiClient {
   return {
     health: () => load.then((c) => c.health()),
     config: () => load.then((c) => c.config()),
+    openrouterModels: () => load.then((c) => c.openrouterModels()),
     run: (b) => load.then((c) => c.run(b)),
     compare: (b) => load.then((c) => c.compare(b)),
     datasetItems: (n, q) => load.then((c) => c.datasetItems(n, q)),

@@ -15,6 +15,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from loupe.agent.tools import TOOL_SPECS
 from loupe.api.models import (
     ArmInfo,
     ChatRequest,
@@ -28,6 +29,8 @@ from loupe.api.models import (
     ItemsResponse,
     LeaderboardResponse,
     ModelInfo,
+    OpenRouterModel,
+    OpenRouterModelsResponse,
     RunRequest,
     RunResult,
     RunsResponse,
@@ -40,6 +43,7 @@ from loupe.eval.runner import Runner, RunSpec, prepare, score
 from loupe.eval.schema import EvalItem, ResultRow
 from loupe.eval.store import ResultStore
 from loupe.orchestrators import ARMS, RunContext
+from loupe.orchestrators.base import TOOLSETS
 
 app = FastAPI(title="Loupe API", version="0.2.0")
 app.add_middleware(
@@ -60,8 +64,9 @@ def engine():
 
 @cache
 def store() -> ResultStore:
-    d = engine().settings.data_dir / "processed"
-    return ResultStore(d / "results.duckdb", d / "runs")
+    settings = engine().settings
+    d = settings.data_dir / "processed"
+    return ResultStore(d / settings.results_db, d / "runs")
 
 
 @cache
@@ -119,6 +124,11 @@ def health() -> dict:
     }
 
 
+def arm_tools(toolset: str) -> list[str]:
+    allowed = TOOLSETS[toolset]
+    return [t["function"]["name"] for t in TOOL_SPECS] if allowed is None else list(allowed)
+
+
 @app.get("/api/config", response_model=ConfigResponse)
 def config() -> ConfigResponse:
     e = engine()
@@ -130,10 +140,19 @@ def config() -> ConfigResponse:
         )
     return ConfigResponse(
         arms=[
-            ArmInfo(name=a.name, label=a.label, description=a.description) for a in ARMS.values()
+            ArmInfo(
+                name=a.name,
+                label=a.label,
+                description=a.description,
+                toolset=a.toolset,
+                tools=arm_tools(a.toolset),
+            )
+            for a in ARMS.values()
         ],
         models=[
-            ModelInfo(alias=m.alias, provider=m.provider, available=m.missing_key() is None)
+            ModelInfo(
+                alias=m.alias, provider=m.provider, model=m.model, available=m.missing_key() is None
+            )
             for m in e.gateway.registry.all()
         ],
         datasets=datasets,
@@ -171,9 +190,16 @@ def _run(question: str | None, arm: str, model: str, item_id: str | None) -> Run
     except Exception as exc:
         return RunResult(run_id=run_id, arm=arm, model=model, question=q, answer=None,
                          error=f"{type(exc).__name__}: {exc}"[:500])  # fmt: skip
+    empty = None
+    if not answer.text.strip():
+        last = answer.trace[-1] if answer.trace else None
+        budget = last is not None and last.tokens_out >= 3900
+        empty = ("The model returned an empty answer" + (
+            ": it used its whole output budget reasoning without writing one. Try another model."
+            if budget else "."))  # fmt: skip
     return RunResult(
         run_id=run_id, arm=arm, model=model, question=q, answer=answer, tokens=answer.tokens,
-        latency_ms=answer.latency_ms, cost_usd=answer.cost_usd, gold=gold,
+        latency_ms=answer.latency_ms, cost_usd=answer.cost_usd, gold=gold, error=empty,
     )  # fmt: skip
 
 
@@ -201,7 +227,46 @@ def chat(req: ChatRequest) -> RunResult:
     if history:
         convo = "\n".join(f"{m.role}: {m.content[:800]}" for m in history)
         question = f"Conversation so far:\n{convo}\n\nCurrent question: {question}"
-    return _run(question, "loupe", req.model, None)
+    return _run(question, req.arm, req.model, None)
+
+
+_openrouter_cache: dict[str, OpenRouterModelsResponse] = {}
+
+
+@app.get("/api/openrouter/models", response_model=OpenRouterModelsResponse)
+def openrouter_models(free_only: bool = True, refresh: bool = False) -> OpenRouterModelsResponse:
+    """OpenRouter's live model list (cached for an hour), for the Bench's model picker."""
+    import time
+
+    import httpx
+
+    key = f"free={free_only}"
+    cached = _openrouter_cache.get(key)
+    if cached and not refresh and time.time() - cached.fetched_at < 3600:
+        return cached
+    try:
+        data = httpx.get("https://openrouter.ai/api/v1/models", timeout=20).json()["data"]
+    except Exception as exc:
+        if cached:
+            return cached
+        raise HTTPException(502, f"could not reach OpenRouter: {type(exc).__name__}") from exc
+    models = []
+    for m in data:
+        pricing = m.get("pricing") or {}
+        free = m["id"].endswith(":free") or (
+            str(pricing.get("prompt")) == "0" and str(pricing.get("completion")) == "0"
+        )
+        if free_only and not free:
+            continue
+        models.append(OpenRouterModel(
+            alias=f"openrouter/{m['id']}", id=m["id"], name=m.get("name") or m["id"],
+            context_length=m.get("context_length"),
+            tools="tools" in (m.get("supported_parameters") or []), free=free,
+        ))  # fmt: skip
+    models.sort(key=lambda m: (not m.tools, m.name.lower()))
+    result = OpenRouterModelsResponse(models=models, fetched_at=time.time())
+    _openrouter_cache[key] = result
+    return result
 
 
 @app.get("/api/datasets/{name}/items", response_model=ItemsResponse)

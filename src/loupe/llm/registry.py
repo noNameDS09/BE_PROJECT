@@ -22,6 +22,7 @@ class ModelSpec(BaseModel):
     model: str  # LiteLLM model string
     provider: str
     rpm: int = 0
+    fallback: str | None = None  # alias serving the same weights through another provider
 
     @property
     def api_base(self) -> str | None:
@@ -46,6 +47,9 @@ class ModelSpec(BaseModel):
         return None
 
 
+OPENROUTER_PREFIX = "openrouter/"
+
+
 class ModelRegistry:
     def __init__(self, specs: dict[str, ModelSpec]):
         self._specs = specs
@@ -56,10 +60,12 @@ class ModelRegistry:
         return cls({alias: ModelSpec(alias=alias, **cfg) for alias, cfg in raw.items()})
 
     def get(self, alias: str) -> ModelSpec:
-        try:
+        if alias in self._specs:
             return self._specs[alias]
-        except KeyError:
-            raise KeyError(f"Unknown model alias {alias!r}; see configs/models.yaml") from None
+        if alias.startswith(OPENROUTER_PREFIX) and len(alias) > len(OPENROUTER_PREFIX):
+            # any OpenRouter model id, picked live in the Bench: "openrouter/<vendor>/<model>"
+            return ModelSpec(alias=alias, model=alias, provider="openrouter", rpm=15)
+        raise KeyError(f"Unknown model alias {alias!r}; see configs/models.yaml")
 
     def all(self) -> list[ModelSpec]:
         return list(self._specs.values())

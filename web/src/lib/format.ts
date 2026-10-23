@@ -27,6 +27,12 @@ export function formatPct(value: number | null | undefined, digits = 1): string 
   return `${(value * 100).toFixed(digits)}%`;
 }
 
+/** A difference of two rates in percentage points: 0.051 → "+5.1 pp". */
+export function formatPp(value: number | null | undefined, digits = 1): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return DASH;
+  return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(digits)} pp`;
+}
+
 /** Formats a bootstrap estimate as `mean [lo, hi]`, e.g. "62.3% [55.1, 69.0]". */
 export function formatMetric(metric: Metric | null | undefined, opts: { rate?: boolean; digits?: number } = {}): string {
   const rate = opts.rate ?? true;

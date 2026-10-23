@@ -17,11 +17,19 @@ export interface Citation {
   doc_id: string | null;
   chunk_id: string | null;
   fact_id: string | null;
+  /** For passage citations: the exact supporting line from the filing. */
   quote: string | null;
   start_char: number | null;
   end_char: number | null;
+  /**
+   * Fact citations usually point to SEC's inline XBRL viewer ("https://www.sec.gov/ix?doc=/Archives/…");
+   * otherwise this is the filing (folder) URL.
+   */
   url: string | null;
-  /** Set by the verifier, never by the model. */
+  /**
+   * Set per citation by the verifier, never by the model: true = the claim's numbers/quotes match
+   * this evidence, false = they don't, null = nothing checkable.
+   */
   verified: boolean | null;
 }
 
@@ -87,6 +95,11 @@ export interface Answer {
   abstained: boolean;
   trace: TraceStep[];
   evidence: Evidence[];
+  /**
+   * Sentences Loupe's code verifier removed because their numbers or quotes did not match the
+   * cited evidence. Empty for other arms; absent on answers stored before the field existed.
+   */
+  removed_claims?: string[];
 }
 
 // ---------------------------------------------------------------- docs/api.md: runs
@@ -146,6 +159,8 @@ export interface ChatMessage {
 export interface ChatRequest {
   messages: ChatMessage[];
   model: string;
+  /** Orchestration arm that answers; the backend defaults to "loupe". */
+  arm?: string;
 }
 
 // ---------------------------------------------------------------- docs/api.md: config
@@ -156,16 +171,47 @@ export interface HealthResponse {
   models_with_keys: number;
 }
 
+/**
+ * Which tools an arm may call (decision D21): "harness" = Loupe's financial tool harness,
+ * "generic" = what a standard agent framework ships, "none" = no tools.
+ */
+export type Toolset = "harness" | "generic" | "none";
+
 export interface ArmInfo {
   name: string;
   label: string;
   description: string;
+  toolset: Toolset;
+  /** Tool names this arm may call. */
+  tools: string[];
 }
 
 export interface ModelInfo {
   alias: string;
   provider: string;
+  /** The provider's model id, e.g. "nvidia_nim/nvidia/nemotron-3-super-120b-a12b". */
+  model: string;
   available: boolean;
+}
+
+/** One of OpenRouter's current free models (GET /api/openrouter/models). */
+export interface OpenRouterModel {
+  /** "openrouter/<id>"; usable anywhere a model alias is accepted. */
+  alias: string;
+  /** OpenRouter's model id, e.g. "google/gemma-4-31b-it:free". */
+  id: string;
+  name: string;
+  context_length: number | null;
+  /** Supports tool calling (needed by every arm except B0 and RAG). */
+  tools: boolean;
+  free: boolean;
+}
+
+export interface OpenRouterModelsResponse {
+  /** Tool-calling models first. */
+  models: OpenRouterModel[];
+  /** Unix seconds when the backend fetched the list from OpenRouter. */
+  fetched_at: number;
 }
 
 export interface DatasetInfo {

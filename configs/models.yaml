@@ -28,8 +28,13 @@ models:
     rpm: 8
 
   # --- NVIDIA NIM (build.nvidia.com; free, up to 40 RPM per model, no daily cap published) ---
-  nim-nemotron-super:           # 120B MoE (12B active), tool calling
-    model: nvidia_nim/nvidia/nemotron-3-super-120b-a12b
+  nim-nemotron-ultra:           # MAIN MODEL from 2026-10-23: Nemotron 3 Ultra 550B MoE, tool calling
+    model: nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b
+    provider: nvidia_nim
+    rpm: 35
+    fallback: or-nemotron-ultra  # same weights via OpenRouter when NIM fails
+  nim-nemotron-super:           # RETIRED by NVIDIA on 2026-10-20 (404 on NIM and OpenRouter);
+    model: nvidia_nim/nvidia/nemotron-3-super-120b-a12b  # kept so pilot 1-3 rows still resolve
     provider: nvidia_nim
     rpm: 35
   nim-gemma-4-31b:
@@ -65,8 +70,16 @@ models:
     provider: groq
     rpm: 25
 
-  # --- OpenRouter :free (20 RPM; 50 requests/day, or 1,000/day after a one-time $10 top-up) ---
-  or-nemotron-super:
+  # --- OpenRouter :free (20 RPM; our account has the 1,000 requests/day limit) ---
+  or-nemotron-ultra:
+    model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+    provider: openrouter
+    rpm: 15
+  or-nemotron-lightning:        # Nemotron 3.5 Lightning: small and fast
+    model: openrouter/nvidia/nemotron-3.5-lightning:free
+    provider: openrouter
+    rpm: 15
+  or-nemotron-super:            # RETIRED upstream on 2026-10-20 (see nim-nemotron-super)
     model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
     provider: openrouter
     rpm: 15
@@ -84,3 +97,4 @@ models:
     model: ollama_chat/gemma4:31b
     provider: ollama_cloud
     rpm: 20
+    fallback: nim-gemma-4-31b  # same weights on NVIDIA NIM (slower) when Ollama Cloud's cap is hit

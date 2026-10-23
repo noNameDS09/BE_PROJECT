@@ -6,11 +6,10 @@ import { EmptyState, ErrorBanner, SkeletonTable } from "../components/Feedback";
 import { FilterBar, FilterSelect } from "../components/Filters";
 import { MetricCell } from "../components/MetricCell";
 import { PlotlyChart } from "../components/PlotlyChart";
-import { DASH } from "../lib/format";
+import { ToolsetBadge } from "../components/ToolsetBadge";
+import { formatPp as pp } from "../lib/format";
 import { useAsync } from "../lib/useAsync";
 import { useConfig } from "../lib/useConfig";
-
-const pp = (v: number | null) => (v === null ? DASH : `${v >= 0 ? "+" : ""}${(v * 100).toFixed(1)} pp`);
 
 /** Splits steps into the ordered waterfall and the ablation rows. */
 export function splitStages(steps: StageStep[]): { waterfall: StageStep[]; ablations: StageStep[] } {
@@ -141,7 +140,12 @@ export function StagesPage() {
                     return (
                       <tr key={s.arm + s.label}>
                         <td>{s.label}</td>
-                        <td className="mono small">{s.arm}</td>
+                        <td className="nowrap">
+                          <span className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
+                            <span className="mono small">{s.arm}</span>
+                            <ToolsetBadge arm={s.arm} />
+                          </span>
+                        </td>
                         <td>
                           <MetricCell metric={s.accuracy} name="accuracy" />
                         </td>
@@ -171,7 +175,12 @@ export function StagesPage() {
                     return (
                       <tr key={s.arm + s.label}>
                         <td>{s.label}</td>
-                        <td className="mono small">{s.arm}</td>
+                        <td className="nowrap">
+                          <span className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
+                            <span className="mono small">{s.arm}</span>
+                            <ToolsetBadge arm={s.arm} />
+                          </span>
+                        </td>
                         <td>
                           <MetricCell metric={s.accuracy} name="accuracy" />
                         </td>

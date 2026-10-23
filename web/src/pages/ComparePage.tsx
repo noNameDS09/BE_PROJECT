@@ -3,30 +3,36 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { CompareRequest, ConfigResponse, EvalItem, RunConfigPick, RunResult } from "../api/types";
 import { ConfigPicker } from "../components/ConfigPicker";
-import { EmptyState, ErrorBanner, Skeleton, SkeletonLines, Spinner } from "../components/Feedback";
+import { DemoGrid } from "../components/DemoQuestions";
+import { EmptyState, ErrorBanner, InfoBanner, Skeleton, SkeletonLines, Spinner } from "../components/Feedback";
 import { Icon } from "../components/Icon";
 import { RunCard } from "../components/RunCard";
+import { ToolsetBadge } from "../components/ToolsetBadge";
 import { armColor } from "../lib/arms";
-import { EXAMPLE_QUESTIONS, datasetOf } from "../lib/examples";
+import { DEMO_ARMS, datasetOf, findDemo, type DemoQuestion } from "../lib/examples";
 import { truncate } from "../lib/format";
+import { isOpenRouterAlias } from "../lib/modelPicker";
 import { useAsync, useDebounced } from "../lib/useAsync";
 import { armLabel, useConfig } from "../lib/useConfig";
 
 type Mode = "question" | "item";
 
 const DEFAULT_CONFIGS: RunConfigPick[] = [
-  { arm: "b0", model: "nim-nemotron-super" },
-  { arm: "loupe", model: "nim-nemotron-super" },
+  { arm: "b0", model: "nim-nemotron-ultra" },
+  { arm: "loupe", model: "nim-nemotron-ultra" },
 ];
 
-/** Keeps the default configs valid against what /config actually offers. */
+/** Model for demo runs when no config row has one yet. */
+const DEMO_FALLBACK_MODEL = "nim-nemotron-ultra";
+
+/** Keeps the default configs valid against what /config actually offers (OpenRouter aliases are always accepted). */
 function sanitize(configs: RunConfigPick[], config: ConfigResponse): RunConfigPick[] {
   const arms = new Set(config.arms.map((a) => a.name));
   const models = new Set(config.models.map((m) => m.alias));
   const fallbackModel = config.models.find((m) => m.available)?.alias ?? config.models[0]?.alias ?? "";
   return configs.map((c) => ({
     arm: arms.has(c.arm) ? c.arm : (config.arms[0]?.name ?? c.arm),
-    model: models.has(c.model) ? c.model : fallbackModel,
+    model: models.has(c.model) || isOpenRouterAlias(c.model) ? c.model : fallbackModel,
   }));
 }
 
@@ -120,6 +126,7 @@ export function ComparePage() {
   const [results, setResults] = useState<RunResult[] | null>(null);
   const [ranFor, setRanFor] = useState<string>("");
   const [running, setRunning] = useState<RunConfigPick[] | null>(null);
+  const [runningFor, setRunningFor] = useState("");
   const [runError, setRunError] = useState<unknown>(null);
 
   useEffect(() => {
@@ -160,18 +167,23 @@ export function ComparePage() {
 
   const ready = configs.length > 0 && (mode === "question" ? question.trim().length > 0 : selected !== null);
 
-  async function run() {
-    if (!ready || running) return;
-    const body: CompareRequest =
-      mode === "question"
+  /** Runs the current setup, or `demo` (a free question with its own configs) when given. */
+  async function run(demo?: { question: string; configs: RunConfigPick[] }) {
+    if (running || (!demo && !ready)) return;
+    const runConfigs = demo?.configs ?? configs;
+    const body: CompareRequest = demo
+      ? { question: demo.question, item_id: null, configs: runConfigs }
+      : mode === "question"
         ? { question: question.trim(), item_id: null, configs }
         : { question: null, item_id: (selected as EvalItem).item_id, configs };
-    setRunning(configs);
+    const askedFor = body.question ?? (selected as EvalItem).question;
+    setRunning(runConfigs);
+    setRunningFor(askedFor);
     setRunError(null);
     try {
       const res = await api.compare(body);
       setResults(res.results);
-      setRanFor(mode === "question" ? question.trim() : (selected as EvalItem).question);
+      setRanFor(askedFor);
     } catch (e) {
       setRunError(e);
     } finally {
@@ -179,9 +191,23 @@ export function ComparePage() {
     }
   }
 
+  /** Fills the question, sets B0 / ReAct / Loupe on the first row's model, and runs at once. */
+  function runDemo(demo: DemoQuestion) {
+    if (running) return;
+    const model = configs[0]?.model || DEMO_FALLBACK_MODEL;
+    const picks = DEMO_ARMS.map((arm) => ({ arm, model }));
+    const next = config ? sanitize(picks, config) : picks;
+    switchMode("question");
+    setQuestion(demo.question);
+    setConfigs(next);
+    void run({ question: demo.question, configs: next });
+  }
+
   if (configError) return <ErrorBanner title="Could not load /api/config" error={configError} onRetry={retry} />;
 
   const cols = running?.length ?? results?.length ?? 2;
+  const activeDemo = mode === "question" ? findDemo(question) : undefined;
+  const shownDemo = findDemo(running ? runningFor : results ? ranFor : "");
 
   return (
     <div>
@@ -223,13 +249,6 @@ export function ComparePage() {
                     }
                   }}
                 />
-                <div className="examples">
-                  {EXAMPLE_QUESTIONS.map((q) => (
-                    <button key={q} className="example" onClick={() => setQuestion(q)} title={q}>
-                      {truncate(q, 64)}
-                    </button>
-                  ))}
-                </div>
               </>
             ) : config ? (
               <div className="stack" style={{ gap: 10 }}>
@@ -278,9 +297,27 @@ export function ComparePage() {
         </section>
       </div>
 
+      <section className="card demo-panel">
+        <div className="card-head">
+          <h2>Demo questions</h2>
+          <span className="small faint">Click one to run it on B0, ReAct and Loupe with the first row's model. Hover for what to look for.</span>
+        </div>
+        <div className="card-pad">
+          <DemoGrid onPick={runDemo} activeId={activeDemo?.id} disabled={Boolean(running)} />
+        </div>
+      </section>
+
       {Boolean(runError) && (
         <div style={{ marginBottom: 14 }}>
           <ErrorBanner title="Comparison failed" error={runError} onRetry={ready ? () => void run() : undefined} />
+        </div>
+      )}
+
+      {shownDemo && (running || results) && (
+        <div style={{ marginBottom: 12 }}>
+          <InfoBanner>
+            <strong>{shownDemo.title}: what to look for.</strong> {shownDemo.lookFor}
+          </InfoBanner>
         </div>
       )}
 
@@ -292,6 +329,7 @@ export function ComparePage() {
                 <div className="run-title">
                   <span className="arm-swatch" style={{ background: armColor(c.arm) }} />
                   <strong>{armLabel(config, c.arm)}</strong>
+                  <ToolsetBadge arm={c.arm} />
                   <span className="tag">{c.model}</span>
                 </div>
                 <div className="stats-strip">

@@ -9,6 +9,7 @@ class ClosedBook:
 
     name = "b0"
     label = "B0 · Closed book"
+    toolset = "none"
     description = "The model answers from memory: no documents, no tools. Shows what it makes up."
     SYSTEM = (
         "You are a financial analyst. Answer the question about the company accurately and "
@@ -28,6 +29,7 @@ class SingleShotRAG:
 
     name = "rag"
     label = "O1 · Single-shot RAG"
+    toolset = "none"
     description = "Retrieve the top passages for the question once, then answer once."
     SYSTEM = (
         "You are a financial analyst answering questions from SEC filing passages.\n" + CITED_RULES

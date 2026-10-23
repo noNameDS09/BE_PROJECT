@@ -41,11 +41,14 @@ ROUTER = (
 class Router:
     name = "router"
     label = "O4 · Router → specialist (FARE)"
+    toolset = "generic"
     description = (
-        "Route the question to exactly one specialist agent with its own prompt and tools."
+        "Route the question to exactly one specialist agent with its own prompt; "
+        "generic tools only."
     )
 
     def run(self, question: str, ctx: RunContext) -> Answer:
+        ctx.use_toolset(self.toolset)
         out = ctx.llm_json("route", ROUTER, question, 1500)
         intent = out.get("intent") if isinstance(out, dict) else None
         if intent not in SPECIALISTS:
