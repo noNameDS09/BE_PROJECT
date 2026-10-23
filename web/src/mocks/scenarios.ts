@@ -14,7 +14,6 @@ import {
   chunkCite,
   cite,
   claim,
-  emptyAnswer,
   evidence,
   hash01,
   hashHex,
@@ -392,7 +391,7 @@ export function buildRun({ question, itemId, arm, model, salt = "" }: MockRunInp
 
   const modelError = MODEL_ERRORS[model];
   if (modelError) {
-    return { run_id, arm, model, question: q, answer: emptyAnswer(), tokens: 0, latency_ms: 0, cost_usd: 0, gold, error: modelError };
+    return { run_id, arm, model, question: q, answer: null, tokens: 0, latency_ms: 0, cost_usd: 0, gold, error: modelError }; // like the real API
   }
 
   const scenario = findScenario(question, itemId);

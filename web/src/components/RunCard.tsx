@@ -19,7 +19,8 @@ export function CorrectBadge({ correct }: { correct: number | null | undefined }
 /** One column of a comparison: header strip (cost, verdicts, gold) and the answer. */
 export function RunCard({ result }: { result: RunResult }) {
   const { config } = useConfig();
-  const s = claimSummary(result.answer.claims);
+  const answer = result.answer; // null when the run failed (result.error explains why)
+  const s = claimSummary(answer?.claims ?? []);
   return (
     <article className="card run-col" aria-label={`${result.arm} · ${result.model}`}>
       <header className="run-col-head">
@@ -29,7 +30,7 @@ export function RunCard({ result }: { result: RunResult }) {
           <ToolsetBadge arm={result.arm} />
           <span className="tag">{result.model}</span>
           <span className="spacer" />
-          {result.answer.abstained && <span className="badge warn">abstained</span>}
+          {answer?.abstained && <span className="badge warn">abstained</span>}
           {result.error && <span className="badge bad">error</span>}
         </div>
         <div className="stats-strip num">
@@ -42,7 +43,7 @@ export function RunCard({ result }: { result: RunResult }) {
           <span>
             <b>{formatCost(result.cost_usd)}</b>
           </span>
-          {result.answer.claims.length > 0 && (
+          {s.supported + s.unsupported + s.unchecked > 0 && (
             <span title="supported / unsupported / unchecked claims">
               claims <b style={{ color: "var(--good)" }}>{s.supported}</b>/<b style={{ color: "var(--bad)" }}>{s.unsupported}</b>/
               <b className="faint">{s.unchecked}</b>
@@ -59,17 +60,17 @@ export function RunCard({ result }: { result: RunResult }) {
           <CorrectBadge correct={result.gold.correct} />
         </div>
       )}
-      {result.error ? (
+      {result.error || !answer ? (
         <div className="banner error-card" role="alert">
           <Icon name="alert" />
           <div className="banner-body">
             <strong>This configuration failed</strong>
-            <div className="small muted mono">{result.error}</div>
+            <div className="small muted mono">{result.error ?? "No answer was returned."}</div>
           </div>
         </div>
       ) : (
         <div className="run-body">
-          <AnswerView answer={result.answer} />
+          <AnswerView answer={answer} />
         </div>
       )}
       <div className="small faint mono" style={{ padding: "0 14px 10px" }}>

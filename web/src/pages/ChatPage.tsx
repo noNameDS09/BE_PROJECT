@@ -22,7 +22,7 @@ export function toMessages(turns: Turn[]): ChatMessage[] {
   const out: ChatMessage[] = [];
   for (const t of turns) {
     if (t.role === "user") out.push({ role: "user", content: t.content });
-    else if (t.role === "assistant") out.push({ role: "assistant", content: t.result.answer.text });
+    else if (t.role === "assistant" && t.result.answer) out.push({ role: "assistant", content: t.result.answer.text });
   }
   return out;
 }
@@ -155,7 +155,11 @@ export function ChatPage() {
           return (
             <div key={i} className="msg assistant">
               <div className="bubble">
-                {r.error ? <ErrorBanner title="Model call failed" error={new Error(r.error)} /> : <AnswerView answer={r.answer} />}
+                {r.error || !r.answer ? (
+                  <ErrorBanner title="Model call failed" error={new Error(r.error ?? "No answer was returned.")} />
+                ) : (
+                  <AnswerView answer={r.answer} />
+                )}
               </div>
               <div className="msg-meta num">
                 {r.arm} · {r.model} · {formatTokens(r.tokens)} tokens · {formatLatency(r.latency_ms)} · {formatCost(r.cost_usd)}

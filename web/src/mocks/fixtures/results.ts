@@ -130,7 +130,7 @@ function buildRunRows(): ResultRow[] {
         k += 1;
         const run = buildRun({ question: null, itemId: item.item_id, arm, model, salt: "stored" });
         const timeout = model === "ollama-qwen-7b" && arm === "self_refine" && hash01(item.item_id, "timeout") < 0.2;
-        const claims = run.answer.claims;
+        const claims = run.answer!.claims;
         const checkable = claims.filter((c) => c.supported !== null);
         const supported = checkable.filter((c) => c.supported === true).length;
         rows.push({
@@ -140,11 +140,11 @@ function buildRunRows(): ResultRow[] {
           arm,
           model,
           config_hash: hashHex(arm, model, "cfg").slice(0, 12).padEnd(12, "0"),
-          answer: timeout ? "" : run.answer.text,
+          answer: timeout ? "" : run.answer!.text,
           correct: timeout ? null : (run.gold?.correct ?? null),
           supported_rate: timeout || checkable.length === 0 ? null : Number((supported / checkable.length).toFixed(3)),
           hallucinated: timeout || checkable.length === 0 ? null : supported < checkable.length,
-          abstained: !timeout && run.answer.abstained,
+          abstained: !timeout && run.answer!.abstained,
           retrieval_recall: arm === "b0" || timeout ? null : Number((0.55 + 0.45 * hash01(run.run_id, "recall")).toFixed(2)),
           tokens: timeout ? 0 : run.tokens,
           latency_ms: timeout ? 120000 : run.latency_ms,

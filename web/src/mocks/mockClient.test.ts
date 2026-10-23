@@ -44,30 +44,30 @@ describe("mock compare", () => {
       ],
     });
     const [b0, loupe] = results;
-    expect(b0?.answer.claims.some((c) => c.supported === false)).toBe(true);
+    expect(b0?.answer?.claims.some((c) => c.supported === false)).toBe(true);
     expect(b0?.gold?.correct).toBe(0);
-    expect(loupe?.answer.claims.length).toBeGreaterThan(0);
-    expect(loupe?.answer.claims.every((c) => c.supported === true)).toBe(true);
-    expect(loupe?.answer.charts.length).toBe(1);
+    expect(loupe?.answer?.claims.length).toBeGreaterThan(0);
+    expect(loupe?.answer?.claims.every((c) => c.supported === true)).toBe(true);
+    expect(loupe?.answer?.charts.length).toBe(1);
     expect(loupe?.gold?.correct).toBe(1);
     // Loupe's verifier removed a sentence; other arms never report removed claims.
-    expect(loupe?.answer.removed_claims?.length).toBeGreaterThan(0);
-    expect(b0?.answer.removed_claims ?? []).toEqual([]);
+    expect(loupe?.answer?.removed_claims?.length).toBeGreaterThan(0);
+    expect(b0?.answer?.removed_claims ?? []).toEqual([]);
     // Fact citations carry a verdict and point at SEC's inline XBRL viewer.
-    const fact = loupe!.answer.claims[0]!.citations[0]!;
+    const fact = loupe!.answer!.claims[0]!.citations[0]!;
     expect(fact.verified).toBe(true);
     expect(fact.url).toContain("/ix?doc=");
-    const passage = loupe!.answer.claims.flatMap((c) => c.citations).find((c) => c.chunk_id !== null);
+    const passage = loupe!.answer!.claims.flatMap((c) => c.citations).find((c) => c.chunk_id !== null);
     expect(passage?.quote).toBeTruthy();
     // tokens / latency are the sums over the trace
-    const t = loupe!.answer.trace.reduce((s, x) => s + x.tokens_in + x.tokens_out, 0);
+    const t = loupe!.answer!.trace.reduce((s, x) => s + x.tokens_in + x.tokens_out, 0);
     expect(loupe?.tokens).toBe(t);
   });
 
   it("every [E#] in Loupe answers resolves to an evidence item", async () => {
     for (const q of EXAMPLE_QUESTIONS) {
       const { results } = await api.compare({ question: q, item_id: null, configs: [{ arm: "loupe", model: "gemini-flash" }] });
-      const a = results[0]!.answer;
+      const a = results[0]!.answer!;
       const ids = new Set(a.evidence.map((e) => e.id));
       for (const tok of parseCitations(a.text)) if (tok.type === "cite") expect(ids.has(tok.id)).toBe(true);
     }
@@ -76,7 +76,7 @@ describe("mock compare", () => {
   it("abstains on the false-premise question", async () => {
     const falsePremise = DEMO_QUESTIONS.find((d) => d.id === "false-premise")!.question;
     const { results } = await api.compare({ question: falsePremise, item_id: null, configs: [{ arm: "loupe", model: "groq-llama-70b" }] });
-    expect(results[0]?.answer.abstained).toBe(true);
+    expect(results[0]?.answer?.abstained).toBe(true);
     expect(results[0]?.gold).toBeNull(); // free-text question: no gold
   });
 
@@ -90,7 +90,7 @@ describe("mock compare", () => {
       ],
     });
     expect(results[0]?.error).toMatch(/NVIDIA_NIM_API_KEY/);
-    expect(results[0]?.answer.text).toBe("");
+    expect(results[0]?.answer).toBeNull(); // failed runs carry no answer, like the real API
     expect(results[1]?.error).toBeNull();
   });
 
@@ -167,7 +167,7 @@ describe("mock results and documents", () => {
 
   it("documents return the cited span highlighted within the window", async () => {
     const { results } = await api.compare({ question: EXAMPLE_QUESTIONS[0]!, item_id: null, configs: [{ arm: "loupe", model: "groq-llama-70b" }] });
-    const chunk = results[0]!.answer.evidence.find((e) => e.kind === "chunk")!;
+    const chunk = results[0]!.answer!.evidence.find((e) => e.kind === "chunk")!;
     const doc = await api.document(chunk.citation.doc_id!, { start: chunk.citation.start_char, end: chunk.citation.end_char });
     const [a, b] = doc.highlight!;
     expect(doc.text.slice(a, b)).toBe(chunk.text);

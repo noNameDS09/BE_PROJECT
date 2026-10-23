@@ -115,7 +115,8 @@ export interface RunResult {
   arm: string;
   model: string;
   question: string;
-  answer: Answer;
+  /** null when the run failed before producing an answer (see `error`). */
+  answer: Answer | null;
   tokens: number;
   latency_ms: number;
   cost_usd: number;
