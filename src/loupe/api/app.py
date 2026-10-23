@@ -190,9 +190,16 @@ def _run(question: str | None, arm: str, model: str, item_id: str | None) -> Run
     except Exception as exc:
         return RunResult(run_id=run_id, arm=arm, model=model, question=q, answer=None,
                          error=f"{type(exc).__name__}: {exc}"[:500])  # fmt: skip
+    empty = None
+    if not answer.text.strip():
+        last = answer.trace[-1] if answer.trace else None
+        budget = last is not None and last.tokens_out >= 3900
+        empty = ("The model returned an empty answer" + (
+            ": it used its whole output budget reasoning without writing one. Try another model."
+            if budget else "."))  # fmt: skip
     return RunResult(
         run_id=run_id, arm=arm, model=model, question=q, answer=answer, tokens=answer.tokens,
-        latency_ms=answer.latency_ms, cost_usd=answer.cost_usd, gold=gold,
+        latency_ms=answer.latency_ms, cost_usd=answer.cost_usd, gold=gold, error=empty,
     )  # fmt: skip
 
 
